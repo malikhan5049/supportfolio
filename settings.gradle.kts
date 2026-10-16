@@ -7,11 +7,6 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            from(files("gradle/catalogs/libs.versions.toml"))
-        }
-    }
 }
 
 includeBuild("build-logic")
