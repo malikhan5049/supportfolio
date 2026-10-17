@@ -2,6 +2,8 @@
 
 List the project-wide rules this plan must respect, such as conventions, deadlines, environment limits, or dependencies on other work.
 
+All code must follow [`platform/harness/CODING_STANDARDS.md`](../CODING_STANDARDS.md); cite it instead of restating conventions.
+
 ## Review Focus
 
 Identify what reviewers should pay attention to. This is the quality gate the plan must pass before execution begins.

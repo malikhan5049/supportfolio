@@ -2,6 +2,8 @@
 
 This document is the committed, human-readable source of truth for every guardrail and policy the harness enforces.
 
+For how code is written, see [`CODING_STANDARDS.md`](CODING_STANDARDS.md).
+
 ## Human Gates
 
 The harness implements the following pipeline with mandatory human gates.
