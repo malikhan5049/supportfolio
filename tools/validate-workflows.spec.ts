@@ -40,3 +40,12 @@ describe('dependabot.yml', () => {
     expect(ecosystems).toEqual(expect.arrayContaining(['npm', 'gradle']));
   });
 });
+
+describe('validate-commit-messages.yml', () => {
+  it('is valid YAML with a pull_request trigger and a validation job', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/validate-commit-messages.yml', 'utf8'));
+    expect(doc.on.pull_request).toBeDefined();
+    expect(doc.jobs['validate-commit-messages']).toBeDefined();
+    expect(doc.jobs['validate-commit-messages'].steps.length).toBeGreaterThanOrEqual(2);
+  });
+});

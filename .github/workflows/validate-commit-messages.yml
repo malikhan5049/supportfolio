@@ -1,0 +1,51 @@
+name: Validate commit messages
+
+on:
+  pull_request:
+
+jobs:
+  validate-commit-messages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate all commits follow Conventional Commits
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          npx tsx -e "
+          import { isConventionalCommit } from './tools/is-conventional-commit.ts';
+          import { execSync } from 'child_process';
+
+          const base = process.env.BASE_SHA;
+          const head = process.env.HEAD_SHA;
+          const shas = execSync(\`git rev-list --reverse \${base}..\${head}\`, { encoding: 'utf8' })
+            .split('\\n')
+            .filter(Boolean);
+
+          if (shas.length === 0) {
+            console.log('No commits to validate.');
+            process.exit(0);
+          }
+
+          let failed = false;
+          for (const sha of shas) {
+            const message = execSync(\`git log -1 --format=%B \${sha}\`, { encoding: 'utf8' }).trimEnd();
+            const firstLine = message.split('\\n')[0];
+            if (!isConventionalCommit(message)) {
+              console.error(\`Non-conventional commit \${sha}: \${firstLine}\`);
+              failed = true;
+            }
+          }
+
+          if (failed) {
+            console.error('Commit-message validation failed. See https://www.conventionalcommits.org/');
+            process.exit(1);
+          }
+
+          console.log(\`Validated \${shas.length} commit(s).\`);
+          "
