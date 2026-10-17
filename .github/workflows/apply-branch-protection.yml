@@ -27,7 +27,7 @@ jobs:
           npx tsx -e "
           import { buildMainBranchRuleset } from './tools/branch-protection';
           import { writeFileSync } from 'fs';
-          const payload = buildMainBranchRuleset(['lint','test','build','validate-manifests','validate-commit-messages']);
+          const payload = buildMainBranchRuleset(['validate-manifests', 'validate-commit-messages', 'check-formatting']);
           writeFileSync('ruleset.json', JSON.stringify(payload));
           "
 

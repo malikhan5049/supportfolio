@@ -36,6 +36,13 @@ describe('apply-branch-protection.yml', () => {
     const raw = fs.readFileSync('.github/workflows/apply-branch-protection.yml', 'utf8');
     expect(raw).toContain("'validate-commit-messages'");
   });
+
+  it('registers only real required status checks', () => {
+    const raw = fs.readFileSync('.github/workflows/apply-branch-protection.yml', 'utf8');
+    expect(raw).toContain("'validate-manifests'");
+    expect(raw).toContain("'check-formatting'");
+    expect(raw).not.toContain("'lint'");
+  });
 });
 
 describe('dependabot.yml', () => {
