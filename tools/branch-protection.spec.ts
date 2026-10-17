@@ -9,4 +9,13 @@ describe('buildMainBranchRuleset', () => {
     ]));
     expect(ruleset.bypass_actors).toEqual([]);
   });
+
+  it('does not require approving reviews so the solo owner can merge their own PRs', () => {
+    const ruleset = buildMainBranchRuleset(['validate-manifests']);
+    const prRule = ruleset.rules.find((rule) => rule.type === 'pull_request');
+    expect(prRule).toBeDefined();
+    expect(prRule!.parameters).toMatchObject({
+      required_approving_review_count: 0,
+    });
+  });
 });
