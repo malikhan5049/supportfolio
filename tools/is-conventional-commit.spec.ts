@@ -7,6 +7,9 @@ describe('isConventionalCommit', () => {
   it('accepts "fix(shell): correct remote registry lookup"', () => {
     expect(isConventionalCommit('fix(shell): correct remote registry lookup')).toBe(true);
   });
+  it('accepts "style: apply Spotless formatting to shared-spring-starter"', () => {
+    expect(isConventionalCommit('style: apply Spotless formatting to shared-spring-starter')).toBe(true);
+  });
   it('rejects "updated stuff"', () => {
     expect(isConventionalCommit('updated stuff')).toBe(false);
   });

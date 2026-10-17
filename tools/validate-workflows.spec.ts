@@ -31,6 +31,11 @@ describe('apply-branch-protection.yml', () => {
     expect(doc.on.workflow_dispatch).toBeDefined();
     expect(doc.jobs.apply).toBeDefined();
   });
+
+  it('registers validate-commit-messages as a required status check', () => {
+    const raw = fs.readFileSync('.github/workflows/apply-branch-protection.yml', 'utf8');
+    expect(raw).toContain("'validate-commit-messages'");
+  });
 });
 
 describe('dependabot.yml', () => {
