@@ -7,9 +7,10 @@ describe('lint baseline', () => {
   });
 
   it('prettier formats a deliberately misformatted fixture to match the committed expectation', () => {
-    const formatted = execSync(
-      'npx prettier --config .prettierrc.json tools/fixtures/unformatted.ts',
-    ).toString();
+    const unformatted = fs.readFileSync('tools/fixtures/unformatted.ts', 'utf8');
+    const formatted = execSync('npx prettier --config .prettierrc.json --parser typescript', {
+      input: unformatted,
+    }).toString();
     expect(formatted).toBe(fs.readFileSync('tools/fixtures/formatted-expected.ts', 'utf8'));
   });
 });
