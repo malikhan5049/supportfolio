@@ -1,0 +1,22 @@
+id: tinyurl
+displayName: TinyURL
+shortDescription: URL shortener card
+features:
+  - url-shortening
+  - analytics
+exposedModules:
+  - name: card
+    version: 1.0.0
+    remoteEntry: https://cdn.example.com/tinyurl/card.js
+  - name: admin
+    version: 1.0.0
+    remoteEntry: https://cdn.example.com/tinyurl/admin.js
+pipeline:
+  stages:
+    - build
+    - test
+    - deploy
+environments:
+  - dev
+  - staging
+  - prod
