@@ -10,3 +10,5 @@ dependencyResolutionManagement {
 }
 
 includeBuild("build-logic")
+
+include("platform:shared-spring-starter")
