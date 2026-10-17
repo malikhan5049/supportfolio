@@ -29,4 +29,36 @@ describe('newProjectGenerator', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
   });
+
+  it('appends the service project include to the root settings.gradle.kts while preserving existing content', async () => {
+    const tree = createTreeWithEmptyWorkspace();
+    const initialSettings = `rootProject.name = "supportfolio"
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+includeBuild("build-logic")
+
+include("platform:shared-spring-starter")
+`;
+    tree.write('settings.gradle.kts', initialSettings);
+    await newProjectGenerator(tree, { name: 'tinyurl', displayName: 'TinyURL', shortDescription: 'Shorten a URL' });
+    const updated = tree.read('settings.gradle.kts', 'utf8');
+    expect(updated).toContain('include("projects:tinyurl:service")');
+    expect(updated).toContain('include("platform:shared-spring-starter")');
+    expect(updated).toContain('includeBuild("build-logic")');
+    expect(updated).toContain('rootProject.name = "supportfolio"');
+  });
+
+  it('creates root settings.gradle.kts with the project include when it does not exist', async () => {
+    const tree = createTreeWithEmptyWorkspace();
+    await newProjectGenerator(tree, { name: 'tinyurl', displayName: 'TinyURL', shortDescription: 'Shorten a URL' });
+    const created = tree.read('settings.gradle.kts', 'utf8');
+    expect(created).toContain('rootProject.name = "supportfolio"');
+    expect(created).toContain('include("projects:tinyurl:service")');
+  });
 });

@@ -26,4 +26,16 @@ export default async function newProjectGenerator(
       template: ''
     }
   );
+
+  const settingsPath = 'settings.gradle.kts';
+  const includeLine = `include("projects:${options.name}:service")`;
+  if (tree.exists(settingsPath)) {
+    const existing = tree.read(settingsPath, 'utf8') ?? '';
+    tree.write(
+      settingsPath,
+      existing.endsWith('\n') ? `${existing}${includeLine}\n` : `${existing}\n${includeLine}\n`
+    );
+  } else {
+    tree.write(settingsPath, `rootProject.name = "supportfolio"\n\n${includeLine}\n`);
+  }
 }
