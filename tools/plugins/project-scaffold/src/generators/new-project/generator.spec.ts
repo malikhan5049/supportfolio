@@ -16,6 +16,9 @@ describe('newProjectGenerator', () => {
     tree.write('projects/tinyurl/project.manifest.yaml', 'id: tinyurl');
     await expect(newProjectGenerator(tree, { name: 'tinyurl', displayName: 'TinyURL', shortDescription: 'x' }))
       .rejects.toThrow(/already exists/i);
+    expect(tree.read('projects/tinyurl/project.manifest.yaml', 'utf8')).toBe('id: tinyurl');
+    expect(tree.exists('projects/tinyurl/service/build.gradle.kts')).toBe(false);
+    expect(tree.exists('projects/tinyurl/microfrontend/project.json')).toBe(false);
   });
 
   it('generates a manifest that passes schema validation', async () => {
