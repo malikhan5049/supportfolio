@@ -1,0 +1,33 @@
+name: Frontend CI
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        description: 'Name of the Nx microfrontend project'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint microfrontend
+        run: npx nx lint ${{ inputs.project-name }}
+
+      - name: Test microfrontend
+        run: npx nx test ${{ inputs.project-name }}
+
+      - name: Build microfrontend
+        run: npx nx build ${{ inputs.project-name }}
