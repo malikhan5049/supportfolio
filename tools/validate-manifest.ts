@@ -17,7 +17,14 @@ const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
 const validate = ajv.compile(schema);
 
 export function validateManifest(manifestYaml: string): ManifestValidationResult {
-  const manifest = load(manifestYaml);
+  let manifest: unknown;
+  try {
+    manifest = load(manifestYaml);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { valid: false, errors: [`Invalid YAML: ${message}`] };
+  }
+
   const valid = validate(manifest);
 
   if (!valid) {

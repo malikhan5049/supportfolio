@@ -17,4 +17,10 @@ describe('validateManifest', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.join(' ')).toMatch(/card/i);
   });
+
+  it('returns a validation result for malformed YAML instead of throwing', () => {
+    const result = validateManifest('not: [valid yaml');
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/yaml/i);
+  });
 });
