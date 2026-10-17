@@ -1,0 +1,37 @@
+name: Apply branch protection ruleset
+
+# Public repositories are required for the free GitHub Actions environment
+# protection rules used elsewhere in this harness.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  administration: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Generate ruleset payload
+        id: payload
+        run: |
+          npx tsx -e "
+          import { buildMainBranchRuleset } from './tools/branch-protection';
+          import { writeFileSync } from 'fs';
+          const payload = buildMainBranchRuleset(['lint','test','build','validate-manifests']);
+          writeFileSync('ruleset.json', JSON.stringify(payload));
+          "
+
+      - name: Apply ruleset via gh api
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/${{ github.repository }}/rulesets -X POST --input ruleset.json

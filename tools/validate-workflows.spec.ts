@@ -14,3 +14,11 @@ describe('frontend-ci.yml', () => {
     expect(doc.on.workflow_call.inputs['project-name']).toBeDefined();
   });
 });
+
+describe('apply-branch-protection.yml', () => {
+  it('is valid YAML with a workflow_dispatch trigger and an apply job', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/apply-branch-protection.yml', 'utf8'));
+    expect(doc.on.workflow_dispatch).toBeDefined();
+    expect(doc.jobs.apply).toBeDefined();
+  });
+});
