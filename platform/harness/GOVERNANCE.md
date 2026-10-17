@@ -26,6 +26,7 @@ The harness implements the following pipeline with mandatory human gates.
 - Least-privilege self-hosted runner: runners receive only the permissions and secrets required for their workflow.
 - One agentic change in flight per project: concurrency controls prevent overlapping autonomous changes.
 - Secret scanning and push protection are enabled to block committed secrets.
+- Secret scanning and push protection are configured as a one-time manual step under the repository's Settings → Code security; this is a GitHub repository setting with no file representation.
 - Dependency and CVE scanning gate: a failed scan blocks promotion.
 - Build provenance is generated toward SLSA Build L2 for every release artifact.
 - Rollback-by-default via immutable images: deployed images are immutable and the harness defaults to rolling back on failure.

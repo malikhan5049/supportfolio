@@ -22,3 +22,11 @@ describe('apply-branch-protection.yml', () => {
     expect(doc.jobs.apply).toBeDefined();
   });
 });
+
+describe('dependabot.yml', () => {
+  it('is valid YAML with npm and gradle update configs', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/dependabot.yml', 'utf8'));
+    const ecosystems = doc.updates.map(u => u['package-ecosystem']);
+    expect(ecosystems).toEqual(expect.arrayContaining(['npm', 'gradle']));
+  });
+});
