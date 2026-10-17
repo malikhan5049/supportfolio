@@ -2,7 +2,12 @@ import { globSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { validateManifest, type ManifestValidationResult } from './validate-manifest';
 
-export function validateAllManifests(projectsDir: string): ManifestValidationResult[] {
+interface ManifestValidation {
+  filePath: string;
+  result: ManifestValidationResult;
+}
+
+function validateManifests(projectsDir: string): ManifestValidation[] {
   const manifestFiles = globSync('**/project.manifest.yaml', {
     cwd: resolve(projectsDir),
   });
@@ -11,27 +16,51 @@ export function validateAllManifests(projectsDir: string): ManifestValidationRes
     const filePath = resolve(projectsDir, file);
     try {
       const content = readFileSync(filePath, 'utf8');
-      return validateManifest(content);
+      return { filePath, result: validateManifest(content) };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { valid: false, errors: [`Failed to read ${filePath}: ${message}`] };
+      return {
+        filePath,
+        result: { valid: false, errors: [`Failed to read ${filePath}: ${message}`] },
+      };
     }
   });
 }
 
-if (require.main === module) {
-  const args = process.argv.slice(2);
-  const projectsDir = args.find((arg) => !arg.startsWith('-')) ?? 'projects';
-  const failOnInvalid = args.includes('--fail-on-invalid');
+export function validateAllManifests(projectsDir: string): ManifestValidationResult[] {
+  return validateManifests(projectsDir).map((validation) => validation.result);
+}
 
-  const results = validateAllManifests(projectsDir);
-  const invalidResults = results.filter((result) => !result.valid);
+export function main(argv: string[]): number {
+  const projectsDir = argv.find((arg) => !arg.startsWith('-')) ?? 'projects';
+  const failOnInvalid = argv.includes('--fail-on-invalid');
 
-  if (failOnInvalid && invalidResults.length > 0) {
-    console.error(`${invalidResults.length} manifest(s) failed validation.`);
-    process.exit(1);
+  const validations = validateManifests(projectsDir);
+  const invalid = validations.filter((validation) => !validation.result.valid);
+
+  if (invalid.length > 0) {
+    if (failOnInvalid) {
+      console.error(`${invalid.length} manifest(s) failed validation:`);
+      for (const validation of invalid) {
+        const normalizedPath = validation.filePath.replace(/\\/g, '/');
+        console.error(`  ${normalizedPath}`);
+        for (const error of validation.result.errors) {
+          console.error(`    - ${error}`);
+        }
+      }
+      return 1;
+    }
+
+    console.log(
+      `${invalid.length} invalid manifest(s) found (not failing because --fail-on-invalid was not set).`
+    );
+    return 0;
   }
 
-  console.log(`Validated ${results.length} manifest(s). All valid.`);
-  process.exit(0);
+  console.log(`Validated ${validations.length} manifest(s). All valid.`);
+  return 0;
+}
+
+if (require.main === module) {
+  process.exit(main(process.argv.slice(2)));
 }
