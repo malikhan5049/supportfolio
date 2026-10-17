@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "NewProjectGenerator",
+  "title": "New Project Generator",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique project identifier and directory name",
+      "x-prompt": "Project name (kebab-case)"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Human-readable project name",
+      "x-prompt": "Display name"
+    },
+    "shortDescription": {
+      "type": "string",
+      "description": "One-line description of the project",
+      "x-prompt": "Short description"
+    }
+  },
+  "required": ["name", "displayName", "shortDescription"]
+}

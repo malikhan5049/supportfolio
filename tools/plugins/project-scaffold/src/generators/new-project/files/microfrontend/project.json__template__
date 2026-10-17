@@ -1,0 +1,7 @@
+{
+  "name": "<%- name %>-microfrontend",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "projects/<%- name %>/microfrontend/src",
+  "projectType": "application",
+  "targets": {}
+}

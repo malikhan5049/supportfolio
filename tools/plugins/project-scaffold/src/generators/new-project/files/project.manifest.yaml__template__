@@ -1,0 +1,17 @@
+id: <%- name %>
+displayName: <%- displayName %>
+shortDescription: <%- shortDescription %>
+features: []
+exposedModules:
+  - name: card
+    version: 1.0.0
+    remoteEntry: https://cdn.example.com/<%- name %>/card.js
+pipeline:
+  stages:
+    - lint
+    - test
+    - build
+environments:
+  - dev
+  - test
+  - prod
