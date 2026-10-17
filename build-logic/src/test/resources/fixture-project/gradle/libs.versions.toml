@@ -1,0 +1,3 @@
+[versions]
+java = "17"
+spring-boot = "4.1.1"
