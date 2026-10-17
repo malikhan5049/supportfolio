@@ -8,6 +8,8 @@ on:
         required: true
         type: string
 
+concurrency: { group: "frontend-ci-${{ inputs.project-name }}", cancel-in-progress: false }
+
 jobs:
   build:
     runs-on: ubuntu-latest

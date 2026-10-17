@@ -6,12 +6,22 @@ describe('backend-ci.yml', () => {
     const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/backend-ci.yml', 'utf8'));
     expect(doc.on.workflow_call.inputs['project-path']).toBeDefined();
   });
+
+  it('serializes runs per project-path', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/backend-ci.yml', 'utf8'));
+    expect(doc.concurrency.group).toContain('${{ inputs.project-path }}');
+  });
 });
 
 describe('frontend-ci.yml', () => {
   it('is valid YAML with a workflow_call trigger', () => {
     const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/frontend-ci.yml', 'utf8'));
     expect(doc.on.workflow_call.inputs['project-name']).toBeDefined();
+  });
+
+  it('serializes runs per project-name', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/frontend-ci.yml', 'utf8'));
+    expect(doc.concurrency.group).toContain('${{ inputs.project-name }}');
   });
 });
 
