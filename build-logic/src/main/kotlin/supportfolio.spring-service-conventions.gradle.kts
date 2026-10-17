@@ -3,6 +3,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 plugins {
     java
+    id("com.diffplug.spotless")
 }
 
 apply(plugin = "org.springframework.boot")
@@ -24,6 +25,18 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(javaCatalogVersion.toInt())
     }
+}
+
+spotless {
+    lineEndings = com.diffplug.spotless.LineEnding.UNIX
+    java {
+        googleJavaFormat()
+        target("src/*/java/**/*.java")
+    }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 dependencies {
