@@ -3,5 +3,38 @@
   "version": "1.0.0",
   "description": "Supportfolio monorepo",
   "scripts": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@angular-devkit/core": "~22.1.0",
+    "@angular-devkit/schematics": "~22.1.0",
+    "@angular/cli": "~22.1.0",
+    "@angular/compiler-cli": "~22.1.0",
+    "@angular/language-service": "~22.1.0",
+    "@nx/angular": "^23.3.0",
+    "@nx/jest": "23.3.0",
+    "@nx/js": "23.3.0",
+    "@schematics/angular": "~22.1.0",
+    "@swc/helpers": "~0.5.18",
+    "@testing-library/angular": "^19.5.0",
+    "@testing-library/dom": "^10.4.2",
+    "@types/jest": "~30.0.0",
+    "@types/node": "^22.0.0",
+    "jest": "~30.3.0",
+    "jest-environment-jsdom": "~30.3.0",
+    "jest-preset-angular": "~17.0.0",
+    "jest-util": "~30.3.0",
+    "ts-jest": "^29.4.7",
+    "ts-node": "10.9.1",
+    "tslib": "^2.3.0",
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@angular/common": "~22.1.0",
+    "@angular/compiler": "~22.1.0",
+    "@angular/core": "~22.1.0",
+    "@angular/forms": "~22.1.0",
+    "@angular/platform-browser": "~22.1.0",
+    "@angular/platform-browser-dynamic": "~22.1.0",
+    "@angular/router": "~22.1.0",
+    "rxjs": "~7.8.0"
+  }
 }

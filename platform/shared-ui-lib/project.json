@@ -1,0 +1,20 @@
+{
+  "name": "shared-ui-lib",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "platform/shared-ui-lib/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
+      "options": {
+        "jestConfig": "platform/shared-ui-lib/jest.config.cts",
+        "tsConfig": "platform/shared-ui-lib/tsconfig.spec.json"
+      }
+    }
+  }
+}

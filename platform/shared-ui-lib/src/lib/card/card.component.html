@@ -1,0 +1,15 @@
+<article class="card">
+  <h3 class="card-title">{{ title || 'Untitled project' }}</h3>
+  <p class="card-description">{{ description }}</p>
+  <ul class="card-features">
+    <li *ngFor="let feature of features">{{ feature }}</li>
+  </ul>
+  <button
+    type="button"
+    class="card-action"
+    data-testid="open-action"
+    (click)="open.emit()"
+  >
+    Open
+  </button>
+</article>
