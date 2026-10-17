@@ -1,0 +1,8 @@
+tools/fixtures/
+package-lock.json
+.nx/
+node_modules/
+**/build/
+dist/
+.superpowers/
+.worktrees/

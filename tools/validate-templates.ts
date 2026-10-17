@@ -20,12 +20,7 @@ export const REQUIRED_SECTIONS: Record<TemplateName, string[]> = {
     '## Decided Architecture',
     "## What's Left to the Builder",
   ],
-  plan: [
-    '## Global Constraints',
-    '## Review Focus',
-    '## Tasks',
-    '## Self-Review Notes',
-  ],
+  plan: ['## Global Constraints', '## Review Focus', '## Tasks', '## Self-Review Notes'],
   'pr-checklist': [
     '## What Changed',
     '## Traces To',
@@ -37,7 +32,7 @@ export const REQUIRED_SECTIONS: Record<TemplateName, string[]> = {
 
 export function validateTemplate(
   templateName: TemplateName,
-  contents: string
+  contents: string,
 ): ManifestValidationResult {
   const required = REQUIRED_SECTIONS[templateName];
   if (!required) {

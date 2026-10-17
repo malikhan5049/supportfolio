@@ -52,7 +52,7 @@ export function main(argv: string[]): number {
     }
 
     console.log(
-      `${invalid.length} invalid manifest(s) found (not failing because --fail-on-invalid was not set).`
+      `${invalid.length} invalid manifest(s) found (not failing because --fail-on-invalid was not set).`,
     );
     return 0;
   }

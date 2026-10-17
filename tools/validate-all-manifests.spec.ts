@@ -3,7 +3,7 @@ import { validateAllManifests, main } from './validate-all-manifests';
 describe('validateAllManifests', () => {
   it('reports a failure for each invalid manifest found under projects/', () => {
     const results = validateAllManifests('tools/fixtures/projects-with-one-invalid');
-    expect(results.some(r => !r.valid)).toBe(true);
+    expect(results.some((r) => !r.valid)).toBe(true);
   });
 
   it('returns no failures when no manifests exist', () => {
@@ -23,7 +23,7 @@ describe('validate-all-manifests CLI output', () => {
     const exitCode = main(['tools/fixtures/projects-with-one-invalid', '--fail-on-invalid']);
 
     expect(exitCode).toBe(1);
-    const output = errorSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    const output = errorSpy.mock.calls.map((call) => call.join(' ')).join('\n');
     expect(output).toMatch(/badproject[\\/]project\.manifest\.yaml/);
     expect(output).toContain('must be "card"');
   });

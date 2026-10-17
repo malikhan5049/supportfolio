@@ -3,7 +3,9 @@ import { CardComponent } from './card.component';
 
 describe('CardComponent', () => {
   it('renders a fallback when title is empty', async () => {
-    const { fixture } = await render(CardComponent, { inputs: { title: '', description: 'd', features: [], openUrl: '#' } });
+    const { fixture } = await render(CardComponent, {
+      inputs: { title: '', description: 'd', features: [], openUrl: '#' },
+    });
     expect(fixture.nativeElement.textContent).toContain('Untitled project');
   });
 

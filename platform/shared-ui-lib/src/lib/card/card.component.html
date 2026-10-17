@@ -4,12 +4,7 @@
   <ul class="card-features">
     <li *ngFor="let feature of features">{{ feature }}</li>
   </ul>
-  <button
-    type="button"
-    class="card-action"
-    data-testid="open-action"
-    (click)="open.emit()"
-  >
+  <button type="button" class="card-action" data-testid="open-action" (click)="open.emit()">
     Open
   </button>
 </article>

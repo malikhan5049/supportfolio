@@ -5,9 +5,9 @@ export default {
   preset: '../../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
-    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }]
+    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../../../coverage/tools/plugins/project-scaffold',
-  testMatch: ['**/*.spec.ts']
+  testMatch: ['**/*.spec.ts'],
 } satisfies Config;

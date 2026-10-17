@@ -11,7 +11,7 @@ export interface ManifestValidationResult {
 const ajv = new Ajv2020({ allErrors: true });
 const schemaPath = resolve(
   __dirname,
-  '../platform/harness/manifest-schema/project.manifest.schema.json'
+  '../platform/harness/manifest-schema/project.manifest.schema.json',
 );
 const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
 const validate = ajv.compile(schema);
@@ -28,14 +28,15 @@ export function validateManifest(manifestYaml: string): ManifestValidationResult
   const valid = validate(manifest);
 
   if (!valid) {
-    const errors = validate.errors?.map((err) => {
-      const path = err.instancePath || '/';
-      const detail =
-        err.keyword === 'const' && err.params && 'allowedValue' in err.params
-          ? `must be ${JSON.stringify(err.params.allowedValue)}`
-          : err.message;
-      return `${path}: ${detail}`;
-    }) ?? [];
+    const errors =
+      validate.errors?.map((err) => {
+        const path = err.instancePath || '/';
+        const detail =
+          err.keyword === 'const' && err.params && 'allowedValue' in err.params
+            ? `must be ${JSON.stringify(err.params.allowedValue)}`
+            : err.message;
+        return `${path}: ${detail}`;
+      }) ?? [];
     return { valid: false, errors };
   }
 

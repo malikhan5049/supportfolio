@@ -9,7 +9,7 @@ export interface NewProjectGeneratorOptions {
 
 export default async function newProjectGenerator(
   tree: Tree,
-  options: NewProjectGeneratorOptions
+  options: NewProjectGeneratorOptions,
 ): Promise<void> {
   const projectRoot = join('projects', options.name);
 
@@ -17,15 +17,10 @@ export default async function newProjectGenerator(
     throw new Error(`Project "${options.name}" already exists`);
   }
 
-  generateFiles(
-    tree,
-    join(__dirname, 'files'),
-    projectRoot,
-    {
-      ...options,
-      template: ''
-    }
-  );
+  generateFiles(tree, join(__dirname, 'files'), projectRoot, {
+    ...options,
+    template: '',
+  });
 
   const settingsPath = 'settings.gradle.kts';
   const includeLine = `include("projects:${options.name}:service")`;
@@ -33,7 +28,7 @@ export default async function newProjectGenerator(
     const existing = tree.read(settingsPath, 'utf8') ?? '';
     tree.write(
       settingsPath,
-      existing.endsWith('\n') ? `${existing}${includeLine}\n` : `${existing}\n${includeLine}\n`
+      existing.endsWith('\n') ? `${existing}${includeLine}\n` : `${existing}\n${includeLine}\n`,
     );
   } else {
     tree.write(settingsPath, `rootProject.name = "supportfolio"\n\n${includeLine}\n`);
