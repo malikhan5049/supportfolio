@@ -19,5 +19,8 @@ build
 # VS Code Kotlin extension output directory
 build-logic/bin/
 
+# VS Code Java extension output directories
+bin/
+
 .angular
 node_modules/
