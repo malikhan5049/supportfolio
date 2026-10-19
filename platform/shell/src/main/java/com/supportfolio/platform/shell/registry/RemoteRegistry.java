@@ -38,7 +38,10 @@ public class RemoteRegistry {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.trustedOrigins = new HashSet<>();
-    for (String origin : properties.trustedRemoteOrigins()) {
+    List<String> origins = properties.trustedRemoteOrigins() == null
+        ? List.of()
+        : properties.trustedRemoteOrigins();
+    for (String origin : origins) {
       this.trustedOrigins.add(normalizedOrigin(origin));
     }
   }

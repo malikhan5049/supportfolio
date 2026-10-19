@@ -60,6 +60,14 @@ class RemoteRegistryTest {
   }
 
   @Test
+  void constructorToleratesNullTrustedOriginsUntilConfigured() throws IOException {
+    File file = registryFileWith(oneProject(TRUSTED_ORIGIN + "/remoteEntry.js", "1.0.0"));
+    RemoteRegistryProperties props =
+        new RemoteRegistryProperties("http://localhost:8081", file.toPath().toString(), null);
+    assertThat(new RemoteRegistry(props, objectMapper).projects()).isEmpty();
+  }
+
+  @Test
   void loadsAValidRegistryEntry() throws IOException {
     RemoteRegistry registry = registry();
     assertEquals(
