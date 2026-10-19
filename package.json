@@ -7,7 +7,7 @@
     "@angular-devkit/core": "~22.1.0",
     "@angular-devkit/schematics": "~22.1.0",
     "@angular/cli": "~22.1.0",
-    "@angular/compiler-cli": "~22.1.0",
+    "@angular/compiler-cli": "~22.2.3",
     "@angular/language-service": "~22.1.0",
     "@eslint/js": "^10.0.1",
     "@nx/angular": "^23.3.0",
