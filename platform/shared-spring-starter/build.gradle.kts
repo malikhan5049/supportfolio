@@ -7,6 +7,7 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     testImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     testImplementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test")
 }
 
 tasks.test {
