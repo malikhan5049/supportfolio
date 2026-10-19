@@ -1,1 +1,2 @@
 com.supportfolio.platform.sharedstarter.SharedStarterAutoConfiguration
+com.supportfolio.platform.sharedstarter.security.IdentityResourceServerAutoConfiguration
