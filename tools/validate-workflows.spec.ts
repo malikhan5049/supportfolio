@@ -73,3 +73,13 @@ describe('validate-commit-messages.yml', () => {
     expect(doc.jobs['validate-commit-messages'].steps.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('platform-ci.yml', () => {
+  it('is valid YAML that builds platform modules', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/platform-ci.yml', 'utf8'));
+    expect(doc.jobs['platform-build']).toBeDefined();
+    expect(doc.jobs['platform-build'].steps.map((s) => s.run)).toEqual(
+      expect.arrayContaining([expect.stringContaining('./gradlew build')]),
+    );
+  });
+});

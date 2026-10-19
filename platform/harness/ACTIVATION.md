@@ -8,3 +8,4 @@ One-time steps for the repo owner to activate this harness.
 4. Enable secret scanning and push protection: **GitHub Settings → Code security**. This is a repository setting with no file representation; see `GOVERNANCE.md`.
 5. After the first real PR, verify the required check names in the ruleset match the actual check-run names GitHub reports. Adjust the list in `apply-branch-protection.yml` if they differ.
 6. Dependabot activates automatically from `.github/dependabot.yml`; no action is needed.
+7. After the first run of `.github/workflows/platform-ci.yml`, refresh the ruleset **manually** via GitHub Settings → Rules → Rulesets — do not re-dispatch `apply-branch-protection.yml` (the POST is not idempotent and would duplicate the ruleset). Confirm GitHub reports the check-run name as `Platform CI / platform-build`; if it differs, adjust the array in `apply-branch-protection.yml` (step 5 rule).
