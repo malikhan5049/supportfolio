@@ -1,37 +1,55 @@
 # Model Routing — Superpowers Phases (binding)
 
 Applies to every agent working in this repo: the session/controller, all subagents,
-and all slash commands. Cost ceiling: **GLM-5.3 (full) is the most expensive model
-allowed.** Claude Sonnet 5.5 is reserved for Phase 6 (code review) and requires
-explicit human approval per use.
+and all slash commands. Global rules:
+
+- **GLM-5.3 (full) is the highest-cost model allowed for general use.**
+- Never use Kimi or Qwen for planning, brainstorming, or spec phases.
+- Never use Claude Sonnet except in Phase 6 when absolutely necessary (human-approved).
+- Prefer Flash-tier models for bulk work and multi-step execution.
+- Strict phase-model isolation: never auto-upgrade a model outside these rules.
 
 ## Phase routing
 
-| Phase | Primary | Fallback / secondary | Restrictions |
+| Phase | Primary | Upgrade / secondary | Fallback |
 |---|---|---|---|
-| 1. Brainstorming | `opencode/glm-5.3` via `/brainstorm` | `opencode/glm-5.3-flash` | Never Kimi, Qwen, or DeepSeek |
-| 2. Spec | `opencode/glm-5.3` (same session as `/brainstorm`) | `opencode/glm-5.3-flash` | Sonnet only if the spec is extremely complex AND the human explicitly asks |
-| 3. Plan | `opencode-go/deepseek-v4.1-flash#high` via `/plan` | `opencode/glm-5.3-flash` | Never Kimi or Qwen |
-| 4. TDD — test strategy, complex test logic | `opencode/glm-5.3-flash` (implementer dispatch) | `opencode/mimo-v2.6-flash-free` | Bulk/repetitive test generation → `opencode-go/qwen3.8-flash` |
-| 5. Build — main code execution | `opencode/glm-5.3-flash` (implementer dispatch) | `opencode/mimo-v2.6-flash-free` for multi-file consistency | Simple CRUD/boilerplate → `opencode-go/qwen3.8-flash` |
-| 6. Code review | `opencode/claude-sonnet-5-5` — only when the human explicitly approves | `opencode/glm-5.3-flash` for routine task reviews | Ask before every review dispatch: diff stats + model recommendation first |
+| 1. Brainstorming | `opencode/glm-5.3` via `/brainstorm` | — | `opencode/glm-5.3-flash` |
+| 2. Spec | `opencode/glm-5.3` (same session as `/brainstorm`) | — | `opencode/glm-5.3-flash` |
+| 3. Plan | `opencode-go/deepseek-v4.1-flash#high` via `/plan` | — | `opencode/glm-5.3-flash` |
+| 4. TDD — test strategy, complex test logic | `opencode/glm-5.3-flash` (implementer dispatch) | `opencode-go/qwen3.8-flash` for bulk/repetitive test generation | `opencode/mimo-v2.6-flash-free` |
+| 5. Build — main code execution | `opencode/glm-5.3-flash` (implementer dispatch) | `opencode/mimo-v2.6-flash-free` for multi-file consistency; `opencode-go/qwen3.8-flash` for simple CRUD/boilerplate expansions | — |
+| 6. Review — adversarial | `opencode/glm-5.3` (full) | `opencode/claude-sonnet-5-5` ONLY if subtle logic issues are detected, multi-file inconsistencies appear, or the system requests higher reasoning — with explicit human approval | `opencode-go/deepseek-v4.1-flash` |
+| 7. Finalize — summarization, docs, PR prep | `opencode-go/deepseek-v4.1-flash` via `/finalize` | — | `opencode/glm-5.3-flash` |
 
-## Dispatch rules (SDD execution, Phases 4–5)
+Goals per phase (why the routing is shaped this way): maximize reasoning quality and
+reduce cycles (1), stable complete specs with minimal revisions (2), structured plans
+efficiently (3), test-first with minimal mistakes (4), coding throughput with
+consistency (5), adversarial review with minimal cycles and maximum correctness (6),
+cheap clean finalization (7).
+
+## Dispatch rules (SDD execution, Phases 4–6)
 
 - Session/controller default: `opencode/glm-5.3-flash`.
 - Every implementer dispatch carries an explicit model chosen per task shape:
   - complex logic / test-strategy-heavy → `opencode/glm-5.3-flash`
   - multi-file consistency-sensitive → `opencode/mimo-v2.6-flash-free`
   - bulk, repetitive, boilerplate, simple CRUD → `opencode-go/qwen3.8-flash`
+- Reviewer dispatches (the `reviewer` agent, edit-denied) run on `opencode/glm-5.3`
+  by default. Upgrading a review to `opencode/claude-sonnet-5-5` requires the
+  controller to present the trigger (subtle logic / multi-file inconsistency /
+  reasoning request) AND the human's explicit approval first.
 - Record the model used for every dispatch in the plan's ledger.
-- Reviewer dispatches wait for explicit human approval (diff stats + recommended
-  model first); routine task reviews default to `opencode/glm-5.3-flash`.
+- Finalization (Phase 7) runs via `/finalize` or a deepseek-v4.1-flash dispatch —
+  never on glm-5.3 or sonnet.
 
 ## Model-name substitutions (catalog reality)
 
-The configured names below do not exist verbatim in the available catalogs; these
-are the agreed substitutes:
+These configured names do not exist verbatim in the available catalogs; the agreed
+substitutes are:
 
-- "Qwen 2.5 Coder" → `opencode-go/qwen3.8-flash` (closest flash-class Qwen coder)
+- "Qwen 2.5 Coder" → `opencode-go/qwen3.8-flash` (closest flash-class Qwen coder;
+  confirmed by human 2026-10-19)
 - "MiMo V2.6 Flash" → `opencode/mimo-v2.6-flash-free` (the only MiMo Flash; paid MiMo
   models are pro-tier only)
+- "DeepSeek V3 Lite" → `opencode-go/deepseek-v4.1-flash` (the only Lite/Flash-class
+  DeepSeek)
