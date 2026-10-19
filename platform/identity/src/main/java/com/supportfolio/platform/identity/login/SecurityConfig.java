@@ -3,7 +3,9 @@ package com.supportfolio.platform.identity.login;
 import com.supportfolio.platform.identity.IdentityProperties;
 import com.supportfolio.platform.identity.principal.RoleResolver;
 import com.supportfolio.platform.identity.provider.GitHubIdentityProvider;
+import com.supportfolio.platform.identity.token.JwtIssuer;
 import com.supportfolio.platform.identity.token.OneTimeCodeStore;
+import com.supportfolio.platform.identity.token.TokenController;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +42,8 @@ public class SecurityConfig {
                 oauth2
                     .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                     .successHandler(loginSuccessHandler)
-                    .failureUrl("/login?error"));
+                    .failureUrl("/login?error"))
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"));
     return http.build();
   }
 
@@ -73,5 +76,18 @@ public class SecurityConfig {
   @Bean
   LoginSuccessHandler loginSuccessHandler(OneTimeCodeStore oneTimeCodeStore) {
     return new LoginSuccessHandler(oneTimeCodeStore);
+  }
+
+  @Bean
+  JwtIssuer jwtIssuer(IdentityProperties identityProperties) {
+    return new JwtIssuer(identityProperties);
+  }
+
+  @Bean
+  TokenController tokenController(
+      OneTimeCodeStore oneTimeCodeStore,
+      JwtIssuer jwtIssuer,
+      IdentityProperties identityProperties) {
+    return new TokenController(oneTimeCodeStore, jwtIssuer, identityProperties);
   }
 }
