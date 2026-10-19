@@ -13,3 +13,22 @@ supportfolio:
     issuer-uri: ${SUPPORTFOLIO_SHELL_ISSUER_URI:http://localhost:8081}
     permit-paths: /,/index.html,/signin,/auth/callback,/api/remote-registry,/api/token,/auth/login,/oauth2/**,/login/**,/assets/**,/*.js,/*.css,/*.ico
     csrf-ignore-paths: /api/token
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: identity-token
+              uri: ${supportfolio.shell.identity-uri}
+              predicates:
+                - Path=/api/token
+            - id: identity-login-start
+              uri: ${supportfolio.shell.identity-uri}
+              predicates:
+                - Path=/auth/login
+            - id: identity-oauth
+              uri: ${supportfolio.shell.identity-uri}
+              predicates:
+                - Path=/oauth2/**,/login/**
