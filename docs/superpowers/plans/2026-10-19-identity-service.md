@@ -685,3 +685,18 @@ git commit -m "ci: add platform CI build workflow and register required status c
 - **Type consistency:** claim names (`sub`, `preferred_username`, `email`, `name`, `role`) are identical in `JwtIssuer` (Task 4), `CustomOAuth2UserService` attributes (Task 6), `TokenController.PrincipalView` (Task 7), and the starter's role converter (Task 9); `InternalPrincipal`/`IdentityRole` are defined once (Task 2) and consumed unchanged by Tasks 3–7; the starter (Task 9) depends on nothing from the identity module.
 - **Review Focus:** all five pinned — replay (Task 7 via Task 5), origin lookalike (Task 6), denied unknown user (Task 6), public-key-only verification + tamper rejection (Task 4), inert starter autoconfig (Task 9).
 - **Proportion:** the plan is scoped to the backend contract the spec's Auth section defines; Plan 1 (foundations, 20 tasks / full harness) set the granularity, and this plan matches it without transcribing the service — roughly one test cycle per task, code steps carry signatures and pinned values, not implementations.
+
+## Dispatch Ledger
+
+Routing per AGENTS.md (2026-10-19 revision). Limitation: providers expose no token/cost data — records are dispatch counts per tier and outcomes. Early Tasks 2–4/6–7 first hit paid `opencode/glm-5.3-flash` (auth/funds error — provider restriction, not reasoning) and took the then-sanctioned $0 fallback `opencode/mimo-v2.6-flash-free` (since retired; now maps to `opencode-go/glm-5.3-flash`).
+
+| Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
+|---|---|---|---|---|---|---|
+| 1 | 5 Build | Low (scaffold transcription) | `opencode-go/qwen3.8-flash` | bulk/boilerplate | BUILD SUCCESSFUL; review Approved | 0 |
+| 2 | 5 Build | Medium (domain + TDD) | `opencode/glm-5.3-flash` → funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 6/6; review found 1 Important (null-allowlist NPE) → fix round 1 → re-review clean | 1 fix round |
+| 3 | 5 Build | Medium (adapter + MockWebServer) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 5/5 (suite 11/11); review Approved | 0 |
+| 4 | 5 Build | High (crypto/JWT) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 17/17; review Approved | 0 |
+| 5 | 5 Build | Low (store transcription) | `opencode-go/qwen3.8-flash` | tests given verbatim | 21/21; review Approved | 0 |
+| 6 | 5 Build | High (Spring Security integration) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 37/37; review Approved, 6 minors deferred | 0 |
+| 7 | 5 Build | Medium (endpoint + CSRF ruling) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 41/41; review Approved, 2 minors deferred | 0 |
+| 8 | 5 Build | High (E2E integration) | `opencode-go/glm-5.3-flash` | medium/high judgment; paid SKU ban | pending | — |
