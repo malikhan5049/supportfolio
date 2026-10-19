@@ -13,3 +13,17 @@ server:
 #   supportfolio.identity.jwt-private-key-pem    -> SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_PEM
 #   spring.security.oauth2.client.registration.github.client-id     -> GITHUB_CLIENT_ID
 #   spring.security.oauth2.client.registration.github.client-secret -> GITHUB_CLIENT_SECRET
+#   spring.security.oauth2.client.provider.github.user-info-uri base -> SUPPORTFOLIO_IDENTITY_GITHUB_API_BASE_URL
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: read:user,user:email
+        provider:
+          github:
+            user-info-uri: ${SUPPORTFOLIO_IDENTITY_GITHUB_API_BASE_URL:https://github.com}/user # base overridden in tests
