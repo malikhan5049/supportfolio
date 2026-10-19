@@ -5,7 +5,6 @@ import com.supportfolio.platform.identity.principal.RoleResolver;
 import com.supportfolio.platform.identity.provider.GitHubIdentityProvider;
 import com.supportfolio.platform.identity.token.JwtIssuer;
 import com.supportfolio.platform.identity.token.OneTimeCodeStore;
-import com.supportfolio.platform.identity.token.TokenController;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -81,13 +80,5 @@ public class SecurityConfig {
   @Bean
   JwtIssuer jwtIssuer(IdentityProperties identityProperties) {
     return new JwtIssuer(identityProperties);
-  }
-
-  @Bean
-  TokenController tokenController(
-      OneTimeCodeStore oneTimeCodeStore,
-      JwtIssuer jwtIssuer,
-      IdentityProperties identityProperties) {
-    return new TokenController(oneTimeCodeStore, jwtIssuer, identityProperties);
   }
 }

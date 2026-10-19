@@ -49,7 +49,7 @@ public class IdentityResourceServerAutoConfiguration {
    * Maps the {@code role} claim issued by the Identity service to {@code ROLE_<ROLE>} authorities.
    * A token without a {@code role} claim is still granted — it simply carries no roles.
    */
-  private JwtAuthenticationConverter roleMapper() {
+  JwtAuthenticationConverter roleMapper() {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
     converter.setJwtGrantedAuthoritiesConverter(
         jwt -> {

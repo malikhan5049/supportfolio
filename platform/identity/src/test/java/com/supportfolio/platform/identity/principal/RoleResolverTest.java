@@ -1,6 +1,7 @@
 package com.supportfolio.platform.identity.principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.supportfolio.platform.identity.IdentityProperties;
 import java.util.List;
@@ -58,5 +59,31 @@ class RoleResolverTest {
   @Test
   void nullLoginGetsNoRole() {
     assertEquals(Optional.empty(), resolver.resolve(null));
+  }
+
+  @Test
+  void constructorFailsFastWhenAdminLoginIsMissing() {
+    IdentityProperties noAdmin =
+        new IdentityProperties(
+            "http://localhost:8081",
+            null,
+            List.of("friend-login"),
+            List.of("http://localhost:4200"),
+            null,
+            "https://api.github.com",
+            60,
+            3600);
+    IdentityProperties blankAdmin =
+        new IdentityProperties(
+            "http://localhost:8081",
+            "  ",
+            List.of("friend-login"),
+            List.of("http://localhost:4200"),
+            null,
+            "https://api.github.com",
+            60,
+            3600);
+    assertThrows(IllegalStateException.class, () -> new RoleResolver(noAdmin));
+    assertThrows(IllegalStateException.class, () -> new RoleResolver(blankAdmin));
   }
 }

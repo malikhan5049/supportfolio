@@ -27,6 +27,10 @@ public class LoginRedirectController {
 
   public LoginRedirectController(
       RedirectOriginValidator redirectOriginValidator, IdentityProperties identityProperties) {
+    if (identityProperties.redirectOrigins() == null
+        || identityProperties.redirectOrigins().isEmpty()) {
+      throw new IllegalStateException("supportfolio.identity.redirect-origins is not configured");
+    }
     this.redirectOriginValidator = redirectOriginValidator;
     this.identityProperties = identityProperties;
   }

@@ -699,4 +699,14 @@ Routing per AGENTS.md (2026-10-19 revision). Limitation: providers expose no tok
 | 5 | 5 Build | Low (store transcription) | `opencode-go/qwen3.8-flash` | tests given verbatim | 21/21; review Approved | 0 |
 | 6 | 5 Build | High (Spring Security integration) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 37/37; review Approved, 6 minors deferred | 0 |
 | 7 | 5 Build | Medium (endpoint + CSRF ruling) | funds err → `opencode/mimo-v2.6-flash-free` | auth/funds → $0 fallback | 41/41; review Approved, 2 minors deferred | 0 |
-| 8 | 5 Build | High (E2E integration) | `opencode-go/glm-5.3-flash` | medium/high judgment; paid SKU ban | pending | — |
+| 8 | 5 Build | High (E2E integration) | `opencode-go/glm-5.3-flash` | medium/high judgment; paid SKU ban | 42/42; review Approved, 3 minors deferred | 0 |
+| 9 | 5 Build | High (security-sensitive autoconfig) | `opencode-go/glm-5.3-flash` | security-sensitive; medium shape | starter 4/4 + identity 42/42; review Approved, 2 minors | 0 |
+| 10 | 5 Build | Low (YAML transcription) | `opencode-go/qwen3.8-flash` | boilerplate/YAML | tools 13 suites/48 tests; review Approved, 1 minor | 0 |
+| review | 6 Review | per-task routine (10×) | deepseek unavailable (region) → `opencode-go/glm-5.3-flash` ×10 | AGENTS.md Phase 6 fb + residual-risk flag | 1 Important caught & fixed (T2); 0 regression misses so far | 0 loops beyond T2 |
+| final | 6 Review | Deep whole-branch | `opencode-go/glm-5.3` | High-shape change set (auth) | pending | — |
+
+## Handoffs to Plan 3
+
+- **CORS/topology decision (pending Plan 3):** Identity serves no CORS config in Plan 2, so a browser SPA on a different origin cannot `POST /api/token` cross-origin until Plan 3 either (a) adds CORS to identity scoped to `redirectOrigins` for `/api/token` (+ `/auth/login`), or (b) serves the SPA same-origin behind the shell/gateway reverse proxy. The decision is Plan 3's; see the "Cross-origin contract (Plan 3)" note in `platform/identity/README.md`.
+- **Redirect targets must be fragment-free:** a `#fragment` in a redirect target makes the `?code=` parameter land after the fragment, unreadable from the query — Plan 3's auth library must construct fragment-free redirect URLs.
+- **E2E denied-user scenario recommended:** add an E2E test of the denied-user path (GitHub user neither admin nor allowlisted → login fails, no code, no JWT) when Plan 3 wires the SPA flow end-to-end.

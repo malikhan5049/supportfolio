@@ -32,7 +32,7 @@ public class OneTimeCodeStore {
     byte[] bytes = new byte[CODE_RANDOM_BYTES];
     random.nextBytes(bytes);
     String code = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    // Overwriting is impossible in practice: reusing a live 192-bit-random code would take the
+    // Overwriting is impossible in practice: reusing a live 256-bit-random code would take the
     // attacker's own oracle to observe, and a plain put keeps create() lock-free.
     entriesByCode.put(code, new Entry(principal, System.currentTimeMillis() + codeTtlMillis));
     return code;

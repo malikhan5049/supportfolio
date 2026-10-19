@@ -28,7 +28,35 @@ Runs on port 8081.
 
 ## Required runtime properties
 
-All `supportfolio.identity.*` properties are absent from `application.yaml` by design
-and required at runtime (the service's beans fail fast without them). See the comments
-in `src/main/resources/application.yaml` for the property → environment-variable
-mapping.
+All `supportfolio.identity.*` properties are absent from `application.yaml` by design.
+`SUPPORTFOLIO_IDENTITY_ALLOWLIST` may be empty (no allowlisted users), but the
+following environment variables are boot-required — the service's beans fail fast
+at startup if any of them is missing, blank, or (for the PEM) unusable. See the
+comments in `src/main/resources/application.yaml` for the property →
+environment-variable mapping, and the GitHub OAuth App credentials above for the
+client id/secret, which Spring Security's OAuth2 client configuration also
+requires at boot.
+
+- `SUPPORTFOLIO_IDENTITY_ISSUER`
+- `SUPPORTFOLIO_IDENTITY_ADMIN_LOGIN`
+- `SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS`
+- `SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_PEM`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+
+## Cross-origin contract (Plan 3)
+
+Identity serves **no CORS configuration** in Plan 2. A browser SPA on a different
+origin therefore cannot call `POST /api/token` cross-origin until either:
+
+- **(a)** Plan 3 adds CORS to the identity service, scoped to the allowlisted
+  `redirectOrigins` for `/api/token` (and `/auth/login` if it is called from the
+  browser), or
+- **(b)** the shell/gateway serves the SPA same-origin behind a reverse proxy.
+
+That decision is Plan 3's to make. Two related constraints:
+
+- **Redirect targets must not contain a URL fragment (`#...`).** A fragment makes
+  the identity redirect land as `...#fragment?code=...` — the `?code=` parameter
+  ends up *after* the fragment, which the SPA cannot read from the query. Plan 3's
+  auth library must construct fragment-free redirect URLs.

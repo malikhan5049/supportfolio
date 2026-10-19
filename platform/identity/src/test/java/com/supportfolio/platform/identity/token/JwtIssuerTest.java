@@ -98,9 +98,19 @@ class JwtIssuerTest {
                     "-----BEGIN PRIVATE KEY-----\n@@@not-base64@@@\n-----END PRIVATE KEY-----")));
   }
 
+  @Test
+  void constructorFailsFastWhenIssuerIsMissing() {
+    assertThrows(IllegalStateException.class, () -> new JwtIssuer(properties(null, null)));
+    assertThrows(IllegalStateException.class, () -> new JwtIssuer(properties("", null)));
+  }
+
   private static IdentityProperties properties(String privateKeyPem) {
+    return properties(ISSUER, privateKeyPem);
+  }
+
+  private static IdentityProperties properties(String issuer, String privateKeyPem) {
     return new IdentityProperties(
-        ISSUER,
+        issuer,
         "owner-login",
         List.of("friend-login"),
         List.of("http://localhost:4200"),

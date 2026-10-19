@@ -34,6 +34,9 @@ public class JwtIssuer {
   private final RSASSASigner signer;
 
   public JwtIssuer(IdentityProperties properties) {
+    if (properties.issuer() == null || properties.issuer().isBlank()) {
+      throw new IllegalStateException("supportfolio.identity.issuer is not configured");
+    }
     RSAPrivateKey privateKey = parsePrivateKeyPem(properties.jwtPrivateKeyPem());
     this.issuer = properties.issuer();
     this.accessTokenTtlSeconds = properties.accessTokenTtlSeconds();

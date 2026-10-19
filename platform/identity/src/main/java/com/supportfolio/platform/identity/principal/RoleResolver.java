@@ -8,6 +8,9 @@ public class RoleResolver {
   private final IdentityProperties identityProperties;
 
   public RoleResolver(IdentityProperties identityProperties) {
+    if (identityProperties.adminLogin() == null || identityProperties.adminLogin().isBlank()) {
+      throw new IllegalStateException("supportfolio.identity.admin-login is not configured");
+    }
     this.identityProperties = identityProperties;
   }
 
