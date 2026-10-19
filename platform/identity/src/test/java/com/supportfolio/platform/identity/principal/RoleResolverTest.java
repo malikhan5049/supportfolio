@@ -34,4 +34,29 @@ class RoleResolverTest {
   void unknownLoginGetsNoRole() {
     assertEquals(Optional.empty(), resolver.resolve("stranger"));
   }
+
+  @Test
+  void adminLoginMatchesCaseInsensitively() {
+    assertEquals(Optional.of(IdentityRole.ADMIN), resolver.resolve("OWNER-LOGIN"));
+  }
+
+  @Test
+  void adminWinsOverAllowlist() {
+    IdentityProperties props =
+        new IdentityProperties(
+            "http://localhost:8081",
+            "owner-login",
+            List.of("owner-login", "friend-login"),
+            List.of("http://localhost:4200"),
+            null,
+            "https://api.github.com",
+            60,
+            3600);
+    assertEquals(Optional.of(IdentityRole.ADMIN), new RoleResolver(props).resolve("owner-login"));
+  }
+
+  @Test
+  void nullLoginGetsNoRole() {
+    assertEquals(Optional.empty(), resolver.resolve(null));
+  }
 }

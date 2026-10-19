@@ -18,7 +18,7 @@ public class RoleResolver {
     if (login.equalsIgnoreCase(identityProperties.adminLogin())) {
       return Optional.of(IdentityRole.ADMIN);
     }
-    if (identityProperties.allowlist().contains(login)) {
+    if (identityProperties.allowlist() != null && identityProperties.allowlist().contains(login)) {
       return Optional.of(IdentityRole.USER);
     }
     return Optional.empty();
