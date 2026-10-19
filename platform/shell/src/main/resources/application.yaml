@@ -1,2 +1,11 @@
 server:
   port: 8080
+
+supportfolio:
+  security:
+    resource-server:
+      enabled: true
+    jwk-set-uri: ${SUPPORTFOLIO_SHELL_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+    issuer-uri: ${SUPPORTFOLIO_SHELL_ISSUER_URI:http://localhost:8081}
+    permit-paths: /,/index.html,/signin,/auth/callback,/api/remote-registry,/api/token,/auth/login,/oauth2/**,/login/**,/assets/**,/*.js,/*.css,/*.ico
+    csrf-ignore-paths: /api/token
