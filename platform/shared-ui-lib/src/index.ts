@@ -10,3 +10,4 @@ export * from './lib/auth/auth.interceptor';
 export * from './lib/auth/provide-auth';
 export * from './lib/auth/login-page.component';
 export * from './lib/auth/auth-callback.component';
+export * from './lib/federated/card-contract';
