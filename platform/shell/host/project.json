@@ -59,6 +59,20 @@
           "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
+        },
+        "e2e": {
+          "buildOptimizer": false,
+          "optimization": false,
+          "vendorChunk": true,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "namedChunks": true,
+          "fileReplacements": [
+            {
+              "replace": "platform/shell/host/src/environments/environment.ts",
+              "with": "platform/shell/host/src/environments/environment.e2e.ts"
+            }
+          ]
         }
       }
     },
@@ -66,19 +80,22 @@
       "continuous": true,
       "executor": "@nx/angular:dev-server",
       "defaultConfiguration": "development",
+      "options": {
+        "port": 4200,
+        "publicHost": "http://localhost:4200",
+        "headers": {
+          "Access-Control-Allow-Origin": "*"
+        }
+      },
       "configurations": {
         "production": {
           "buildTarget": "shell-host:build:production"
         },
         "development": {
           "buildTarget": "shell-host:build:development"
-        }
-      },
-      "options": {
-        "port": 4200,
-        "publicHost": "http://localhost:4200",
-        "headers": {
-          "Access-Control-Allow-Origin": "*"
+        },
+        "e2e": {
+          "buildTarget": "shell-host:build:e2e"
         }
       }
     },
