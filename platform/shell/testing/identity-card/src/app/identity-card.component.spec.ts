@@ -11,9 +11,8 @@ describe('IdentityCardComponent', () => {
         openUrl: 'http://localhost:8081',
       },
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="remote-card-identity"]'),
-    ).toBeTruthy();
+    // `remote-card-identity` lives on the host wrapper (RemoteCardHostComponent), not here —
+    // duplicating it would collide with Playwright's strict mode once both render nested.
     expect(screen.getByTestId('open-action')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('GitHub sign-in');
   });

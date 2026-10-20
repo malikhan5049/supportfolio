@@ -10,7 +10,7 @@ import type { RemoteCardComponent } from 'shared-ui-lib';
   selector: 'identity-card',
   standalone: true,
   imports: [CardComponent],
-  template: '<lib-card data-testid="remote-card-identity" [title]="title" [description]="description" [features]="features" [openUrl]="openUrl"></lib-card>',
+  template: '<lib-card [title]="title" [description]="description" [features]="features" [openUrl]="openUrl"></lib-card>',
 })
 export class IdentityCardComponent implements RemoteCardComponent {
   @Input() title = 'Identity';
