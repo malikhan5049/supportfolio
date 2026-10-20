@@ -279,4 +279,9 @@ Append one row per merged PR to the Dispatch Ledger below (task, phase, shape, m
 | Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
 |---|---|---|---|---|---|---|
 | 1. Fix validator to skip merge commits | 5 Build | Low (1-line CI config + 2-line dependabot.yml) | glm-5.3-flash (session) | Operational unblock for all 5 PRs | Local validator RED→GREEN; PR #14 CI 4/4 pass; merged b15c45b | 0 |
+| 1b. Revert invalid rebase-strategy | 5 Build | Low (2-line revert) | glm-5.3-flash (session) | Dependabot schema rejects "rebase" | PR #15 CI 4/4 pass; merged 5f5e91a | 0 (found during Task 2, fixed in one pass) |
+| 2. Merge npm trio #9/#11/#10 | 5 Build | Medium (ordered merges, conflict cycles) | glm-5.3-flash (session) | Version-locked angular/schematics; shared lockfile | Per-PR: npm ci + nx lint/test 3/3 pass; CI 4/4 green; merged ed6725b, 9444762, 872a20e | @dependabot recreate ×3 (human-edited branches + lockfile conflicts) |
+| 3. MockWebServer 5 bump #8 | 5 Build | Low (test-dep bump, verified) | glm-5.3-flash (session) | Major bump needs runtime proof | ./gradlew :platform:identity:test BUILD SUCCESSFUL; CI 4/4 green; merged eae83b2 | 0 |
+| 4. Harness fix #13 | 6 Review | Low (5 files, guarded) | glm-5.3-flash (session) | Human PR blocked by same validator bug | Tool specs 12/12 local; diff audit clean; ruleset active post-merge; merged 413a577 | 0 |
+| 5. Sweep + ledger | 7 Finalize | Low (verification only) | glm-5.3-flash (session) | Confirm end state | 0 open PRs; main runs green (see ledger note) | 0 |
 | *(controller appends one row per task at execution time)* | | | | | | |
