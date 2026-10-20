@@ -7,3 +7,6 @@ export * from './lib/auth/auth.config';
 export * from './lib/auth/auth-token.store';
 export * from './lib/auth/auth.service';
 export * from './lib/auth/auth.interceptor';
+export * from './lib/auth/provide-auth';
+export * from './lib/auth/login-page.component';
+export * from './lib/auth/auth-callback.component';

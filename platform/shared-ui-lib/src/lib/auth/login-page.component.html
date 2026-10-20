@@ -1,0 +1,7 @@
+<h1>Sign in to Supportfolio</h1>
+@if (service.lastError() === 'denied') {
+  <p data-testid="login-denied">Sign-in was denied for this account.</p>
+}
+<button data-testid="sign-in" (click)="service.login()">
+  Sign in with GitHub
+</button>
