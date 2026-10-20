@@ -41,29 +41,22 @@ export class AuthService {
   }
 
   async completeLogin(code: string): Promise<Principal> {
-    let response: {
-      status: number;
-      body: { accessToken: string; expiresIn: number; principal: Principal };
-    } | null = null;
+    let body: { accessToken: string; expiresIn: number; principal: Principal };
     try {
-      response = await this.http
-        .post<unknown>(
-          `${this.config.apiBaseUrl}/api/token`,
-          { code },
-          { observe: 'response' },
-        )
-        .toPromise();
+      body = await new Promise((resolve, reject) => {
+        this.http
+          .post<{
+            accessToken: string;
+            tokenType: string;
+            expiresIn: number;
+            principal: Principal;
+          }>(`${this.config.apiBaseUrl}/api/token`, { code })
+          .subscribe({ next: resolve, error: reject });
+      });
     } catch {
       // Any non-2xx (unknown / used / expired code) is denial: uniform, and nothing is stored.
-    }
-    if (!response || !response.ok) {
       throw new LoginDeniedError('Identity rejected the login code');
     }
-    const body = response.body as unknown as {
-      accessToken: string;
-      expiresIn: number;
-      principal: Principal;
-    };
     this.store.set({
       accessToken: body.accessToken,
       principal: body.principal,
