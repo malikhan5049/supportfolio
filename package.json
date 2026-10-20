@@ -44,6 +44,7 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
+    "webpack": "^5.109.2",
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
