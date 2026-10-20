@@ -90,6 +90,16 @@ review findings by severity) in the PR summary. Providers expose no token/cost
 data — record that limitation; proxy = dispatch counts per tier. Never fabricate
 costs, usage, or benchmarks.
 
+## Retrospectives (binding)
+
+- Before any plan is written (via `/plan` or otherwise): read
+  `docs/superpowers/retrospectives.md` from the top, apply every standing item to the
+  plan, and note compliance in the plan file — or record a justification next to the
+  ledger entry. Contradicted practices must not be repeated.
+- After a plan completes (via `/finalize` or otherwise): append its retrospective entry
+  at the TOP of that file before the next plan starts. One entry per plan, at
+  completion, grounded in the dispatch ledger — never fabricated.
+
 ## Config enforcement
 
 Repo `opencode.json` pins (overrides global, this repo only): session +
