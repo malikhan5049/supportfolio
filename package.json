@@ -4,11 +4,11 @@
   "description": "Supportfolio monorepo",
   "scripts": {},
   "devDependencies": {
-    "@angular-devkit/core": "~22.1.0",
-    "@angular-devkit/schematics": "~22.1.0",
-    "@angular/cli": "~22.1.0",
-    "@angular/compiler-cli": "~22.1.0",
-    "@angular/language-service": "~22.1.0",
+    "@angular-devkit/core": "~22.2.3",
+    "@angular-devkit/schematics": "~22.2.3",
+    "@angular/cli": "~22.2.3",
+    "@angular/compiler-cli": "~22.2.3",
+    "@angular/language-service": "~22.2.3",
     "@eslint/js": "^10.0.1",
     "@nx/angular": "^23.3.0",
     "@nx/eslint-plugin": "^23.3.0",
@@ -39,13 +39,13 @@
     "typescript-eslint": "^8.71.2"
   },
   "dependencies": {
-    "@angular/common": "~22.1.0",
-    "@angular/compiler": "~22.1.0",
-    "@angular/core": "~22.1.0",
-    "@angular/forms": "~22.1.0",
-    "@angular/platform-browser": "~22.1.0",
-    "@angular/platform-browser-dynamic": "~22.1.0",
-    "@angular/router": "~22.1.0",
+    "@angular/common": "~22.2.3",
+    "@angular/compiler": "~22.2.3",
+    "@angular/core": "~22.2.3",
+    "@angular/forms": "~22.2.3",
+    "@angular/platform-browser": "~22.2.3",
+    "@angular/platform-browser-dynamic": "~22.2.3",
+    "@angular/router": "~22.2.3",
     "rxjs": "~7.8.0"
   }
 }
