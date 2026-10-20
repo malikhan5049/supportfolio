@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import type { ComponentRef, Type } from '@angular/core';
 import { CardComponent, RemoteRegistryService } from 'shared-ui-lib';
-import type { RemoteCardComponent } from 'shared-ui-lib';
 import type { RemoteProject } from './registry.types';
 
 interface CardMetadata {
@@ -25,17 +24,6 @@ function metadataFor(project: RemoteProject): CardMetadata {
     features: project.features,
     openUrl: project.openUrl,
   };
-}
-
-function applyMetadata(target: unknown, metadata: CardMetadata): void {
-  const card = target as Partial<RemoteCardComponent>;
-  if (!card) {
-    return;
-  }
-  card.title = metadata.title;
-  card.description = metadata.description;
-  card.features = metadata.features;
-  card.openUrl = metadata.openUrl;
 }
 
 function applyMetadata(ref: ComponentRef<unknown>, metadata: CardMetadata): void {
