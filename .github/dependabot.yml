@@ -2,6 +2,7 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    rebase-strategy: "rebase"
     schedule:
       interval: "weekly"
     groups:
@@ -17,5 +18,6 @@ updates:
           - "ts-jest"
   - package-ecosystem: "gradle"
     directory: "/"
+    rebase-strategy: "rebase"
     schedule:
       interval: "weekly"
