@@ -278,4 +278,5 @@ Append one row per merged PR to the Dispatch Ledger below (task, phase, shape, m
 
 | Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
 |---|---|---|---|---|---|---|
+| 1. Fix validator to skip merge commits | 5 Build | Low (1-line CI config + 2-line dependabot.yml) | glm-5.3-flash (session) | Operational unblock for all 5 PRs | Local validator RED→GREEN; PR #14 CI 4/4 pass; merged b15c45b | 0 |
 | *(controller appends one row per task at execution time)* | | | | | | |
