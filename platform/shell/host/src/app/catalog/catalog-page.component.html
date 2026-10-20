@@ -1,0 +1,11 @@
+@if (failed()) {
+  <p data-testid="registry-error">The project catalog is unavailable right now. Try again later.</p>
+} @else if (projects() !== null) {
+  <div class="catalog-grid">
+    @for (project of projects(); track project.id) {
+      <div class="catalog-cell" [attr.data-testid]="'project-card-' + project.id">
+        <app-remote-card-host [project]="project" />
+      </div>
+    }
+  </div>
+}
