@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "worktree": {
+    "directory": ".worktrees"
+  },
+  "model": "opencode-go/glm-5.3-flash",
+  "agents": {
+    "general": {
+      "mode": "subagent",
+      "model": "opencode-go/glm-5.3-flash"
+    },
+    "explore": {
+      "mode": "subagent",
+      "model": "opencode/mimo-v2.6-flash-free"
+    },
+    "reviewer": {
+      "description": "Reviews changes for correctness, security, and missing tests",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" }
+      ]
+    }
+  }
+}
