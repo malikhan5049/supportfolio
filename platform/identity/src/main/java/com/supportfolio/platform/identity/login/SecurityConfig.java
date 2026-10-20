@@ -5,6 +5,7 @@ import com.supportfolio.platform.identity.principal.RoleResolver;
 import com.supportfolio.platform.identity.provider.GitHubIdentityProvider;
 import com.supportfolio.platform.identity.token.JwtIssuer;
 import com.supportfolio.platform.identity.token.OneTimeCodeStore;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +44,15 @@ public class SecurityConfig {
                     .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                     .successHandler(loginSuccessHandler)
                     .failureHandler(loginFailureHandler))
-        .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"));
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"))
+        // A stranger's deep link gets Unauthorized, not a surprise OAuth dance initiated outside the
+        // designed /auth/login entry (which 302s to GitHub itself); the fixed 400-after-GitHub flow
+        // is the symptom this removes.
+        .exceptionHandling(
+            exceptions ->
+                exceptions.authenticationEntryPoint(
+                    (request, response, authentication) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED)));
     return http.build();
   }
 

@@ -70,6 +70,17 @@ class SecurityConfigTest {
   }
 
   @Test
+  void anonymousRequestToARootPathIsUnauthorizedInsteadOfTheOauthRedirect() throws Exception {
+    mockMvc.perform(get("/")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void anonymousRequestToADeepProtectedPathIsUnauthorizedInsteadOfTheOauthRedirect()
+      throws Exception {
+    mockMvc.perform(get("/actuator/health")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void nonAllowlistedRedirectIsRejectedBeforeTheGithubDanceStarts() throws Exception {
     mockMvc
         .perform(get("/auth/login").param("redirect", "https://evil.example.com/hook"))
