@@ -14,7 +14,7 @@
     "@nx/eslint-plugin": "^23.3.0",
     "@nx/jest": "23.3.0",
     "@nx/js": "23.3.0",
-    "@schematics/angular": "~22.1.0",
+    "@schematics/angular": "~22.2.3",
     "@swc/helpers": "~0.5.18",
     "@testing-library/angular": "^19.5.0",
     "@testing-library/dom": "^10.4.2",
