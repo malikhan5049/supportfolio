@@ -1,16 +1,9 @@
-import {
-  buildLoginRedirectUrl,
-  safeReturnUrl,
-  stripFragment,
-} from './redirect-url';
+import { buildLoginRedirectUrl, safeReturnUrl, stripFragment } from './redirect-url';
 
 describe('redirect-url', () => {
   it('strips fragments and encodes the callback target exactly once', () => {
     expect(
-      buildLoginRedirectUrl(
-        'http://localhost:8081',
-        'http://localhost:4200/auth/callback#/tab',
-      ),
+      buildLoginRedirectUrl('http://localhost:8081', 'http://localhost:4200/auth/callback#/tab'),
     ).toBe(
       'http://localhost:8081/auth/login?redirect=http%3A%2F%2Flocalhost%3A4200%2Fauth%2Fcallback',
     );
@@ -28,12 +21,8 @@ describe('redirect-url', () => {
   });
 
   it('accepts same-origin paths and same-origin absolute URLs', () => {
-    expect(safeReturnUrl('/projects/identity', 'http://localhost:4200')).toBe(
-      '/projects/identity',
-    );
-    expect(safeReturnUrl('http://localhost:4200/signin', 'http://localhost:4200')).toBe(
-      '/signin',
-    );
+    expect(safeReturnUrl('/projects/identity', 'http://localhost:4200')).toBe('/projects/identity');
+    expect(safeReturnUrl('http://localhost:4200/signin', 'http://localhost:4200')).toBe('/signin');
   });
 
   it('falls back to the root for null or empty return targets', () => {

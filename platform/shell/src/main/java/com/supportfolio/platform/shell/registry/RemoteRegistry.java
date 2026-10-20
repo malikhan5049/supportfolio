@@ -38,9 +38,8 @@ public class RemoteRegistry {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.trustedOrigins = new HashSet<>();
-    List<String> origins = properties.trustedRemoteOrigins() == null
-        ? List.of()
-        : properties.trustedRemoteOrigins();
+    List<String> origins =
+        properties.trustedRemoteOrigins() == null ? List.of() : properties.trustedRemoteOrigins();
     for (String origin : origins) {
       this.trustedOrigins.add(normalizedOrigin(origin));
     }
@@ -74,7 +73,12 @@ public class RemoteRegistry {
       throw new RemoteRegistryException("Remote registry file not found");
     }
     try {
-      return objectMapper.readValue(Files.readString(file.toPath()), RegistryFile.class).projects();
+      List<RemoteProject> projects =
+          objectMapper.readValue(Files.readString(file.toPath()), RegistryFile.class).projects();
+      if (projects == null) {
+        throw new RemoteRegistryException("Remote registry file has no projects list");
+      }
+      return projects;
     } catch (IOException | RuntimeException e) {
       throw new RemoteRegistryException("Remote registry file unreadable", e);
     }
@@ -96,12 +100,12 @@ public class RemoteRegistry {
     }
     if (project.exposedModules() == null || project.exposedModules().isEmpty()) {
       violations.add("no exposed modules");
-    } else if (project.exposedModules().stream().noneMatch(module -> "card".equals(module.name()))) {
+    } else if (project.exposedModules().stream()
+        .noneMatch(module -> "card".equals(module.name()))) {
       violations.add("no card module");
     }
-    for (ExposedModule module : project.exposedModules() == null
-        ? List.<ExposedModule>of()
-        : project.exposedModules()) {
+    for (ExposedModule module :
+        project.exposedModules() == null ? List.<ExposedModule>of() : project.exposedModules()) {
       if (module.version() == null || !SEMVER.matcher(module.version()).matches()) {
         violations.add("module " + module.name() + " has a non-semver version");
       }
@@ -131,9 +135,7 @@ public class RemoteRegistry {
     }
     if (uri.getScheme() == null
         || uri.getHost() == null
-        || uri.getPath() != null
-            && !uri.getPath().isBlank()
-            && !uri.getPath().equals("/")
+        || uri.getPath() != null && !uri.getPath().isBlank() && !uri.getPath().equals("/")
         || uri.getQuery() != null
         || uri.getFragment() != null
         || (!uri.getScheme().equalsIgnoreCase("http")

@@ -29,8 +29,7 @@ class SecurityHeadersFilterTest {
   @DynamicPropertySource
   static void registry(DynamicPropertyRegistry registry) {
     registry.add(
-        "supportfolio.shell.remote-registry-file",
-        () -> registryFile.toAbsolutePath().toString());
+        "supportfolio.shell.remote-registry-file", () -> registryFile.toAbsolutePath().toString());
   }
 
   @BeforeAll
@@ -61,8 +60,9 @@ class SecurityHeadersFilterTest {
         .andExpect(header().string("Referrer-Policy", "no-referrer"))
         .andExpect(header().string("X-Frame-Options", "DENY"))
         .andExpect(
-            header().string(
-                "Content-Security-Policy",
-                new CspPolicy(properties.trustedRemoteOrigins()).headerValue()));
+            header()
+                .string(
+                    "Content-Security-Policy",
+                    new CspPolicy(properties.trustedRemoteOrigins()).headerValue()));
   }
 }

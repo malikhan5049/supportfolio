@@ -70,15 +70,12 @@ class RemoteRegistryTest {
   @Test
   void loadsAValidRegistryEntry() throws IOException {
     RemoteRegistry registry = registry();
-    assertEquals(
-        List.of("identity"),
-        registry.projects().stream().map(RemoteProject::id).toList());
+    assertEquals(List.of("identity"), registry.projects().stream().map(RemoteProject::id).toList());
   }
 
   @Test
   void dropsProjectWhoseRemoteEntryOriginIsNotTrusted() throws IOException {
-    assertThat(
-            registryWith("https://cdn.example.com.evil.com/remoteEntry.js", "1.0.0").projects())
+    assertThat(registryWith("https://cdn.example.com.evil.com/remoteEntry.js", "1.0.0").projects())
         .isEmpty();
   }
 
@@ -135,9 +132,17 @@ class RemoteRegistryTest {
   @Test
   void throwsWhenTheRegistryIsMalformedJson() throws IOException {
     File file = registryFileWith("{ nope");
+    assertThrows(RemoteRegistryException.class, () -> registryWithFile(file.toPath()).projects());
+  }
+
+  @Test
+  void throwsWhenTheProjectsListIsMissingOrNull() throws IOException {
+    File emptyEnvelope = registryFileWith("{ }");
     assertThrows(
-        RemoteRegistryException.class,
-        () -> registryWithFile(file.toPath()).projects());
+        RemoteRegistryException.class, () -> registryWithFile(emptyEnvelope.toPath()).projects());
+    File nullProjects = registryFileWith("{\"projects\":null}");
+    assertThrows(
+        RemoteRegistryException.class, () -> registryWithFile(nullProjects.toPath()).projects());
   }
 
   @Test

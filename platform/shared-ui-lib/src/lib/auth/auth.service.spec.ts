@@ -15,7 +15,7 @@ const principal = (): Principal => ({
   role: 'user',
 });
 
-const setup = (navigate: (url: string) => void = () => {}) => {
+const setup = (navigate: (url: string) => void = () => undefined) => {
   TestBed.configureTestingModule({
     providers: [
       provideHttpClient(),
@@ -35,7 +35,11 @@ const setup = (navigate: (url: string) => void = () => {}) => {
     ],
   });
   const store = TestBed.inject(AuthTokenStore);
-  return { store, service: TestBed.inject(AuthService), http: TestBed.inject(HttpTestingController) };
+  return {
+    store,
+    service: TestBed.inject(AuthService),
+    http: TestBed.inject(HttpTestingController),
+  };
 };
 
 describe('AuthService', () => {

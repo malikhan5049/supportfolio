@@ -10,10 +10,7 @@ export function stripFragment(url: string): string {
 }
 
 /** Point of no return for a login: Identity's `/auth/login` with the fragment-free callback target. */
-export function buildLoginRedirectUrl(
-  identityLoginBaseUrl: string,
-  callbackUrl: string,
-): string {
+export function buildLoginRedirectUrl(identityLoginBaseUrl: string, callbackUrl: string): string {
   return `${identityLoginBaseUrl}/auth/login?redirect=${encodeURIComponent(
     stripFragment(callbackUrl),
   )}`;

@@ -10,7 +10,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -45,9 +44,11 @@ class GatewayRoutingTest {
 
   @Test
   void forwardsTokenExchangeToIdentityWithBodyAndQueryIntact() throws Exception {
-    mockIdentity.enqueue(new MockResponse().setResponseCode(200).setBody("{\"accessToken\":\"t\"}"));
+    mockIdentity.enqueue(
+        new MockResponse().setResponseCode(200).setBody("{\"accessToken\":\"t\"}"));
     ResponseEntity<String> response =
-        rest().post()
+        rest()
+            .post()
             .uri("/api/token")
             .contentType(MediaType.APPLICATION_JSON)
             .body(Map.of("code", "abc"))
@@ -76,7 +77,12 @@ class GatewayRoutingTest {
   @Test
   void servesTheSpaShellForClientRoutes() {
     assertTrue(
-        rest().get().uri("/signin").retrieve().toEntity(String.class).getBody()
+        rest()
+            .get()
+            .uri("/signin")
+            .retrieve()
+            .toEntity(String.class)
+            .getBody()
             .contains("shell-test-index"));
   }
 
@@ -86,7 +92,12 @@ class GatewayRoutingTest {
         rest().get().uri("/auth/callback?code=x").retrieve().toEntity(String.class);
     assertEquals(200, response.getStatusCode().value());
     assertTrue(
-        rest().get().uri("/auth/callback?code=x").retrieve().toEntity(String.class)
-            .getBody().contains("shell-test-index"));
+        rest()
+            .get()
+            .uri("/auth/callback?code=x")
+            .retrieve()
+            .toEntity(String.class)
+            .getBody()
+            .contains("shell-test-index"));
   }
 }

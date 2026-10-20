@@ -22,4 +22,3 @@ export interface RemoteProject {
     remoteEntry: string;
   }[];
 }
-

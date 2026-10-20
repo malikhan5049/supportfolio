@@ -1,5 +1,6 @@
 import {
   Component,
+  EventEmitter,
   Input,
   ViewChild,
   ViewContainerRef,
@@ -60,14 +61,32 @@ export class RemoteCardHostComponent {
     try {
       const component = await this.resolveCard();
       this.remoteBacked.set(true);
-      applyMetadata(this.host.createComponent(component), metadata);
+      const ref = this.host.createComponent(component);
+      this.wireOpenAction(ref.instance, metadata);
+      applyMetadata(ref, metadata);
     } catch {
-      applyMetadata(this.host.createComponent(CardComponent), metadata);
+      const ref = this.host.createComponent(CardComponent);
+      this.wireOpenAction(ref.instance, metadata);
+      applyMetadata(ref, metadata);
     }
   }
 
+  /** Both card shapes expose an optional `open` output; the shell owns opening the URL. */
+  private wireOpenAction(instance: unknown, metadata: CardMetadata): void {
+    const output = (instance as { open?: EventEmitter<void> }).open;
+    if (!output) {
+      return;
+    }
+    output.subscribe(() => {
+      window.open(metadata.openUrl, '_blank', 'noopener,noreferrer');
+    });
+  }
+
   private async resolveCard(): Promise<Type<unknown>> {
-    const entry = this.project.exposedModules[0];
+    const entry = this.project.exposedModules.find((module) => module.moduleName === 'card');
+    if (!entry) {
+      throw new Error('Project exposes no card module');
+    }
     const ref = await this.registry.resolveModule(this.project.id, entry.moduleName);
     const component = (await ref.load()) as Type<unknown>;
     if (!component) {

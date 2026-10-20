@@ -3,7 +3,6 @@ package com.supportfolio.platform.identity.login;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
@@ -29,14 +28,12 @@ class LoginFailureHandlerTest {
 
   @Test
   void redirectsDeniedUsersBackToTheAlreadyValidatedTarget() throws IOException {
-    MockHttpServletRequest request =
-        requestWithTarget("https://shell.example.com/auth/callback");
+    MockHttpServletRequest request = requestWithTarget("https://shell.example.com/auth/callback");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     handler.onAuthenticationFailure(request, response, failure);
 
-    assertEquals(
-        HttpServletResponse.SC_FOUND, response.getStatus());
+    assertEquals(HttpServletResponse.SC_FOUND, response.getStatus());
     assertEquals(
         "https://shell.example.com/auth/callback?error=access_denied",
         response.getHeader("Location"));
@@ -49,7 +46,8 @@ class LoginFailureHandlerTest {
 
     handler.onAuthenticationFailure(request, response, failure);
 
-    assertEquals("https://x.example.com/cb?tab=1&error=access_denied", response.getHeader("Location"));
+    assertEquals(
+        "https://x.example.com/cb?tab=1&error=access_denied", response.getHeader("Location"));
   }
 
   @Test

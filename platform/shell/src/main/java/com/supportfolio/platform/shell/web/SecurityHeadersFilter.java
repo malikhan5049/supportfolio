@@ -1,11 +1,11 @@
 package com.supportfolio.platform.shell.web;
 
-import java.io.IOException;
-import org.springframework.web.filter.OncePerRequestFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Security headers on every response: CSP from trusted origins, plus the classic hardening set. */
 public class SecurityHeadersFilter extends OncePerRequestFilter {

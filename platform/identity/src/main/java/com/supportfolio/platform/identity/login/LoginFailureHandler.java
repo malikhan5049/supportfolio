@@ -9,8 +9,8 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 
 /**
  * Denied users come back to the app that started the login instead of landing on Identity's 404
- * error page (Plan 2 handoff): 302 to the already-origin-validated stored target with
- * {@code error=access_denied}. No codes are minted here, and no identity data is logged.
+ * error page (Plan 2 handoff): 302 to the already-origin-validated stored target with {@code
+ * error=access_denied}. No codes are minted here, and no identity data is logged.
  */
 public class LoginFailureHandler implements AuthenticationFailureHandler {
 

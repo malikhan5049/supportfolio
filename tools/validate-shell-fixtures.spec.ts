@@ -2,12 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('Identity card fixture', () => {
-  const manifestPath = path.join(
-    'platform/shell/testing/identity-card/project.manifest.yaml',
-  );
-  const mfConfigPath = path.join(
-    'platform/shell/testing/identity-card/webpack.config.js',
-  );
+  const manifestPath = path.join('platform/shell/testing/identity-card/project.manifest.yaml');
+  const mfConfigPath = path.join('platform/shell/testing/identity-card/webpack.config.js');
 
   it('the manifest validates', () => {
     const { validateManifest } = jest.requireActual<any>('./validate-manifest');

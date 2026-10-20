@@ -1,9 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { CatalogService, RegistryUnavailableError, CATALOG_REGISTRY_URL } from './catalog.service';
 import type { RemoteProjectDto } from './registry.types';
 
@@ -13,7 +10,9 @@ const dto = (): RemoteProjectDto => ({
   shortDescription: 'SSO.',
   features: ['GitHub sign-in'],
   openUrl: 'http://localhost:8081',
-  exposedModules: [{ name: 'card', version: '1.0.0', remoteEntry: 'http://localhost:4301/remoteEntry.js' }],
+  exposedModules: [
+    { name: 'card', version: '1.0.0', remoteEntry: 'http://localhost:4301/remoteEntry.js' },
+  ],
 });
 
 describe('CatalogService', () => {

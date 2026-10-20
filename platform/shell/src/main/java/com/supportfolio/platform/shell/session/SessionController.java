@@ -15,9 +15,7 @@ public class SessionController {
   @GetMapping("/api/session/me")
   SessionView me(@AuthenticationPrincipal Jwt jwt) {
     return new SessionView(
-        jwt.getSubject(),
-        jwt.getClaimAsString("preferred_username"),
-        jwt.getClaimAsString("role"));
+        jwt.getSubject(), jwt.getClaimAsString("preferred_username"), jwt.getClaimAsString("role"));
   }
 
   record SessionView(String id, String login, String role) {}

@@ -54,9 +54,7 @@ describe('authInterceptor', () => {
     });
     client.get('http://localhost:4301/remoteEntry.js').subscribe();
     expect(
-      http.expectOne('http://localhost:4301/remoteEntry.js').request.headers.has(
-        'Authorization',
-      ),
+      http.expectOne('http://localhost:4301/remoteEntry.js').request.headers.has('Authorization'),
     ).toBe(false);
     client.post('/api/token', { code: 'x' }).subscribe();
     expect(http.expectOne('/api/token').request.headers.has('Authorization')).toBe(false);

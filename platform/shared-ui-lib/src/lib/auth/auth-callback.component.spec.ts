@@ -88,10 +88,9 @@ describe('AuthCallbackComponent', () => {
   it('shows the denial state when the exchange is rejected', async () => {
     const completeLogin = jest.fn().mockRejectedValue(new LoginDeniedError('no'));
     const store = new AuthTokenStore();
-    const { fixture } = await renderCallback(
-      { code: 'abc' },
-      { completeLogin } as Partial<AuthService>,
-    );
+    const { fixture } = await renderCallback({ code: 'abc' }, {
+      completeLogin,
+    } as Partial<AuthService>);
     await fixture.whenStable();
     expect(screen.getByTestId('login-denied')).toBeTruthy();
     expect(store.token()).toBeNull();

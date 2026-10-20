@@ -10,10 +10,9 @@ import type { AuthConfig, Principal } from './auth.types';
  * How the app leaves for a full-page navigation (Identity login). Injectable so tests (and future
  * hosts) can capture the redirect instead of actually navigating.
  */
-export const EXTERNAL_NAVIGATOR = new InjectionToken<(url: string) => void>(
-  'EXTERNAL_NAVIGATOR',
-  { factory: () => ((url: string) => window.location.assign(url)) },
-);
+export const EXTERNAL_NAVIGATOR = new InjectionToken<(url: string) => void>('EXTERNAL_NAVIGATOR', {
+  factory: () => (url: string) => window.location.assign(url),
+});
 
 const RETURN_URL_KEY = 'supportfolio.auth.return-url';
 

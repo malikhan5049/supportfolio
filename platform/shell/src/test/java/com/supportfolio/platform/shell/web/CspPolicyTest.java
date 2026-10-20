@@ -18,8 +18,7 @@ class CspPolicyTest {
     assertFalse(csp.contains("'unsafe-eval'"));
     assertTrue(
         Arrays.stream(csp.split(";"))
-            .noneMatch(
-                d -> d.trim().startsWith("script-src") && d.contains("'unsafe-inline'")));
+            .noneMatch(d -> d.trim().startsWith("script-src") && d.contains("'unsafe-inline'")));
     assertTrue(csp.contains("frame-ancestors 'none'"));
   }
 
@@ -34,8 +33,11 @@ class CspPolicyTest {
     String csp = new CspPolicy(List.of("https://cdn.example.com")).headerValue();
     assertFalse(
         Arrays.stream(csp.split(";"))
-            .anyMatch(d -> d.contains("cdn.example.com") && d.trim().startsWith("script-src")
-                && !d.contains("https://cdn.example.com")),
+            .anyMatch(
+                d ->
+                    d.contains("cdn.example.com")
+                        && d.trim().startsWith("script-src")
+                        && !d.contains("https://cdn.example.com")),
         csp);
     assertTrue(csp.contains("connect-src 'self' https://cdn.example.com"), csp);
   }

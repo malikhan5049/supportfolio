@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Serves the validated remote registry to the SPA. A registry that cannot be read answers a typed
- * 503 without leaking file paths or validation internals — the renderer shows an error state, not
- * a half-empty grid.
+ * 503 without leaking file paths or validation internals — the renderer shows an error state, not a
+ * half-empty grid.
  */
 @RestController
 public class RemoteRegistryController {

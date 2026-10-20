@@ -6,9 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,9 +47,7 @@ class PublicPathsSecurityTest {
 
   @Test
   void unlistedPostsStillRequireCsrfToken() throws Exception {
-    mockMvc
-        .perform(post("/private/echo"))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(post("/private/echo")).andExpect(status().isForbidden());
   }
 
   @RestController

@@ -18,8 +18,7 @@ public class CspPolicy {
       this.trustedOrigins = List.of();
       return;
     }
-    this.trustedOrigins =
-        trustedOrigins.stream().map(CspPolicy::normalizedOrigin).toList();
+    this.trustedOrigins = trustedOrigins.stream().map(CspPolicy::normalizedOrigin).toList();
   }
 
   public String headerValue() {

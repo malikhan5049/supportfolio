@@ -11,7 +11,12 @@ const project = (id: string): RemoteProject => ({
   features: ['GitHub sign-in'],
   openUrl: 'http://localhost:8081',
   exposedModules: [
-    { projectId: id, moduleName: 'card', version: '1.0.0', remoteEntry: 'http://localhost:4301/remoteEntry.js' },
+    {
+      projectId: id,
+      moduleName: 'card',
+      version: '1.0.0',
+      remoteEntry: 'http://localhost:4301/remoteEntry.js',
+    },
   ],
 });
 
@@ -32,7 +37,10 @@ describe('CatalogPageComponent', () => {
   it('renders one card per registry project', async () => {
     const { fixture } = await render(CatalogPageComponent, {
       providers: [
-        { provide: CatalogService, useValue: loadingCatalog([project('identity'), project('tinyurl')]) },
+        {
+          provide: CatalogService,
+          useValue: loadingCatalog([project('identity'), project('tinyurl')]),
+        },
         { provide: RemoteRegistryService, useValue: undefined },
       ],
     });
@@ -46,8 +54,6 @@ describe('CatalogPageComponent', () => {
     });
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('[data-testid="registry-error"]')).toBeTruthy();
-    expect(
-      fixture.nativeElement.querySelectorAll('[data-testid^="project-card-"]').length,
-    ).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('[data-testid^="project-card-"]').length).toBe(0);
   });
 });

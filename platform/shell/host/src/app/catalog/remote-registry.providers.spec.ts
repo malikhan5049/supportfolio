@@ -1,9 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { loadRemoteModule } from '@angular-architects/module-federation';
 import { provideRemoteRegistry, toRemoteProject } from './remote-registry.providers';
 import { RemoteRegistryService } from 'shared-ui-lib';
@@ -21,7 +18,9 @@ const dto = (): RemoteProjectDto => ({
   shortDescription: 'SSO.',
   features: ['GitHub sign-in'],
   openUrl: 'http://localhost:8081',
-  exposedModules: [{ name: 'card', version: '1.0.0', remoteEntry: 'http://localhost:4301/remoteEntry.js' }],
+  exposedModules: [
+    { name: 'card', version: '1.0.0', remoteEntry: 'http://localhost:4301/remoteEntry.js' },
+  ],
 });
 
 describe('remote-registry providers', () => {
@@ -51,9 +50,7 @@ describe('remote-registry providers', () => {
     const http = TestBed.inject(HttpTestingController);
     const service = TestBed.inject(RemoteRegistryService);
     const promise = service.resolveModule('identity', 'card');
-    http
-      .expectOne('/api/remote-registry')
-      .flush({ projects: [dto()] });
+    http.expectOne('/api/remote-registry').flush({ projects: [dto()] });
     const ref = await promise;
     expect(ref.entry.projectId).toBe('identity');
     expect(ref.entry.moduleName).toBe('card');
