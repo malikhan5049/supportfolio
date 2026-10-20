@@ -4,6 +4,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      angular:
+        applies-to: version-updates
+        patterns:
+          - "@angular*"
+      jest:
+        applies-to: version-updates
+        patterns:
+          - "jest"
+          - "jest-*"
+          - "ts-jest"
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
