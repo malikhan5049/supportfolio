@@ -23,7 +23,7 @@ jobs:
 
           const base = process.env.BASE_SHA;
           const head = process.env.HEAD_SHA;
-          const shas = execSync(\`git rev-list --reverse \${base}..\${head}\`, { encoding: 'utf8' })
+          const shas = execSync(\`git rev-list --no-merges --reverse \${base}..\${head}\`, { encoding: 'utf8' })
             .split('\\n')
             .filter(Boolean);
 
