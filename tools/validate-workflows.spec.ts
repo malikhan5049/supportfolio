@@ -60,4 +60,19 @@ describe('platform-ci.yml', () => {
       expect.arrayContaining([expect.stringContaining('./gradlew build')]),
     );
   });
+
+  it('runs the frontend build and the shell e2e', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/platform-ci.yml', 'utf8'));
+    expect(doc.jobs['frontend-build']).toBeDefined();
+    expect(doc.jobs['shell-e2e']).toBeDefined();
+    expect(doc.jobs['shell-e2e'].steps.map((s: any) => s.run)).toEqual(
+      expect.arrayContaining([expect.stringContaining('playwright install')]),
+    );
+  });
+
+  it('branch protection requires the new checks', () => {
+    const source = fs.readFileSync('tools/branch-protection.ts', 'utf8');
+    expect(source).toContain("'frontend-build'");
+    expect(source).toContain("'shell-e2e'");
+  });
 });

@@ -1,0 +1,7 @@
+@if (denied()) {
+  <p data-testid="login-denied">Sign-in was denied for this account.</p>
+} @else if (error()) {
+  <p data-testid="login-error">Sign-in could not be completed.</p>
+} @else {
+  <p data-testid="login-working">Signing in…</p>
+}

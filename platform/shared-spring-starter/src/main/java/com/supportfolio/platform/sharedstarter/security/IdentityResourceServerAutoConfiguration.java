@@ -38,7 +38,19 @@ public class IdentityResourceServerAutoConfiguration {
       throws Exception {
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(props.jwkSetUri()).build();
     decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuerUri()));
-    return http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+    return http.authorizeHttpRequests(
+            authorize -> {
+              if (!props.permitPaths().isEmpty()) {
+                authorize.requestMatchers(props.permitPaths().toArray(String[]::new)).permitAll();
+              }
+              authorize.anyRequest().authenticated();
+            })
+        .csrf(
+            csrf -> {
+              if (!props.csrfIgnorePaths().isEmpty()) {
+                csrf.ignoringRequestMatchers(props.csrfIgnorePaths().toArray(String[]::new));
+              }
+            })
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2.jwt(jwt -> jwt.decoder(decoder).jwtAuthenticationConverter(roleMapper())))

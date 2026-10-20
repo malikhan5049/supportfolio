@@ -13,3 +13,4 @@ includeBuild("build-logic")
 
 include("platform:shared-spring-starter")
 include("platform:identity")
+include("platform:shell")

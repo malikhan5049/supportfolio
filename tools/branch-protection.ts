@@ -3,6 +3,8 @@ export const REQUIRED_STATUS_CHECKS = [
   'validate-commit-messages',
   'check-formatting',
   'platform-build',
+  'frontend-build',
+  'shell-e2e',
 ];
 
 export interface RepositoryRuleset {

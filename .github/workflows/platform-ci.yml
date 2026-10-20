@@ -22,3 +22,46 @@ jobs:
 
       - name: Test build-logic
         run: ./gradlew -p build-logic test
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and test frontend projects
+        run: npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,identity-card
+
+      - name: Build shell host
+        run: npx nx build shell-host
+
+      - name: Build identity card remote
+        run: npx nx build identity-card
+
+  shell-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run dynamic remote loading e2e
+        run: npx nx e2e shell-host-e2e

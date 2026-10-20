@@ -1,0 +1,16 @@
+{
+  "name": "shell-host-e2e",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "platform/shell/host-e2e",
+  "sourceRoot": "platform/shell/host-e2e/src",
+  "tags": [],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright test --config=platform/shell/host-e2e/playwright.config.ts"
+      }
+    }
+  }
+}

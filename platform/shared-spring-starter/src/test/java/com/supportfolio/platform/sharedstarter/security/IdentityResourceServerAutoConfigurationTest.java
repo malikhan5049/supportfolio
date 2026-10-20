@@ -45,6 +45,21 @@ class IdentityResourceServerAutoConfigurationTest {
         .run(context -> assertThat(context).hasSingleBean(SecurityFilterChain.class));
   }
 
+  @Test
+  void emptyPermitAndCsrfListsKeepPlanTwoBehavior() {
+    runner
+        .withPropertyValues(
+            "supportfolio.security.resource-server.enabled=true",
+            "supportfolio.security.jwk-set-uri=http://localhost:8081/oauth2/jwks",
+            "supportfolio.security.issuer-uri=http://localhost:8081")
+        .run(
+            context -> {
+              SharedSecurityProperties props = context.getBean(SharedSecurityProperties.class);
+              assertThat(props.permitPaths()).isEmpty();
+              assertThat(props.csrfIgnorePaths()).isEmpty();
+            });
+  }
+
   private final IdentityResourceServerAutoConfiguration autoConfiguration =
       new IdentityResourceServerAutoConfiguration();
 
