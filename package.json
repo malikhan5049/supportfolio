@@ -2,8 +2,12 @@
   "name": "supportfolio",
   "version": "1.0.0",
   "description": "Supportfolio monorepo",
-  "scripts": {},
+  "scripts": {
+    "run:all": "node node_modules/@angular-architects/module-federation/src/server/mf-dev-server.js"
+  },
   "devDependencies": {
+    "@angular-architects/module-federation": "^22.0.0",
+    "@angular-devkit/build-angular": "~22.1.0",
     "@angular-devkit/core": "~22.1.0",
     "@angular-devkit/schematics": "~22.1.0",
     "@angular/cli": "~22.1.0",
@@ -14,6 +18,8 @@
     "@nx/eslint-plugin": "^23.3.0",
     "@nx/jest": "23.3.0",
     "@nx/js": "23.3.0",
+    "@nx/web": "23.3.0",
+    "@nx/webpack": "^23.3.0",
     "@schematics/angular": "~22.1.0",
     "@swc/helpers": "~0.5.18",
     "@testing-library/angular": "^19.5.0",
@@ -21,6 +27,7 @@
     "@types/jest": "~30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
+    "@typescript-eslint/utils": "^8.58.0",
     "ajv": "^8.20.0",
     "angular-eslint": "^22.6.0",
     "eslint": "^10.13.0",
@@ -36,7 +43,8 @@
     "tslib": "^2.3.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.71.2",
+    "webpack-merge": "^5.10.0"
   },
   "dependencies": {
     "@angular/common": "~22.1.0",
