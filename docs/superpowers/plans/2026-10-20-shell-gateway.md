@@ -1223,3 +1223,11 @@ Routing per AGENTS.md. Limitation: providers expose no token/cost data — rows 
 | Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
 |---|---|---|---|---|---|---|
 | plan | 3 Plan | High (architecture plan; cross-cutting shell/auth/MF/security) | `opencode-go/deepseek-v4.1-flash#high` | AGENTS.md Phase 3 primary | Plan file written; planning only — no build/tests run | 2 transient dispatch failures (region restriction, then interrupt) → succeeded on retry; provider exposes no token/cost data |
+| 1 | 5 Build | Low (scaffold transcription + boot test) | `opencode-go/glm-5.3-flash` (session, inline) | AGENTS.md Phase 5 primary; executing-plans inline | BUILD SUCCESSFUL, 1/1 | 0 |
+| 2 | 5 Build | Medium (starter chain extension, TDD) | `opencode-go/glm-5.3-flash` (session, inline) | security-adjacent chain change | starter+identity suites green | Requires Boot 4 correction (Ruling in ledger) — plan assumed Boot 3 module paths | 1 (module-path ruling, not a logic loop) |
+| 3 | 5 Build | Low (controller + yaml transcription) | `opencode-go/glm-5.3-flash` (session, inline) | simple endpoint | 2/2 | 0 |
+| 4 | 5 Build | Medium (validation rules + hot reload) | `opencode-go/glm-5.3-flash` (session, inline) | domain validation; npe from unset config caught by suite | shell suite green | 1 fix commit (bean registration + null tolerance) |
+| 5 | 5 Build | Low (endpoint + docs) | `opencode-go/glm-5.3-flash` (session, inline) | mostly transcription | shell suite green | 0 |
+| 6 | 5 Build | Medium (CSP policy + filter) | `opencode-go/glm-5.3-flash` (session, inline) | security header emission | shell suite green | 1 test-fixture fix (registry file path in tests) |
+| 7 | 5 Build | High (gateway routes + SPA fallback integration) | `opencode-go/glm-5.3-flash` (session, inline) | integration wiring; yaml nesting bug (self-inflicted, caught by suite) | 4/4 after fix | 1 diagnostic loop (yaml structure) — would have been faster with careful single-write; RestClient vs RestTemplate DSL correction |
+| 8 | 5 Build | Medium (pure helpers + zoneless Angular tests) | `opencode-go/glm-5.3-flash` (session, inline) | TDD helpers + jest TestBed provider ordering + Boot-4-era jsdom quirks | shared-ui-lib suites green | 2 code fixes (type-only InjectionToken import; clear() during field init), 1 spec restructure |
