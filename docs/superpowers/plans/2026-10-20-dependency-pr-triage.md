@@ -274,6 +274,16 @@ Expected: no Dependabot PR remains open or shows a rebase-in-progress label; the
 
 Append one row per merged PR to the Dispatch Ledger below (task, phase, shape, model, why, outcome, retries).
 
+## Execution amendments (2026-10-20, post-execution — binding for future executors)
+
+The steps above were written before execution; three of them provably fail as written. Corrections (also see the plan's Dispatch Ledger and the session ledger):
+
+1. **`rebase-strategy: "rebase"` is invalid** — Dependabot's schema allows only `auto|disabled`. Adding it halts Dependabot's config validation (status context `.github/dependabot.yml` goes red on PRs). It was added in Task 1 and reverted in PR #15; do not re-add.
+2. **`@dependabot rebase` fails on human-updated branches** ("edited by someone other than Dependabot"). Use `gh pr update-branch <n>` to refresh a branch, and `@dependabot recreate <n>` when the PR conflicts with main (recreated branches come out as clean single commits).
+3. **Merge with `--squash`, not `--merge`** — repo precedent is squash-only history; squash also drops the merge commits that the strict up-to-date policy keeps creating.
+
+Also note: the four required checks never run JS lint/tests (Platform CI is Gradle-only), so the per-PR local verification steps (`npm ci` + `npx nx run-many -t lint test`) are load-bearing — run them before merging any npm PR.
+
 ## Dispatch Ledger
 
 | Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
