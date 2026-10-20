@@ -83,6 +83,7 @@
       "options": {
         "port": 4200,
         "publicHost": "http://localhost:4200",
+        "proxyConfig": "platform/shell/host/proxy.conf.json",
         "headers": {
           "Access-Control-Allow-Origin": "*"
         }
