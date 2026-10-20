@@ -274,9 +274,24 @@ Expected: no Dependabot PR remains open or shows a rebase-in-progress label; the
 
 Append one row per merged PR to the Dispatch Ledger below (task, phase, shape, model, why, outcome, retries).
 
+## Execution amendments (2026-10-20, post-execution — binding for future executors)
+
+The steps above were written before execution; three of them provably fail as written. Corrections (also see the plan's Dispatch Ledger and the session ledger):
+
+1. **`rebase-strategy: "rebase"` is invalid** — Dependabot's schema allows only `auto|disabled`. Adding it halts Dependabot's config validation (status context `.github/dependabot.yml` goes red on PRs). It was added in Task 1 and reverted in PR #15; do not re-add.
+2. **`@dependabot rebase` fails on human-updated branches** ("edited by someone other than Dependabot"). Use `gh pr update-branch <n>` to refresh a branch, and `@dependabot recreate <n>` when the PR conflicts with main (recreated branches come out as clean single commits).
+3. **Merge with `--squash`, not `--merge`** — repo precedent is squash-only history; squash also drops the merge commits that the strict up-to-date policy keeps creating.
+
+Also note: the four required checks never run JS lint/tests (Platform CI is Gradle-only), so the per-PR local verification steps (`npm ci` + `npx nx run-many -t lint test`) are load-bearing — run them before merging any npm PR.
+
 ## Dispatch Ledger
 
 | Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |
 |---|---|---|---|---|---|---|
 | 1. Fix validator to skip merge commits | 5 Build | Low (1-line CI config + 2-line dependabot.yml) | glm-5.3-flash (session) | Operational unblock for all 5 PRs | Local validator RED→GREEN; PR #14 CI 4/4 pass; merged b15c45b | 0 |
+| 1b. Revert invalid rebase-strategy | 5 Build | Low (2-line revert) | glm-5.3-flash (session) | Dependabot schema rejects "rebase" | PR #15 CI 4/4 pass; merged 5f5e91a | 0 (found during Task 2, fixed in one pass) |
+| 2. Merge npm trio #9/#11/#10 | 5 Build | Medium (ordered merges, conflict cycles) | glm-5.3-flash (session) | Version-locked angular/schematics; shared lockfile | Per-PR: npm ci + nx lint/test 3/3 pass; CI 4/4 green; merged ed6725b, 9444762, 872a20e | @dependabot recreate ×3 (human-edited branches + lockfile conflicts) |
+| 3. MockWebServer 5 bump #8 | 5 Build | Low (test-dep bump, verified) | glm-5.3-flash (session) | Major bump needs runtime proof | ./gradlew :platform:identity:test BUILD SUCCESSFUL; CI 4/4 green; merged eae83b2 | 0 |
+| 4. Harness fix #13 | 6 Review | Low (5 files, guarded) | glm-5.3-flash (session) | Human PR blocked by same validator bug | Tool specs 12/12 local; diff audit clean; ruleset active post-merge; merged 413a577 | 0 |
+| 5. Sweep + ledger | 7 Finalize | Low (verification only) | glm-5.3-flash (session) | Confirm end state | 0 open PRs; main runs green (see ledger note) | 0 |
 | *(controller appends one row per task at execution time)* | | | | | | |
