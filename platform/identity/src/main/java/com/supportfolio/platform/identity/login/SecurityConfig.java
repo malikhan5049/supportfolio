@@ -27,7 +27,8 @@ public class SecurityConfig {
   SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       CustomOAuth2UserService customOAuth2UserService,
-      LoginSuccessHandler loginSuccessHandler)
+      LoginSuccessHandler loginSuccessHandler,
+      LoginFailureHandler loginFailureHandler)
       throws Exception {
     http.authorizeHttpRequests(
             authorize ->
@@ -41,9 +42,14 @@ public class SecurityConfig {
                 oauth2
                     .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                     .successHandler(loginSuccessHandler)
-                    .failureUrl("/login?error"))
+                    .failureHandler(loginFailureHandler))
         .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"));
     return http.build();
+  }
+
+  @Bean
+  LoginFailureHandler loginFailureHandler() {
+    return new LoginFailureHandler();
   }
 
   @Bean
