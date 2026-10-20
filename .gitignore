@@ -24,6 +24,7 @@ bin/
 
 .angular
 node_modules/
+dist/
 
 # Local-only credential/run scripts — never commit
 *.local.ps1
