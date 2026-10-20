@@ -2,3 +2,8 @@ export * from './lib/card/card.component';
 export * from './lib/remote-registry/remote-registry.types';
 export * from './lib/remote-registry/remote-registry.service';
 export * from './lib/auth/redirect-url';
+export * from './lib/auth/auth.types';
+export * from './lib/auth/auth.config';
+export * from './lib/auth/auth-token.store';
+export * from './lib/auth/auth.service';
+export * from './lib/auth/auth.interceptor';
