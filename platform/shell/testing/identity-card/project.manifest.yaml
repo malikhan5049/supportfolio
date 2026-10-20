@@ -5,7 +5,7 @@ features:
   - GitHub sign-in
   - JWT issuance
   - JWKS publication
-openUrl: http://localhost:8081
+openUrl: http://localhost:8081/actuator/health
 exposedModules:
   - name: card
     version: 1.0.0

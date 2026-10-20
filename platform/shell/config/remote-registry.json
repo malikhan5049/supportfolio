@@ -5,7 +5,7 @@
       "displayName": "Identity",
       "shortDescription": "Single sign-on and JWT issuance for every Supportfolio project.",
       "features": ["GitHub sign-in", "JWT issuance", "JWKS publication"],
-      "openUrl": "http://localhost:8081",
+      "openUrl": "http://localhost:8081/actuator/health",
       "exposedModules": [
         { "name": "card", "version": "1.0.0", "remoteEntry": "http://localhost:4301/remoteEntry.js" }
       ]
