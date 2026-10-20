@@ -90,16 +90,6 @@ review findings by severity) in the PR summary. Providers expose no token/cost
 data — record that limitation; proxy = dispatch counts per tier. Never fabricate
 costs, usage, or benchmarks.
 
-## Retrospectives (binding)
-
-- Before any plan is written (via `/plan` or otherwise): read
-  `docs/superpowers/retrospectives.md` from the top, apply every standing item to the
-  plan, and note compliance in the plan file — or record a justification next to the
-  ledger entry. Contradicted practices must not be repeated.
-- After a plan completes (via `/finalize` or otherwise): append its retrospective entry
-  at the TOP of that file before the next plan starts. One entry per plan, at
-  completion, grounded in the dispatch ledger — never fabricated.
-
 ## Config enforcement
 
 Repo `opencode.json` pins (overrides global, this repo only): session +
@@ -108,8 +98,3 @@ Repo `opencode.json` pins (overrides global, this repo only): session +
 explicit `glm-5.3` model override at dispatch. `/plan`, `/finalize`, `/brainstorm`
 pin their phase models in frontmatter. Everything not pinned is advisory.
 
-## Legacy name substitutions (human decisions 2026-10-19)
-
-"Qwen 2.5 Coder" → `qwen3.8-flash` · "MiMo V2.6 Flash" → `glm-5.3-flash` (catalog
-still lists `mimo-v2.6-flash` active; mapping covers legacy text only) · "DeepSeek
-V3 Lite" → `deepseek-v4.1-flash`.
