@@ -1,3 +1,12 @@
+export const REQUIRED_STATUS_CHECKS = [
+  'validate-manifests',
+  'validate-commit-messages',
+  'check-formatting',
+  'platform-build',
+  'frontend-build',
+  'shell-e2e',
+];
+
 export interface RepositoryRuleset {
   name: string;
   target: 'branch';
@@ -41,10 +50,7 @@ export function buildMainBranchRuleset(requiredStatusChecks: string[]): Reposito
       {
         type: 'required_status_checks',
         parameters: {
-          required_status_checks: requiredStatusChecks.map((context) => ({
-            context,
-            integration_id: null,
-          })),
+          required_status_checks: requiredStatusChecks.map((context) => ({ context })),
           strict_required_status_checks_policy: true,
         },
       },
