@@ -45,7 +45,8 @@ public class SecurityConfig {
                     .successHandler(loginSuccessHandler)
                     .failureHandler(loginFailureHandler))
         .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"))
-        // A stranger's deep link gets Unauthorized, not a surprise OAuth dance initiated outside the
+        // A stranger's deep link gets Unauthorized, not a surprise OAuth dance initiated outside
+        // the
         // designed /auth/login entry (which 302s to GitHub itself); the fixed 400-after-GitHub flow
         // is the symptom this removes.
         .exceptionHandling(
