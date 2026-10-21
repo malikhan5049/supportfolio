@@ -42,6 +42,7 @@ describe('buildMainBranchRuleset', () => {
         'tinyurl-frontend',
         'tinyurl-image',
         'tinyurl-k3s-manifests',
+        'tinyurl-arm-smoke',
       ]),
     );
   });

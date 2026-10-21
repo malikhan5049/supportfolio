@@ -9,6 +9,7 @@ export const REQUIRED_STATUS_CHECKS = [
   'tinyurl-frontend',
   'tinyurl-image',
   'tinyurl-k3s-manifests',
+  'tinyurl-arm-smoke',
 ];
 
 export interface RepositoryRuleset {

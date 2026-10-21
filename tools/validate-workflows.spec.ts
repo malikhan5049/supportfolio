@@ -174,4 +174,15 @@ describe('tinyurl-ci.yml', () => {
       "'tinyurl-k3s-manifests'",
     );
   });
+
+  it('runs the pushed arm64 image on an ARM runner and asserts health plus api', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
+    const job = doc.jobs['tinyurl-arm-smoke'];
+    expect(job['runs-on']).toContain('arm');
+    const raw = JSON.stringify(job);
+    expect(raw).toContain('docker run');
+    expect(raw).toContain('/actuator/health');
+    expect(raw).toContain('/api/links');
+    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-arm-smoke'");
+  });
 });
