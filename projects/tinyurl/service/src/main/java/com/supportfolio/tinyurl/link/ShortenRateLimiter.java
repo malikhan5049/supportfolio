@@ -3,15 +3,13 @@ package com.supportfolio.tinyurl.link;
 import com.supportfolio.tinyurl.config.TinyUrlProperties;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * In-process fixed hourly window for the shorten cap. LIMITATION BY DESIGN: each instance counts
- * its own window — with more than one replica the effective cap is limit × replicas. Replace with
- * a shared store (e.g. Redis or the database) only when a second replica of this service exists.
+ * its own window — with more than one replica the effective cap is limit × replicas. Replace with a
+ * shared store (e.g. Redis or the database) only when a second replica of this service exists.
  */
 public class ShortenRateLimiter {
 

@@ -7,10 +7,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.supportfolio.tinyurl.PostgresIntegrationTest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
-import com.supportfolio.tinyurl.PostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -65,7 +65,10 @@ class LinkCreationTest extends PostgresIntegrationTest {
   @Test
   void rejectsAnonymousShorten() throws Exception {
     mockMvc
-        .perform(post("/api/links").contentType(APPLICATION_JSON).content("{\"targetUrl\":\"https://example.com\"}"))
+        .perform(
+            post("/api/links")
+                .contentType(APPLICATION_JSON)
+                .content("{\"targetUrl\":\"https://example.com\"}"))
         .andExpect(status().isUnauthorized());
     assertEquals(0, links.count());
   }

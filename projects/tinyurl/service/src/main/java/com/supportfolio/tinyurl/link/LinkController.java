@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The authenticated half of the public API: shortening. The role check is explicit here (the
- * starter only authenticates); an authenticated caller without {@code admin}/{@code user} is
- * denied with 403 before anything is stored.
+ * starter only authenticates); an authenticated caller without {@code admin}/{@code user} is denied
+ * with 403 before anything is stored.
  */
 @RestController
 public class LinkController {

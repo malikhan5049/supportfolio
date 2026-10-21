@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Pins creation-time target validation: public http(s) only, SSRF ranges, credentials, DNS failure. */
+/**
+ * Pins creation-time target validation: public http(s) only, SSRF ranges, credentials, DNS failure.
+ */
 class TargetUrlValidatorTest {
 
   @Test
@@ -58,7 +60,8 @@ class TargetUrlValidatorTest {
           throw new UnknownHostException(host);
         };
     assertThrows(
-        InvalidTargetUrlException.class, () -> new TargetUrlValidator(resolver).validate("http://example.com/x"));
+        InvalidTargetUrlException.class,
+        () -> new TargetUrlValidator(resolver).validate("http://example.com/x"));
   }
 
   // --- deterministic resolver fixtures -------------------------------------------

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -48,7 +47,8 @@ class RateLimitEndpointTest extends PostgresIntegrationTest {
     assertEquals(3, links.count());
   }
 
-  private void shorten(String user, String target, org.springframework.test.web.servlet.ResultMatcher expected)
+  private void shorten(
+      String user, String target, org.springframework.test.web.servlet.ResultMatcher expected)
       throws Exception {
     mockMvc
         .perform(

@@ -19,10 +19,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** The redirect: 302 to the stored target, exactly one click row per follow, typed 404 for unknown. */
+/**
+ * The redirect: 302 to the stored target, exactly one click row per follow, typed 404 for unknown.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(RedirectTest.FixedClock.class)
@@ -69,13 +70,15 @@ class RedirectTest extends PostgresIntegrationTest {
     UUID id = UUID.randomUUID();
     jdbc.update(
         "insert into links (id, slug, target_url, created_by, created_at) values (?, ?, ?, 'seeder', now())",
-        id, slug, target);
+        id,
+        slug,
+        target);
     return id;
   }
 
   private long clickCountFor(UUID linkId) {
-    return jdbc
-        .queryForObject("select count(*) from link_clicks where link_id = ?", Long.class, linkId);
+    return jdbc.queryForObject(
+        "select count(*) from link_clicks where link_id = ?", Long.class, linkId);
   }
 
   @TestConfiguration

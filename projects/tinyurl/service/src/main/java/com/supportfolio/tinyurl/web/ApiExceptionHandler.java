@@ -15,7 +15,8 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler(InvalidTargetUrlException.class)
   ResponseEntity<Map<String, String>> invalidTargetUrl(InvalidTargetUrlException e) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "invalid_target_url"));
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(Map.of("error", "invalid_target_url"));
   }
 
   @ExceptionHandler(LinkNotFoundException.class)
@@ -25,6 +26,7 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler(RateLimitedException.class)
   ResponseEntity<Map<String, String>> rateLimited() {
-    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "rate_limited"));
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .body(Map.of("error", "rate_limited"));
   }
 }

@@ -9,5 +9,4 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * fixed hourly window (Task 8's limiter).
  */
 @ConfigurationProperties("supportfolio.tinyurl")
-public record TinyUrlProperties(
-    String identityUri, @DefaultValue("20") int rateLimitPerHour) {}
+public record TinyUrlProperties(String identityUri, @DefaultValue("20") int rateLimitPerHour) {}

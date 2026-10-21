@@ -7,14 +7,31 @@ supportfolio:
       enabled: true
     jwk-set-uri: ${SUPPORTFOLIO_TINYURL_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
     issuer-uri: ${SUPPORTFOLIO_TINYURL_ISSUER_URI:http://localhost:8081}
-    permit-paths: /actuator/health,/actuator/health/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/go/**
-    permit-get-paths: /api/links
+    permit-paths: /actuator/health,/actuator/health/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/go/**,/api/token
+    permit-get-paths: /api/links,/auth/login,/oauth2/**,/login/**,/,/index.html,/signin,/auth/callback,/assets/**,/*.js,/*.css,/*.ico
     csrf-ignore-paths: /api/token,/api/links
   tinyurl:
     identity-uri: ${SUPPORTFOLIO_TINYURL_IDENTITY_URI:http://localhost:8081}
     rate-limit-per-hour: ${SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR:20}
 
 spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: identity-token
+              uri: ${supportfolio.tinyurl.identity-uri}
+              predicates:
+                - Path=/api/token
+            - id: identity-login-start
+              uri: ${supportfolio.tinyurl.identity-uri}
+              predicates:
+                - Path=/auth/login
+            - id: identity-oauth
+              uri: ${supportfolio.tinyurl.identity-uri}
+              predicates:
+                - Path=/oauth2/**,/login/**
   datasource:
     url: jdbc:postgresql://localhost:5432/tinyurl
     username: ${SUPPORTFOLIO_TINYURL_DB_USER:tinyurl}

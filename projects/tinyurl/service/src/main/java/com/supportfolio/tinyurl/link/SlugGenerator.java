@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class SlugGenerator {
 
-  private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  private static final String ALPHABET =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   private static final int LENGTH = 8;
   private static final SecureRandom RANDOM = new SecureRandom();
 

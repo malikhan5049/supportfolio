@@ -16,8 +16,7 @@ import java.util.UUID;
 @Table(name = "links")
 public class LinkEntity {
 
-  @Id
-  UUID id;
+  @Id UUID id;
 
   @Column(length = 32, unique = true)
   String slug;

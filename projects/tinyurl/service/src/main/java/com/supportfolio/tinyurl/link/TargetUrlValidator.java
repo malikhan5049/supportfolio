@@ -7,8 +7,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 /**
- * Creation-time validation of the target URL a user wants to shorten. Only absolute http/https to
- * a public, resolvable host without embedded credentials is acceptable: every resolved address is
+ * Creation-time validation of the target URL a user wants to shorten. Only absolute http/https to a
+ * public, resolvable host without embedded credentials is acceptable: every resolved address is
  * checked so a name that maps to a mix of public and private addresses is rejected (a partial
  * private set is an SSRF surface, not a safe one). The service never fetches the target — this
  * class only decides creation — so redirects always go to the fixed stored value.
@@ -65,7 +65,8 @@ public final class TargetUrlValidator {
   }
 
   private InetAddress[] resolveAll(String host) {
-    String unbracketed = host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
+    String unbracketed =
+        host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
     try {
       return resolver.resolve(unbracketed);
     } catch (UnknownHostException e) {

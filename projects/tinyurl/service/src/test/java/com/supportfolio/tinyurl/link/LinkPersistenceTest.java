@@ -24,7 +24,9 @@ class LinkPersistenceTest extends PostgresIntegrationTest {
   @Test
   void flywayAppliesTheInitialMigration() {
     assertEquals(
-        1, jdbc.queryForObject("select count(*) from flyway_schema_history where success", Integer.class));
+        1,
+        jdbc.queryForObject(
+            "select count(*) from flyway_schema_history where success", Integer.class));
     assertEquals(
         2,
         jdbc.queryForObject(
@@ -48,7 +50,8 @@ class LinkPersistenceTest extends PostgresIntegrationTest {
   void deletingALinkCascadesItsClicks() {
     LinkEntity link =
         links.saveAndFlush(
-            new LinkEntity(UUID.randomUUID(), "cas12345", "https://example.com", "u1", Instant.now()));
+            new LinkEntity(
+                UUID.randomUUID(), "cas12345", "https://example.com", "u1", Instant.now()));
     jdbc.update(
         "insert into link_clicks (id, link_id, clicked_at) values (?, ?, ?)",
         UUID.randomUUID(),

@@ -1,13 +1,10 @@
 package com.supportfolio.tinyurl.link;
 
-import com.supportfolio.tinyurl.config.TinyUrlProperties;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,15 +44,17 @@ public class LinkService {
   /** Browse rows mapped to the public view; creator identity never leaves the repository layer. */
   public List<LinkView> list() {
     return links.findAllWithClickCounts().stream()
-        .map(row -> new LinkView(row.getSlug(), row.getTargetUrl(), row.getClickCount(), row.getCreatedAt()))
+        .map(
+            row ->
+                new LinkView(
+                    row.getSlug(), row.getTargetUrl(), row.getClickCount(), row.getCreatedAt()))
         .toList();
   }
 
   /** Anonymous follow of a short link: one click row first, then the stored target out. */
   @Transactional
   public String resolveAndRecordClick(String slug) {
-    LinkEntity link =
-        links.findBySlug(slug).orElseThrow(() -> new LinkNotFoundException(slug));
+    LinkEntity link = links.findBySlug(slug).orElseThrow(() -> new LinkNotFoundException(slug));
     clicks.saveAndFlush(new LinkClickEntity(UUID.randomUUID(), link, Instant.now(clock)));
     return link.getTargetUrl();
   }

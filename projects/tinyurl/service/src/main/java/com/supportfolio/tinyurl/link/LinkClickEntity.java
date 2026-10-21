@@ -18,8 +18,7 @@ import java.util.UUID;
 @Table(name = "link_clicks")
 public class LinkClickEntity {
 
-  @Id
-  UUID id;
+  @Id UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "link_id")
