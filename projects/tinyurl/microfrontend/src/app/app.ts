@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject } from '@angular/core';import { RouterLink, RouterOutlet } from '@angular/router';
+import { Component, OnInit, computed, inject } from '@angular/core';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthTokenStore } from 'shared-ui-lib';
 
 /** The app chrome: sign-in link when anonymous, the principal's name and sign-out when active. */
