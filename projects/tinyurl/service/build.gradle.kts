@@ -37,3 +37,7 @@ dependencyManagement {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.3")
     }
 }
+
+tasks.bootJar {
+    archiveFileName = "tinyurl-service.jar"
+}
