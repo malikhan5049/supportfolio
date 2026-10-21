@@ -14,6 +14,21 @@ supportfolio:
     identity-uri: ${SUPPORTFOLIO_TINYURL_IDENTITY_URI:http://localhost:8081}
     rate-limit-per-hour: ${SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR:20}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+
 spring:
   cloud:
     gateway:
