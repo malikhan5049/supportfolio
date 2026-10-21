@@ -76,3 +76,36 @@ describe('platform-ci.yml', () => {
     expect(source).toContain("'shell-e2e'");
   });
 });
+
+describe('harness workflow mirrors', () => {
+  it.each(['backend-ci.yml', 'frontend-ci.yml', 'deploy.yml'])(
+    'mirrors %s at the top level for GitHub to register it',
+    (name) => {
+      expect(fs.readFileSync(`.github/workflows/${name}`, 'utf8')).toBe(
+        fs.readFileSync(`platform/harness/workflows/${name}`, 'utf8'),
+      );
+    },
+  );
+
+  it('the sync script only copies byte-for-byte and fails when a canonical file is missing', () => {
+    const source = fs.readFileSync('tools/sync-harness-workflows.ts', 'utf8');
+    expect(source).toContain('.github/workflows');
+    expect(source).toContain('platform/harness/workflows');
+  });
+});
+
+describe('deploy.yml', () => {
+  it('is a reusable workflow with an environment input and a protected job', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
+    expect(doc.on.workflow_call.inputs.environment).toBeDefined();
+    expect(doc.jobs.deploy.environment).toContain('inputs.environment');
+    expect(doc.jobs.deploy.steps.map((s: any) => s.run).join('\n')).toContain('kubectl apply');
+  });
+
+  it('carries the tinyurl namespace/manifest defaults and the kubeconfig secret', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
+    expect(doc.on.workflow_call.inputs.namespace.default).toBe('tinyurl');
+    expect(doc.on.workflow_call.inputs['manifests-path'].default).toBe('projects/tinyurl/deploy');
+    expect(doc.on.workflow_call.secrets.KUBECONFIG).toBeDefined();
+  });
+});

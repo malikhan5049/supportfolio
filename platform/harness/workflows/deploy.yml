@@ -1,0 +1,61 @@
+name: deploy
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      namespace:
+        required: false
+        type: string
+        default: tinyurl
+      manifests-path:
+        required: false
+        type: string
+        default: projects/tinyurl/deploy
+    secrets:
+      KUBECONFIG:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout the manifests
+        uses: actions/checkout@v6
+
+      - name: Prime kubectl with the environment's kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          chmod 600 kubeconfig
+          echo "KUBECONFIG=${PWD}/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Render the secret template and manifests
+        run: |
+          sudo apt-get install gettext-base
+          mkdir -p rendered
+          TINYURL_DB_NAME=${TINYURL_DB_NAME} \
+          TINYURL_DB_USER=${TINYURL_DB_USER} \
+          TINYURL_DB_PASSWORD=${TINYURL_DB_PASSWORD} \
+          TINYURL_IMAGE=${{ inputs.image }} \
+          TINYURL_IDENTITY_URI=${{ vars.TINYURL_IDENTITY_URI }} \
+          TINYURL_IDENTITY_JWK_SET_URI=${{ vars.TINYURL_IDENTITY_JWK_SET_URI }} \
+          TINYURL_IDENTITY_ISSUER_URI=${{ vars.TINYURL_IDENTITY_ISSUER_URI }} \
+          TINYURL_HOST=${{ vars.TINYURL_HOST }} \
+          envsubst < "${{ inputs.manifests-path }}/postgres-secret.yaml.template" > rendered/postgres-secret.yaml
+          find "${{ inputs.manifests-path }}" -maxdepth 1 -name '*.yaml' -exec cp {} rendered/ \;
+
+      - name: Apply the namespace first, then everything else
+        run: |
+          kubectl apply -f "${{ inputs.manifests-path }}/namespace.yaml"
+          kubectl apply -f rendered/namespace.yaml --dry-run=client 2>/dev/null
+          kubectl apply -f rendered/postgres-secret.yaml
+          find rendered -name '*.yaml' ! -name namespace.yaml ! -name postgres-secret.yaml -exec kubectl apply -f {} \;
+
+      - name: Wait for the rollout
+        run: |
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/tinyurl --timeout=180s
