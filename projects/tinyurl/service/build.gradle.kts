@@ -19,6 +19,7 @@ dependencies {
     // shell's 2025.1.3 BOM usage. Known caveat (Plan 3/4): the BOM line certifies Boot 4.0.x
     // while the workspace pins 4.1.1 — the shell boots in this combination, so TinyURL reuses it.
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
