@@ -1,5 +1,7 @@
 package com.supportfolio.tinyurl;
 
+import com.supportfolio.tinyurl.link.TargetResolver;
+import java.net.InetAddress;
 import java.time.Clock;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,5 +18,11 @@ public class TinyUrlApplication {
   @Bean
   Clock clock() {
     return Clock.systemUTC();
+  }
+
+  /** Default resolver uses real DNS; tests override this bean with a deterministic one. */
+  @Bean
+  TargetResolver targetResolver() {
+    return host -> InetAddress.getAllByName(host);
   }
 }
