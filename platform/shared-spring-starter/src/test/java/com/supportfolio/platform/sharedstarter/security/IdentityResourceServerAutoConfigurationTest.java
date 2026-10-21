@@ -57,6 +57,7 @@ class IdentityResourceServerAutoConfigurationTest {
               SharedSecurityProperties props = context.getBean(SharedSecurityProperties.class);
               assertThat(props.permitPaths()).isEmpty();
               assertThat(props.csrfIgnorePaths()).isEmpty();
+              assertThat(props.permitGetPaths()).isEmpty();
             });
   }
 

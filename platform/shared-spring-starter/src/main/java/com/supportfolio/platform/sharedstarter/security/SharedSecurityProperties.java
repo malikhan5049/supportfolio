@@ -15,4 +15,5 @@ public record SharedSecurityProperties(
     String jwkSetUri,
     String issuerUri,
     @DefaultValue List<String> permitPaths,
-    @DefaultValue List<String> csrfIgnorePaths) {}
+    @DefaultValue List<String> csrfIgnorePaths,
+    @DefaultValue List<String> permitGetPaths) {}
