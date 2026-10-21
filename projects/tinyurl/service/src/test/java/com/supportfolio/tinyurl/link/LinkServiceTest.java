@@ -36,7 +36,7 @@ class LinkServiceTest {
     links = mock(LinkRepository.class);
     slugs = mock(SlugGenerator.class);
     validator = mock(TargetUrlValidator.class);
-    service = new LinkService(links, slugs, validator, Clock.fixed(NOW, ZoneOffset.UTC));
+    service = new LinkService(links, mock(LinkClickRepository.class), slugs, validator, Clock.fixed(NOW, ZoneOffset.UTC));
   }
 
   @Test

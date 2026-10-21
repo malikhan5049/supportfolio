@@ -20,13 +20,19 @@ public class LinkService {
   private static final int MAX_SLUG_ATTEMPTS = 5;
 
   private final LinkRepository links;
+  private final LinkClickRepository clicks;
   private final SlugGenerator slugs;
   private final TargetUrlValidator validator;
   private final Clock clock;
 
   public LinkService(
-      LinkRepository links, SlugGenerator slugs, TargetUrlValidator validator, Clock clock) {
+      LinkRepository links,
+      LinkClickRepository clicks,
+      SlugGenerator slugs,
+      TargetUrlValidator validator,
+      Clock clock) {
     this.links = links;
+    this.clicks = clicks;
     this.slugs = slugs;
     this.validator = validator;
     this.clock = clock;
@@ -37,6 +43,15 @@ public class LinkService {
     return links.findAllWithClickCounts().stream()
         .map(row -> new LinkView(row.getSlug(), row.getTargetUrl(), row.getClickCount(), row.getCreatedAt()))
         .toList();
+  }
+
+  /** Anonymous follow of a short link: one click row first, then the stored target out. */
+  @Transactional
+  public String resolveAndRecordClick(String slug) {
+    LinkEntity link =
+        links.findBySlug(slug).orElseThrow(() -> new LinkNotFoundException(slug));
+    clicks.saveAndFlush(new LinkClickEntity(UUID.randomUUID(), link, Instant.now(clock)));
+    return link.getTargetUrl();
   }
 
   /** Creation-specific part of the business (rate limiting lands with its task). */
