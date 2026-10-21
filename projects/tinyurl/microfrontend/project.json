@@ -8,9 +8,7 @@
   "targets": {
     "build": {
       "executor": "@nx/angular:webpack-browser",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/projects/tinyurl/microfrontend",
@@ -24,9 +22,7 @@
             "output": "."
           }
         ],
-        "styles": [
-          "projects/tinyurl/microfrontend/src/styles.css"
-        ],
+        "styles": ["projects/tinyurl/microfrontend/src/styles.css"],
         "customWebpackConfig": {
           "path": "projects/tinyurl/microfrontend/webpack.config.js"
         },
@@ -50,7 +46,13 @@
           "outputHashing": "all",
           "customWebpackConfig": {
             "path": "projects/tinyurl/microfrontend/webpack.prod.config.js"
-          }
+          },
+          "fileReplacements": [
+            {
+              "replace": "projects/tinyurl/microfrontend/src/environments/environment.ts",
+              "with": "projects/tinyurl/microfrontend/src/environments/environment.prod.ts"
+            }
+          ]
         },
         "development": {
           "buildOptimizer": false,
@@ -66,19 +68,20 @@
       "continuous": true,
       "executor": "@nx/angular:dev-server",
       "defaultConfiguration": "development",
+      "options": {
+        "port": 4201,
+        "publicHost": "http://localhost:4201",
+        "headers": {
+          "Access-Control-Allow-Origin": "*"
+        },
+        "proxyConfig": "projects/tinyurl/microfrontend/proxy.conf.json"
+      },
       "configurations": {
         "production": {
           "buildTarget": "tinyurl-microfrontend:build:production"
         },
         "development": {
           "buildTarget": "tinyurl-microfrontend:build:development"
-        }
-      },
-      "options": {
-        "port": 4201,
-        "publicHost": "http://localhost:4201",
-        "headers": {
-          "Access-Control-Allow-Origin": "*"
         }
       }
     },
@@ -93,9 +96,7 @@
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/{projectRoot}"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "projects/tinyurl/microfrontend/jest.config.cts",
         "tsConfig": "projects/tinyurl/microfrontend/tsconfig.spec.json"
