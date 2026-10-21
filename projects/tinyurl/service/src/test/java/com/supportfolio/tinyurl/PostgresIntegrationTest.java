@@ -2,6 +2,7 @@ package com.supportfolio.tinyurl;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -13,6 +14,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * on purpose (HealthProbeTest) declare their own container instead of extending this base.
  */
 @SpringBootTest
+@Transactional
 public class PostgresIntegrationTest {
 
   @ServiceConnection

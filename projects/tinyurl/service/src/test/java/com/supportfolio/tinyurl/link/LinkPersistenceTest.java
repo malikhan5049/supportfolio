@@ -49,9 +49,14 @@ class LinkPersistenceTest extends PostgresIntegrationTest {
     LinkEntity link =
         links.saveAndFlush(
             new LinkEntity(UUID.randomUUID(), "cas12345", "https://example.com", "u1", Instant.now()));
-    clicks.saveAndFlush(new LinkClickEntity(UUID.randomUUID(), link, Instant.now()));
+    jdbc.update(
+        "insert into link_clicks (id, link_id, clicked_at) values (?, ?, ?)",
+        UUID.randomUUID(),
+        link.getId(),
+        java.sql.Timestamp.from(Instant.now()));
+    assertEquals(1, jdbc.queryForObject("select count(*) from link_clicks", Integer.class));
     links.delete(link);
     links.flush();
-    assertEquals(0, clicks.count());
+    assertEquals(0, jdbc.queryForObject("select count(*) from link_clicks", Integer.class));
   }
 }

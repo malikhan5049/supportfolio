@@ -4,7 +4,11 @@ server:
 supportfolio:
   security:
     resource-server:
-      enabled: false
+      enabled: true
+    jwk-set-uri: ${SUPPORTFOLIO_TINYURL_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+    issuer-uri: ${SUPPORTFOLIO_TINYURL_ISSUER_URI:http://localhost:8081}
+    permit-paths: /actuator/health,/actuator/health/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html
+    csrf-ignore-paths: /api/token,/api/links
 
 spring:
   datasource:

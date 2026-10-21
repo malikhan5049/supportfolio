@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
 /**
  * Creation-time validation of the target URL a user wants to shorten. Only absolute http/https to
@@ -12,6 +13,7 @@ import java.util.Objects;
  * private set is an SSRF surface, not a safe one). The service never fetches the target — this
  * class only decides creation — so redirects always go to the fixed stored value.
  */
+@Component
 public final class TargetUrlValidator {
 
   private final TargetResolver resolver;
