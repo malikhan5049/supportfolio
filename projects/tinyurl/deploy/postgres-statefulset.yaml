@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: tinyurl
+spec:
+  clusterIP: None
+  selector:
+    app: tinyurl-postgres
+  ports:
+    - port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: tinyurl
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyurl-postgres
+  template:
+    metadata:
+      labels:
+        app: tinyurl-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: tinyurl-postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "${TINYURL_DB_USER}"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
