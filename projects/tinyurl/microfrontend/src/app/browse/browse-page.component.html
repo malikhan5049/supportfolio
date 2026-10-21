@@ -1,4 +1,6 @@
 <section>
+  <app-shorten-form (created)="onCreate()"></app-shorten-form>
+
   @if (failed()) {
     <p data-testid="browse-error">The link list cannot be loaded right now.</p>
   } @else if (links(); as current) {

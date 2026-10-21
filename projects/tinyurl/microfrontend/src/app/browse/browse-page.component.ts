@@ -1,10 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
+import { ShortenFormComponent } from '../shorten/shorten-form.component';
 import { LinkApiService } from '../links/link-api.service';
 import type { Link } from '../links/link.types';
 
-/** The public browse page: one row per link with its click count, or explicit empty/error states. */
+/** The public browse page: shorten form for everyone, one row per link with its click count. */
 @Component({
   selector: 'app-browse-page',
+  imports: [ShortenFormComponent],
   templateUrl: './browse-page.component.html',
 })
 export class BrowsePageComponent {
@@ -15,6 +17,10 @@ export class BrowsePageComponent {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+  }
+
+  onCreate(): void {
+    void this.load();
   }
 
   async load(): Promise<void> {

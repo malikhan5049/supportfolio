@@ -1,0 +1,26 @@
+<div>
+  @if (signedOut() || !signedIn()) {
+    <p data-testid="sign-in-prompt"><a routerLink="/signin">Sign in</a> to shorten links.</p>
+  } @else {
+    <label for="target-url">Target URL</label>
+    <input
+      id="target-url"
+      data-testid="target-url"
+      type="url"
+      [value]="targetUrl()"
+      (input)="targetUrl.set($any($event.target).value)"
+      placeholder="https://example.com"
+    />
+    <button type="button" data-testid="shorten-submit" (click)="shorten()">Shorten</button>
+
+    @if (shortLink(); as url) {
+      <p>
+        <a data-testid="short-link" [href]="url">{{ url }}</a>
+        <button type="button" data-testid="copy-link" (click)="copy()">Copy</button>
+      </p>
+    }
+    @if (error(); as message) {
+      <p data-testid="shorten-error">{{ message }}</p>
+    }
+  }
+</div>
