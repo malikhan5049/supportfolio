@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tinyurl
+      POSTGRES_USER: tinyurl
+      POSTGRES_PASSWORD: prod-e2e
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tinyurl"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  stub-identity:
+    build: ./stub-identity
+    environment:
+      STUB_ISSUER: http://stub-identity:8090
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  tinyurl:
+    image: ${TINYURL_IMAGE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stub-identity:
+        condition: service_healthy
+    ports:
+      - "18088:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tinyurl
+      SPRING_DATASOURCE_USERNAME: tinyurl
+      SPRING_DATASOURCE_PASSWORD: prod-e2e
+      SUPPORTFOLIO_TINYURL_JWK_SET_URI: http://stub-identity:8090/oauth2/jwks
+      SUPPORTFOLIO_TINYURL_ISSUER_URI: http://stub-identity:8090
+      SUPPORTFOLIO_TINYURL_IDENTITY_URI: http://stub-identity:8090
+      SUPPORTFOLIO_TINYURL_PUBLIC_BASE_URL: http://localhost:18088

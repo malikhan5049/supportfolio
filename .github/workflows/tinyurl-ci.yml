@@ -202,3 +202,39 @@ jobs:
       - name: Diagnostics on failure
         if: failure()
         run: docker logs tinyurl --tail=200 || true
+
+  tinyurl-prod-login:
+    name: tinyurl-prod-login
+    needs: tinyurl-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Log into GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bring the prod-bundle stack up
+        run: |
+          docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml up -d --wait
+        env:
+          TINYURL_IMAGE: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+
+      - name: Install Chromium and run the login flow
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+          npx playwright test --config=projects/tinyurl/ci/playwright.prod.config.ts
+
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml logs --tail=200
+
+      - name: Tear the stack down
+        if: always()
+        run: docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml down -v

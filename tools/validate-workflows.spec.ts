@@ -185,4 +185,14 @@ describe('tinyurl-ci.yml', () => {
     expect(raw).toContain('/api/links');
     expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-arm-smoke'");
   });
+
+  it('proves the prod login flow against a stub identity in CI', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
+    const raw = JSON.stringify(doc.jobs['tinyurl-prod-login']);
+    expect(raw).toContain('docker-compose.prod-e2e.yml');
+    expect(raw).toContain('github.sha');
+    expect(raw).toContain('playwright.prod.config.ts');
+    expect(raw).toContain('down -v');
+    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-prod-login'");
+  });
 });
