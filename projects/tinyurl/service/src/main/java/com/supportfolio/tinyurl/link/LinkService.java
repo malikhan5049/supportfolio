@@ -3,6 +3,7 @@ package com.supportfolio.tinyurl.link;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,14 @@ public class LinkService {
     this.clock = clock;
   }
 
+  /** Browse rows mapped to the public view; creator identity never leaves the repository layer. */
+  public List<LinkView> list() {
+    return links.findAllWithClickCounts().stream()
+        .map(row -> new LinkView(row.getSlug(), row.getTargetUrl(), row.getClickCount(), row.getCreatedAt()))
+        .toList();
+  }
+
+  /** Creation-specific part of the business (rate limiting lands with its task). */
   @Transactional
   public LinkView create(String rawTargetUrl, String createdBy) {
     URI validated = validator.validate(rawTargetUrl);

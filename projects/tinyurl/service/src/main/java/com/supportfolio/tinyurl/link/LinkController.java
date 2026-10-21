@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,5 +34,11 @@ public class LinkController {
     }
     LinkView created = service.create(request.targetUrl(), principal.getSubject());
     return ResponseEntity.status(HttpStatus.CREATED).body(created);
+  }
+
+  /** Anonymous browse (Task 1's `permit-get-paths`); creator identity never appears. */
+  @GetMapping("/api/links")
+  LinkListResponse list() {
+    return new LinkListResponse(service.list());
   }
 }
