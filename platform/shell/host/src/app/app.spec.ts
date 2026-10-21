@@ -40,9 +40,7 @@ describe('App', () => {
 
   it('reaches the shared login page through the header sign-in', async () => {
     await renderShell();
-    screen
-      .getAllByTestId('header-sign-in')
-      .forEach((el) => (el as HTMLAnchorElement).click());
+    screen.getAllByTestId('header-sign-in').forEach((el) => (el as HTMLAnchorElement).click());
     await waitFor(() => expect(screen.getByTestId('sign-in')).toBeTruthy());
   });
 
