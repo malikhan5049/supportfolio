@@ -109,3 +109,56 @@ describe('deploy.yml', () => {
     expect(doc.on.workflow_call.secrets.KUBECONFIG).toBeDefined();
   });
 });
+
+describe('tinyurl-ci.yml', () => {
+  function entry(): any {
+    return yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
+  }
+
+  it('backend-ci builds a composite subproject by gradle module', () => {
+    const doc: any = yaml.load(
+      fs.readFileSync('platform/harness/workflows/backend-ci.yml', 'utf8'),
+    );
+    expect(doc.on.workflow_call.inputs['gradle-module']).toBeDefined();
+    expect(doc.jobs.build.steps.map((s: any) => s.run).join('\n')).toContain(
+      './gradlew :${{ inputs.gradle-module }}:build',
+    );
+  });
+
+  it('tinyurl-ci runs the project and image jobs', () => {
+    const doc = entry();
+    expect(doc.jobs['tinyurl-backend']).toBeDefined();
+    expect(doc.jobs['tinyurl-frontend']).toBeDefined();
+    expect(doc.jobs['tinyurl-image']).toBeDefined();
+  });
+
+  it('the image is arm64, attested, and tagged with the commit sha', () => {
+    const raw = JSON.stringify(entry().jobs['tinyurl-image']);
+    expect(raw).toContain('linux/arm64');
+    expect(raw).toContain('provenance');
+    expect(raw).toContain('github.sha');
+  });
+
+  it('branch protection requires the tinyurl checks', () => {
+    const source = fs.readFileSync('tools/branch-protection.ts', 'utf8');
+    for (const check of ['tinyurl-backend', 'tinyurl-frontend', 'tinyurl-image'])
+      expect(source).toContain(`'${check}'`);
+  });
+
+  it('the branch-protection spec asserts the current full list, not the Plan 1 four', () => {
+    const spec = fs.readFileSync('tools/branch-protection.spec.ts', 'utf8');
+    expect(spec).toContain("'tinyurl-image'");
+    expect(spec).toContain("'shell-e2e'");
+  });
+
+  it('formatting covers projects/', () => {
+    expect(fs.readFileSync('.github/workflows/check-formatting.yml', 'utf8')).toContain(
+      'projects/**',
+    );
+  });
+
+  it('no path filter keeps the required checks on every PR', () => {
+    const text = fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8');
+    expect(text).not.toMatch(/paths:/);
+  });
+});

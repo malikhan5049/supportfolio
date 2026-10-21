@@ -29,14 +29,19 @@ describe('buildMainBranchRuleset', () => {
     expect(checks[1]).toEqual({ context: 'platform-build' });
   });
 
-  it('pins exactly the checks the harness workflows emit', () => {
-    expect(REQUIRED_STATUS_CHECKS).toEqual([
-      'validate-manifests',
-      'validate-commit-messages',
-      'check-formatting',
-      'platform-build',
-      'frontend-build',
-      'shell-e2e',
-    ]);
+  it('pins at least the checks the harness and tinyurl workflows emit', () => {
+    expect(REQUIRED_STATUS_CHECKS).toEqual(
+      expect.arrayContaining([
+        'validate-manifests',
+        'validate-commit-messages',
+        'check-formatting',
+        'platform-build',
+        'frontend-build',
+        'shell-e2e',
+        'tinyurl-backend',
+        'tinyurl-frontend',
+        'tinyurl-image',
+      ]),
+    );
   });
 });

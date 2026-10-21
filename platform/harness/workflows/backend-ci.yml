@@ -4,7 +4,11 @@ on:
   workflow_call:
     inputs:
       project-path:
-        description: 'Path to the backend service project'
+        description: 'Path to the backend service project (used for concurrency/labels)'
+        required: true
+        type: string
+      gradle-module:
+        description: 'Gradle module path of the service, built from the repo root (composite build)'
         required: true
         type: string
 
@@ -24,4 +28,4 @@ jobs:
           java-version: '17'
 
       - name: Build backend service
-        run: ./gradlew -p ${{ inputs.project-path }} build
+        run: ./gradlew :${{ inputs.gradle-module }}:build

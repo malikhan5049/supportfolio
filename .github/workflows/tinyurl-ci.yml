@@ -1,0 +1,86 @@
+name: TinyURL CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tinyurl-backend:
+    name: tinyurl-backend
+    uses: ./.github/workflows/backend-ci.yml
+    with:
+      project-path: projects/tinyurl/service
+      gradle-module: projects:tinyurl:service
+
+  tinyurl-frontend:
+    name: tinyurl-frontend
+    uses: ./.github/workflows/frontend-ci.yml
+    with:
+      project-name: tinyurl-microfrontend
+
+  tinyurl-image:
+    name: tinyurl-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Rebuild the boot jar
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          npx tsx tools/prod-bundle-gate.ts dist/projects/tinyurl/microfrontend
+
+      - name: Log into GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the arm64 image (SHA-tagged, attested)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: projects/tinyurl/Dockerfile
+          platforms: linux/arm64
+          provenance: true
+          push: true
+          tags: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+
+      - name: Scan the pushed image (non-blocking)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+          exit-code: '0'
+
+  deploy-test:
+    name: deploy-test
+    needs: tinyurl-image
+    if: vars.CD_ENABLED == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: test
+      image: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+    secrets: inherit
+
+  deploy-prod:
+    name: deploy-prod
+    needs: tinyurl-image
+    if: vars.CD_ENABLED == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: prod
+      image: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+    secrets: inherit

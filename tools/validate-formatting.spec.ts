@@ -5,7 +5,7 @@ import * as yaml from 'js-yaml';
 describe('formatting gate', () => {
   it('passes prettier --check on the gated file globs', () => {
     execSync(
-      'npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"',
+      'npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "projects/**/*.{ts,html}" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"',
       { stdio: 'inherit' },
     );
   });
