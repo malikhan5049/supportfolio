@@ -21,7 +21,6 @@ export function provideAuth(
     );
   }
   const full: AuthConfig = {
-    identityLoginBaseUrl: config.identityLoginBaseUrl,
     apiBaseUrl: '',
     callbackPath: '/auth/callback',
     ...config,
