@@ -10,6 +10,9 @@ supportfolio:
     permit-paths: /actuator/health,/actuator/health/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/go/**
     permit-get-paths: /api/links
     csrf-ignore-paths: /api/token,/api/links
+  tinyurl:
+    identity-uri: ${SUPPORTFOLIO_TINYURL_IDENTITY_URI:http://localhost:8081}
+    rate-limit-per-hour: ${SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR:20}
 
 spring:
   datasource:

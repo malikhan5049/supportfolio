@@ -1,10 +1,13 @@
 package com.supportfolio.tinyurl.link;
 
+import com.supportfolio.tinyurl.config.TinyUrlProperties;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,18 +27,21 @@ public class LinkService {
   private final SlugGenerator slugs;
   private final TargetUrlValidator validator;
   private final Clock clock;
+  private final ShortenRateLimiter limiter;
 
   public LinkService(
       LinkRepository links,
       LinkClickRepository clicks,
       SlugGenerator slugs,
       TargetUrlValidator validator,
-      Clock clock) {
+      Clock clock,
+      ShortenRateLimiter limiter) {
     this.links = links;
     this.clicks = clicks;
     this.slugs = slugs;
     this.validator = validator;
     this.clock = clock;
+    this.limiter = limiter;
   }
 
   /** Browse rows mapped to the public view; creator identity never leaves the repository layer. */
@@ -57,6 +63,11 @@ public class LinkService {
   /** Creation-specific part of the business (rate limiting lands with its task). */
   @Transactional
   public LinkView create(String rawTargetUrl, String createdBy) {
+    // Acquire BEFORE validation: an over-cap user gets 429 without spending any validation work,
+    // and nothing at all is stored on a rejected request.
+    if (!limiter.tryAcquire(createdBy)) {
+      throw new RateLimitedException();
+    }
     URI validated = validator.validate(rawTargetUrl);
     for (int attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
       String candidate = slugs.next();
