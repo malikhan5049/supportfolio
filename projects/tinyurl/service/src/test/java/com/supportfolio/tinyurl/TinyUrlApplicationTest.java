@@ -1,10 +1,9 @@
 package com.supportfolio.tinyurl;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class TinyUrlApplicationTest {
+/** Boots against the shared Testcontainers base so Flyway + Hibernate validation are exercised. */
+class TinyUrlApplicationTest extends PostgresIntegrationTest {
 
   @Test
   void contextLoads() {}

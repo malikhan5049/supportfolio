@@ -5,3 +5,15 @@ supportfolio:
   security:
     resource-server:
       enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tinyurl
+    username: ${SUPPORTFOLIO_TINYURL_DB_USER:tinyurl}
+    password: ${SUPPORTFOLIO_TINYURL_DB_PASSWORD:tinyurl}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
