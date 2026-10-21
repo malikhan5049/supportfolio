@@ -161,4 +161,17 @@ describe('tinyurl-ci.yml', () => {
     const text = fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8');
     expect(text).not.toMatch(/paths:/);
   });
+
+  it('executes the manifests on a disposable k3s, not just lints them', () => {
+    const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
+    const raw = JSON.stringify(doc.jobs['tinyurl-k3s-manifests']);
+    expect(raw).toContain('k3s');
+    expect(raw).toContain('kubectl apply');
+    expect(raw).toContain('rollout status');
+    expect(raw).toContain('pg_isready');
+    expect(raw).toContain('get pvc');
+    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain(
+      "'tinyurl-k3s-manifests'",
+    );
+  });
 });

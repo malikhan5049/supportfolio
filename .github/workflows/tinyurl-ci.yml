@@ -84,3 +84,80 @@ jobs:
       environment: prod
       image: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
     secrets: inherit
+
+  tinyurl-k3s-manifests:
+    name: tinyurl-k3s-manifests
+    needs: tinyurl-frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK and Node
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Rebuild the jar and the frontend, load a local amd64 image
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          docker build --platform linux/amd64 -f projects/tinyurl/Dockerfile -t tinyurl:ci .
+
+      - name: Install k3s (v1.37.1+k3s1, verified on the release page)
+        run: |
+          curl -sfL https://github.com/k3s-io/k3s/releases/download/v1.37.1%2Bk3s1/k3s -o k3s
+          chmod +x k3s
+          sudo ./k3s server --disable traefik --disable metrics-server &
+          for i in $(seq 1 60); do
+            [ -e /etc/rancher/k3s/k3s.yaml ] && sudo chmod 644 /etc/rancher/k3s/k3s.yaml && break
+            sleep 2
+          done
+
+      - name: Import the image and apply the manifests
+        run: |
+          docker save tinyurl:ci | sudo k3s ctr images import -
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          TINYURL_DB_NAME=tinyurl TINYURL_DB_USER=tinyurl TINYURL_DB_PASSWORD=ci-dummy \
+          envsubst < projects/tinyurl/deploy/postgres-secret.yaml.template > /tmp/secret.yaml
+          sudo kubectl apply -f projects/tinyurl/deploy/namespace.yaml
+          sudo kubectl apply -f /tmp/secret.yaml
+          TINYURL_IMAGE=tinyurl:ci TINYURL_IDENTITY_URI=http://identity:8080 \
+          TINYURL_IDENTITY_JWK_SET_URI=http://identity:8080/oauth2/jwks TINYURL_IDENTITY_ISSUER_URI=http://identity:8080 \
+          envsubst < projects/tinyurl/deploy/tinyurl-deployment.yaml > /tmp/deployment.yaml
+          sudo kubectl apply -f /tmp/deployment.yaml
+          sudo kubectl apply -f projects/tinyurl/deploy/tinyurl-service.yaml
+          sudo kubectl apply -f projects/tinyurl/deploy/tinyurl-ingress.yaml
+
+      - name: Wait for Postgres and check its PVC + readiness
+        run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          sudo kubectl -n tinyurl rollout status statefulset/postgres --timeout=180s
+          sudo kubectl -n tinyurl get pvc
+          sudo kubectl -n tinyurl exec postgres-0 -- pg_isready -U tinyurl
+
+      - name: Wait for TinyURL and probe it
+        run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          sudo kubectl -n tinyurl rollout status deployment/tinyurl --timeout=300s
+          sudo kubectl -n tinyurl port-forward service/tinyurl 18082:8082 &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18082/actuator/health || true)
+            [ "$code" = "200" ] && break
+            sleep 4
+          done
+          curl -s http://localhost:18082/actuator/health | grep -q '"status":"UP"'
+          curl -s http://localhost:18082/api/links | grep -q '"links"'
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          sudo kubectl get pods,events -A || true
+          sudo kubectl -n tinyurl logs deployment/tinyurl --tail=200 || true
+          sudo kubectl -n tinyurl logs statefulset/postgres --tail=200 || true
