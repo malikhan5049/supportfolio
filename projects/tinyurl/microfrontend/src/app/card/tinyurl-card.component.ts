@@ -7,7 +7,7 @@ import { CardComponent, RemoteCardComponent } from 'shared-ui-lib';
  * marker; the host owns the `remote-card-tinyurl` wrapper id.
  */
 @Component({
-  selector: 'tinyurl-card',
+  selector: 'app-tinyurl-card',
   imports: [CardComponent],
   template: `
     <lib-card

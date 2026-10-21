@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { ShortenFormComponent } from '../shorten/shorten-form.component';
 import { LinkApiService } from '../links/link-api.service';
 import type { Link } from '../links/link.types';
@@ -9,7 +9,7 @@ import type { Link } from '../links/link.types';
   imports: [ShortenFormComponent],
   templateUrl: './browse-page.component.html',
 })
-export class BrowsePageComponent {
+export class BrowsePageComponent implements OnInit {
   private readonly api = inject(LinkApiService);
 
   readonly links = signal<Link[] | null>(null);
