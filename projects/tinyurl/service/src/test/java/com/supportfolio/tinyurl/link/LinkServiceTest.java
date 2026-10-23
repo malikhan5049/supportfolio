@@ -20,11 +20,14 @@ class LinkServiceTest {
   private final LinkClickRepository clicks = mock(LinkClickRepository.class);
   private final SlugGenerator slugs = mock(SlugGenerator.class);
   private final TargetUrlValidator validator = mock(TargetUrlValidator.class);
+  private final ShortenRateLimiter rateLimiter = mock(ShortenRateLimiter.class);
   private final Clock clock = Clock.fixed(Instant.parse("2026-10-22T12:00:00Z"), ZoneOffset.UTC);
-  private final LinkService service = new LinkService(links, clicks, slugs, validator, clock);
+  private final LinkService service =
+      new LinkService(links, clicks, slugs, validator, clock, rateLimiter);
 
   @Test
   void retriesAnExistingSlugBeforeSaving() {
+    when(rateLimiter.tryAcquire("admin-1")).thenReturn(true);
     when(validator.validate("https://example.com/a"))
         .thenReturn(URI.create("https://example.com/a"));
     when(slugs.next()).thenReturn("taken001", "free0001");
@@ -43,6 +46,7 @@ class LinkServiceTest {
 
   @Test
   void retriesWhenSavingHitsAUniqueSlugRace() {
+    when(rateLimiter.tryAcquire("admin-1")).thenReturn(true);
     when(validator.validate("https://example.com/a"))
         .thenReturn(URI.create("https://example.com/a"));
     when(slugs.next()).thenReturn("race0001", "safe0001");

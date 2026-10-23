@@ -14,6 +14,9 @@ spring:
     enabled: true
 
 supportfolio:
+  tinyurl:
+    identity-uri: ${SUPPORTFOLIO_TINYURL_IDENTITY_URI:http://localhost:8081}
+    rate-limit-per-hour: ${SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR:20}
   security:
     resource-server:
       enabled: true

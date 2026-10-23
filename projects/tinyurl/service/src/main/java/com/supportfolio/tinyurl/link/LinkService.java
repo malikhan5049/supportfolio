@@ -18,18 +18,21 @@ public class LinkService {
   private final SlugGenerator slugs;
   private final TargetUrlValidator validator;
   private final Clock clock;
+  private final ShortenRateLimiter rateLimiter;
 
   public LinkService(
       LinkRepository links,
       LinkClickRepository clicks,
       SlugGenerator slugs,
       TargetUrlValidator validator,
-      Clock clock) {
+      Clock clock,
+      ShortenRateLimiter rateLimiter) {
     this.links = links;
     this.clicks = clicks;
     this.slugs = slugs;
     this.validator = validator;
     this.clock = clock;
+    this.rateLimiter = rateLimiter;
   }
 
   public List<LinkView> list() {
@@ -45,6 +48,9 @@ public class LinkService {
   }
 
   public LinkView create(String rawTargetUrl, String createdBy) {
+    if (!rateLimiter.tryAcquire(createdBy)) {
+      throw new RateLimitedException();
+    }
     URI target = validator.validate(rawTargetUrl);
     for (int attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
       String slug = slugs.next();
