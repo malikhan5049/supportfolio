@@ -13,7 +13,10 @@ describe('LoginPageComponent', () => {
   it('signs in through the identity login entry point', async () => {
     const navigate = jest.fn();
     const { fixture } = await render(LoginPageComponent, {
-      providers: [provideAuth(), { provide: EXTERNAL_NAVIGATOR, useValue: navigate }],
+      providers: [
+        provideAuth({ identityLoginBaseUrl: 'http://localhost:8081' }),
+        { provide: EXTERNAL_NAVIGATOR, useValue: navigate },
+      ],
     });
     screen.getByTestId('sign-in').click();
     await fixture.whenStable();
@@ -22,7 +25,7 @@ describe('LoginPageComponent', () => {
 
   it('shows the denial state when the shared service reports denial', async () => {
     const { fixture } = await render(LoginPageComponent, {
-      providers: [provideAuth()],
+      providers: [provideAuth({ identityLoginBaseUrl: 'http://localhost:8081' })],
     });
     TestBed.inject(AuthService).lastError.set('denied');
     await fixture.whenStable();

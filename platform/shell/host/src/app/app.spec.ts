@@ -13,7 +13,7 @@ async function renderShell() {
   return render(App, {
     imports: [RouterTestingModule.withRoutes(appRoutes)],
     providers: [
-      provideAuth(),
+      provideAuth({ identityLoginBaseUrl: 'http://localhost:8081' }),
       { provide: EXTERNAL_NAVIGATOR, useValue: jest.fn() },
       provideHttpClient(),
       provideRemoteRegistry(''),
