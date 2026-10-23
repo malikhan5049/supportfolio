@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -40,6 +41,11 @@ public class IdentityResourceServerAutoConfiguration {
     decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuerUri()));
     return http.authorizeHttpRequests(
             authorize -> {
+              if (!props.permitGetPaths().isEmpty()) {
+                authorize
+                    .requestMatchers(HttpMethod.GET, props.permitGetPaths().toArray(String[]::new))
+                    .permitAll();
+              }
               if (!props.permitPaths().isEmpty()) {
                 authorize.requestMatchers(props.permitPaths().toArray(String[]::new)).permitAll();
               }
