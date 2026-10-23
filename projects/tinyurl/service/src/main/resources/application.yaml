@@ -6,6 +6,8 @@ spring:
     url: ${SUPPORTFOLIO_TINYURL_DB_URL:jdbc:postgresql://localhost:5432/tinyurl}
     username: ${SUPPORTFOLIO_TINYURL_DB_USERNAME:tinyurl}
     password: ${SUPPORTFOLIO_TINYURL_DB_PASSWORD:tinyurl}
+    hikari:
+      connection-timeout: ${SUPPORTFOLIO_TINYURL_DB_CONNECTION_TIMEOUT_MS:1000}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -29,6 +31,21 @@ spring:
               uri: ${supportfolio.tinyurl.identity-uri}
               predicates:
                 - Path=/oauth2/**,/login/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
 
 supportfolio:
   tinyurl:
