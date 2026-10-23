@@ -17,10 +17,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 class LinkServiceTest {
 
   private final LinkRepository links = mock(LinkRepository.class);
+  private final LinkClickRepository clicks = mock(LinkClickRepository.class);
   private final SlugGenerator slugs = mock(SlugGenerator.class);
   private final TargetUrlValidator validator = mock(TargetUrlValidator.class);
   private final Clock clock = Clock.fixed(Instant.parse("2026-10-22T12:00:00Z"), ZoneOffset.UTC);
-  private final LinkService service = new LinkService(links, slugs, validator, clock);
+  private final LinkService service = new LinkService(links, clicks, slugs, validator, clock);
 
   @Test
   void retriesAnExistingSlugBeforeSaving() {

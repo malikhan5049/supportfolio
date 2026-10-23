@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LinkService {
@@ -13,13 +14,19 @@ public class LinkService {
   private static final int MAX_SLUG_ATTEMPTS = 5;
 
   private final LinkRepository links;
+  private final LinkClickRepository clicks;
   private final SlugGenerator slugs;
   private final TargetUrlValidator validator;
   private final Clock clock;
 
   public LinkService(
-      LinkRepository links, SlugGenerator slugs, TargetUrlValidator validator, Clock clock) {
+      LinkRepository links,
+      LinkClickRepository clicks,
+      SlugGenerator slugs,
+      TargetUrlValidator validator,
+      Clock clock) {
     this.links = links;
+    this.clicks = clicks;
     this.slugs = slugs;
     this.validator = validator;
     this.clock = clock;
@@ -57,5 +64,12 @@ public class LinkService {
       }
     }
     throw new IllegalStateException("Unable to generate a unique short link");
+  }
+
+  @Transactional
+  public String resolveAndRecordClick(String slug) {
+    LinkEntity link = links.findBySlug(slug).orElseThrow(() -> new LinkNotFoundException(slug));
+    clicks.save(new LinkClickEntity(UUID.randomUUID(), link, clock.instant()));
+    return link.getTargetUrl();
   }
 }
