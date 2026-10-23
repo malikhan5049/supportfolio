@@ -2,6 +2,7 @@ package com.supportfolio.tinyurl.link;
 
 import java.net.URI;
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,18 @@ public class LinkService {
     this.slugs = slugs;
     this.validator = validator;
     this.clock = clock;
+  }
+
+  public List<LinkView> list() {
+    return links.findAllWithClickCounts().stream()
+        .map(
+            summary ->
+                new LinkView(
+                    summary.getSlug(),
+                    summary.getTargetUrl(),
+                    summary.getClickCount(),
+                    summary.getCreatedAt()))
+        .toList();
   }
 
   public LinkView create(String rawTargetUrl, String createdBy) {
