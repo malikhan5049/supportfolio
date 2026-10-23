@@ -5,7 +5,9 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TargetUrlValidator {
 
   private final TargetResolver resolver;
