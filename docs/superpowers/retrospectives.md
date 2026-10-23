@@ -26,6 +26,7 @@
 
 - **Keep the one real-browser E2E for genuinely new runtime behavior.** Jest transpiles without full type/build checking; the browser run was the only gate that saw the Task 14 defect.
 - **Keep deep review mandatory for High-shape (security-sensitive) plans** — the CSP/auth/MF surface produced 4 Critical/Important findings that justified the pass.
+  - **Ruling 2026-10-23:** Deep-tier agents (`brainstorm-deep`, `plan-deep`, `reviewer-deep`) moved from glm-5.3 to deepseek-v4-pro at user direction - half input cost, ~12x cheaper cache read. Deep review stays mandatory for High-shape plans; revisit if deep-review finding quality regresses.
 - **Keep writing `Ruling:` ledger lines at the moment of deviation** (Boot 4 module paths, webpack `5.109.2`): the ledger made this completion retrospective writable from the record alone, no archaeology needed.
 - **Keep `systematic-debugging` as the mandatory response the moment an integration problem survives one failed hypothesis.**
 
