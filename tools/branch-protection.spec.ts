@@ -29,12 +29,14 @@ describe('buildMainBranchRuleset', () => {
     expect(checks[1]).toEqual({ context: 'platform-build' });
   });
 
-  it('pins exactly the four checks the harness workflows emit', () => {
+  it('pins the six checks the harness workflows emit', () => {
     expect(REQUIRED_STATUS_CHECKS).toEqual([
       'validate-manifests',
       'validate-commit-messages',
       'check-formatting',
       'platform-build',
+      'frontend-build',
+      'shell-e2e',
     ]);
   });
 });
