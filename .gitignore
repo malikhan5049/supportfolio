@@ -24,8 +24,11 @@ bin/
 
 .angular
 node_modules/
+
+# Build output
 dist/
 
-# Local-only credential/run scripts — never commit
+# Local-only credential/run scripts and env files — never commit
 *.local.ps1
+run-identity.local.ps1
 .env
