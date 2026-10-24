@@ -1,102 +1,71 @@
-# Model Routing — Superpowers Phases (binding)
+# AGENTS.md
 
-Loaded into every session — keep this file compact. Goal: minimize total cost per
-successfully completed task; use the cheapest model that can reliably do the task,
-stronger models only when they materially cut errors/retries/rework.
+Binding rules for coding agents. User instruction in-session wins — say out loud when deviating.
 
-All models are on `opencode-go` unless prefixed `opencode/`.
+## Repo map
 
-## Mandatory restrictions (human decisions 2026-10-19)
+- **Spring platform** (JDK 17, Gradle): `platform/identity`, `platform/shell` (Cloud Gateway), `platform/shared-spring-starter`; convention plugins in `build-logic/`.
+- **Angular 22 micro-frontends** (Nx): `shell-host`, `identity-card`, `shared-ui-lib`; module federation; Playwright e2e in `platform/shell/host-e2e`.
+- **Governance** — `tools/`: plain Node/Jest TS, **not** on the Nx graph.
+- Specs/plans/retros: `docs/superpowers/{specs,plans,retrospectives.md}`. Read-only records.
 
-- Never substitute paid `opencode/*` SKUs for quota-backed/free models.
-  `opencode/glm-5.3-flash` bills account funds (fails "insufficient account funds"
-  when empty). Flash GLM always means `opencode-go/glm-5.3-flash` (rolling quota).
-- `opencode/claude-sonnet-5-5` only with a qualifying trigger (subtle logic,
-  multi-file inconsistency, justified higher-reasoning need), reason presented
-  first, AND explicit human approval.
-- No Kimi/Qwen in Phases 1–3. Phase 7 never on `glm-5.3` or Sonnet. No
-  auto-upgrades outside these rules except the escalation path below.
-- Never invent model IDs or switch providers/models silently. If no permitted
-  model is available, STOP and report.
-- Cost ceiling: `glm-5.3` (full) is the most expensive model allowed.
+## CI gates (source of truth — reuse exactly)
 
-Preferences (non-mandatory): Flash-tier for bulk/multi-step work; deterministic
-tools before model calls; full GLM only for high-leverage moments.
+```bash
+npm ci
+./gradlew build && ./gradlew -p build-logic test
+npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,identity-card
+npx nx build shell-host && npx nx build identity-card
+npx nx e2e shell-host-e2e
+npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"
+```
 
-## Phase routing (authoritative)
+## No-loop rule
 
-| Phase | Primary | Secondary / fallback |
-|---|---|---|
-| 1 Brainstorm | `glm-5.3` via `/brainstorm` | sec: low-risk change → `glm-5.3-flash`; fb: `glm-5.3-flash` |
-| 2 Spec | `glm-5.3` (same session) | fb: `glm-5.3-flash` |
-| 3 Plan | `deepseek-v4.1-flash#high` via `/plan` | sec: `glm-5.3` for one architectural decision only; fb: `glm-5.3-flash` |
-| 4 TDD | `glm-5.3-flash` | sec: `qwen3.8-flash` for bulk test scaffolding; fb: `glm-5.3-flash-free` |
-| 5 Build | `glm-5.3-flash` | sec: `qwen3.8-flash` for CRUD/boilerplate/bulk; fb: `glm-5.3-flash-free` |
-| 6 Review | routine: `deepseek-v4.1-flash` · deep: `glm-5.3` | fb: deep unavailable → `glm-5.3-flash` + flag residual risk |
-| 7 Finalize | `deepseek-v4.1-flash` via `/finalize` | fb: `opencode/deepseek-v4.1-flash-free` → `opencode/glm-5.3-flash-free` |
+Max **2 attempts** on a failing command, only with a changed hypothesis. Same error after one failed diagnosis → stop, investigate, then **report back** (command, output, ruled-out causes). Never rerun blind.
 
-## Fallback doctrine (classify the failure first)
+## Done ≠ tests green
 
-- Model unavailable → table fb column.
-- opencode-go quota exhausted (all its models share one pool) → $0 twins
-  `opencode/glm-5.3-flash-free` / `opencode/deepseek-v4.1-flash-free`; never paid
-  `opencode/*`. Applies to every opencode-go dispatch path.
-- Auth/funds errors → provider restriction: take $0 fallback or stop; not a
-  reasoning problem.
-- Task reasoning failure → escalation, not a fallback swap.
+Touched Angular code → run `npx nx build <project>` before closing. New runtime behavior → Playwright e2e. Integration config (gateway yaml, MF) in smallest verifiable increments.
 
-## Task shape (Phases 4–6)
+## Do not touch
 
-- Low (DTOs, simple CRUD, boilerplate, bulk scaffolding, routine docs) →
-  `qwen3.8-flash`; deterministic tools first.
-- Medium (business logic, multi-file features, test strategy, nontrivial
-  debugging) → `glm-5.3-flash`; carve out bulk subtasks; validate via
-  tests/build/lint/static analysis.
-- High (ambiguous requirements, architecture choices, cross-service changes,
-  concurrency, transactions, authn/authz, security-sensitive edits) → drafting on
-  Flash is fine, but decide/review on `glm-5.3` where it prevents rework. Escalate
-  only the affected task/decision, then return to the normal tier.
+- `build/`, `dist/`, `.angular/`, `.nx/`, `node_modules/`, `platform/*/build/`
+- `platform/shell/config/remote-registry.json` — runtime data hot-read by gateway
+- `platform/identity/dev-key.pem` — never commit, move, or copy
+- CI workflows unless the task is CI
 
-## Review (risk-based)
+## Hygiene
 
-Routine: `deepseek-v4.1-flash` reviewer (edit-denied) — regressions, edge cases,
-test coverage + results, architecture/convention consistency, obvious
-security/data-integrity concerns.
+- Conventional commits (CI-enforced); PR template; prettier/eslint on the scopes above.
+- Reading `docs/superpowers/retrospectives.md` before planning is mandatory; write a `Ruling:` ledger line the moment you deviate from a standing rule.
 
-Deep: `glm-5.3` — required for High-shape changes or when routine review finds a
-material unresolved issue. Reviewer success is not evidence: tests, build, and
-static analysis decide. A model's disagreement with another model alone never
-escalates.
+## Env
 
-## Escalation
+Windows/PowerShell first (`gradlew.bat` locally, `./gradlew` in CI). Node 24, JDK 17, `npm ci` only.
 
-Before any retry: capture failing test/build output + diff → classify cause
-(logic / context / bad assumption / environment / deps / quota) → form a materially
-different hypothesis. No superficial patch loops.
+# Superpowers Framework Instructions: Dynamic Model Routing
 
-- Escalate the single affected task to `glm-5.3` after 3 ineffective attempts on
-  the same failure, or sooner on architectural misunderstanding or reasoning
-  limits. Record in ledger; one full-model pass, then back to the normal tier.
-- Never escalate for environment failures, missing deps, bad config, or
-  quota/auth errors — fix the environment or take the fallback.
+When executing workflow phases, assess task complexity before delegating work or selecting an agent mode:
 
-## Dispatch ledger
+### 1. Complexity Criteria
+* **TRIVIAL / MEDIUM:**
+  - Isolated bug fixes, minor CRUD endpoints, CSS/UI tweaks.
+  - Adding single tests, simple state updates, single-file edits.
+  - **Action:** Delegate to standard agents (`brainstorm`, `plan`, `build`).
 
-Controller appends `## Dispatch Ledger` to the active plan
-(`docs/superpowers/plans/<plan>.md`), one row per task — not per tool call:
-`| Task | Phase | Shape | Model | Why | Outcome (tests/build) | Retries/escalation |`.
-`/finalize` reports routing outcomes (first-pass success, retries/escalations,
-review findings by severity) in the PR summary. Providers expose no token/cost
-data — record that limitation; proxy = dispatch counts per tier. Never fabricate
-costs, usage, or benchmarks.
+* **COMPLEX / HIGH RISK:**
+  - Cross-microservice event contracts, distributed data models, auth/security.
+  - Multi-module refactoring across microservices or microfrontend boundaries.
+  - Concurrent data structures, transaction boundaries, performance-critical loops.
+  - **Action:** Explicitly switch to deep reasoning agents (`brainstorm-deep`, `plan-deep`, `build-complex`, `reviewer-deep`).
 
-## Config enforcement
+### 2. Automatic Phase Delegation Rules
+1. **Brainstorm Phase:** Evaluate requirement scope. If it involves cross-service dependencies, route internally to `brainstorm-deep`. Otherwise, use `brainstorm`.
+2. **Planning Phase:** Check step dependencies. If plans touch multiple API contracts, delegate step decomposition to `plan-deep`.
+3. **Build Phase:** For standard step execution, use `build`. If 2+ consecutive TDD attempts fail due to complex multi-file state issues, escalate task execution to `build-complex`.
+4. **Review Phase:** Standard plans run `reviewer`. High-shape plans (auth/security/CSP/MF - retro 2026-10-20 standing item) route to `reviewer-deep` (deepseek-v4-pro, read-only).
 
-Repo `opencode.json` pins (overrides global, this repo only): session +
-`general` → `opencode-go/glm-5.3-flash`; `explore` → `opencode/mimo-v2.6-flash-free`;
-`reviewer` → `opencode-go/deepseek-v4.1-flash` (edit-denied). Deep review is an
-explicit `glm-5.3` model override at dispatch. `/plan`, `/finalize`, `/brainstorm`
-pin their phase models in frontmatter. Everything not pinned is advisory.
 
 ## Plan retrospective (binding)
 
