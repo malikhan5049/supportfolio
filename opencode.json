@@ -1,25 +1,112 @@
-{
+﻿{
   "$schema": "https://opencode.ai/config.json",
-  "worktree": {
-    "directory": ".worktrees"
-  },
-  "model": "opencode-go/glm-5.3-flash",
+  "default_agent": "brainstorm",
+  "model": "opencode-go/gpt-6-luna",
   "agents": {
-    "general": {
+    "brainstorm": {
+      "mode": "primary",
+      "description": "Phase 1 (Standard): Interactive requirement scoping on top-tier reasoning at low token cost ($0.10/M input, $0.50/M output). Thinking: medium.",
+      "model": "opencode-go/gpt-6-luna#medium",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }]
+    },
+    "brainstorm-deep": {
+      "mode": "primary",
+      "description": "Phase 1 (Complex Architecture): Deep-tier reasoning for microservice boundaries and microfrontend state federation ($0.66/M input, $0.022/M cache read). Thinking: high.",
+      "model": "opencode-go/deepseek-v4-pro#high",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }]
+    },
+    "specification": {
+      "mode": "primary",
+      "description": "Phase 2: OpenAPI contract definitions, state management, and acceptance criteria ($0.10/M input). Thinking: high.",
+      "model": "opencode-go/gpt-6-luna#high",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "edit", "resource": "docs/**", "effect": "allow" },
+        { "action": "edit", "resource": ".opencode/specs/**", "effect": "allow" }
+      ]
+    },
+    "plan": {
+      "mode": "primary",
+      "description": "Phase 3 (Standard): Fast micro-task step planning ($0.15/M input, $0.003/M cache read). Thinking: provider default (proven, unpinned).",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "edit", "resource": "docs/**", "effect": "allow" },
+        { "action": "edit", "resource": ".opencode/plans/**", "effect": "allow" }
+      ]
+    },
+    "plan-deep": {
+      "mode": "primary",
+      "description": "Phase 3 (Complex Integration): High-reasoning task decomposition across multi-service boundaries ($0.66/M input, $0.022/M cache read). Thinking: high.",
+      "model": "opencode-go/deepseek-v4-pro#high",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "edit", "resource": "docs/**", "effect": "allow" },
+        { "action": "edit", "resource": ".opencode/plans/**", "effect": "allow" }
+      ]
+    },
+    "tdd": {
       "mode": "subagent",
-      "model": "opencode-go/glm-5.3-flash"
+      "description": "Phase 4: High-frequency, low-cost TDD unit test generation and red-green verification loops ($0.15/M input, $0.03/M cache read). Thinking: provider default (proven, unpinned).",
+      "model": "opencode-go/glm-5.3-flash",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "allow" },
+        { "action": "shell", "resource": "*", "effect": "allow" }
+      ]
+    },
+    "build": {
+      "mode": "subagent",
+      "description": "Phase 5 (Standard): Rapid multi-file feature construction and boilerplate updates ($0.15/M input). Thinking: provider default (proven, unpinned).",
+      "model": "opencode-go/qwen3.8-flash",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "allow" },
+        { "action": "shell", "resource": "*", "effect": "allow" }
+      ]
+    },
+    "build-complex": {
+      "mode": "subagent",
+      "description": "Phase 5 (Complex Multi-File): Specialized repo-aware multi-file microservice edits ($0.95/M input). No thinking variants on this model.",
+      "model": "opencode-go/kimi-k2.7-code",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "allow" },
+        { "action": "shell", "resource": "*", "effect": "allow" }
+      ]
+    },
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Phase 6 (Standard): Automated read-only spec compliance and code quality review ($0.10/M input). Thinking: high.",
+      "model": "opencode-go/gpt-6-luna#high",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "ask" }
+      ]
+    },
+    "reviewer-deep": {
+      "mode": "subagent",
+      "description": "Phase 6 (High-shape): Deep read-only review for security-sensitive plans (auth/CSP/MF) — catches what flash-tier cannot self-assess ($0.66/M input, $0.022/M cache read). Thinking: high. Standing item, retro 2026-10-20.",
+      "model": "opencode-go/deepseek-v4-pro#high",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "ask" }
+      ]
+    },
+    "finalize": {
+      "mode": "subagent",
+      "description": "Phase 7: Branch cleanup, full test execution, and PR preparation ($0.10/M input up to 272K context, $0.20/$0.75 above — avoids claude-haiku-5-5's 5x >100K tier cliff). Thinking: low (mechanical gate-running).",
+      "model": "opencode-go/gpt-6-luna#low",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "allow" }
+      ]
     },
     "explore": {
       "mode": "subagent",
-      "model": "opencode/mimo-v2.6-flash-free"
+      "description": "Zero-cost repository indexing and file structural searching. Thinking: medium (quality is free; balances latency).",
+      "model": "opencode-go/beam-free#medium",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }]
     },
-    "reviewer": {
-      "description": "Reviews changes for correctness, security, and missing tests",
-      "mode": "subagent",
-      "model": "opencode-go/deepseek-v4.1-flash",
-      "permissions": [
-        { "action": "edit", "resource": "*", "effect": "deny" }
-      ]
+    "title": {
+      "model": "opencode-go/mimo-v2.6-flash"
     }
   }
 }
