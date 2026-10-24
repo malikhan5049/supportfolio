@@ -65,3 +65,15 @@ When executing workflow phases, assess task complexity before delegating work or
 2. **Planning Phase:** Check step dependencies. If plans touch multiple API contracts, delegate step decomposition to `plan-deep`.
 3. **Build Phase:** For standard step execution, use `build`. If 2+ consecutive TDD attempts fail due to complex multi-file state issues, escalate task execution to `build-complex`.
 4. **Review Phase:** Standard plans run `reviewer`. High-shape plans (auth/security/CSP/MF - retro 2026-10-20 standing item) route to `reviewer-deep` (deepseek-v4-pro, read-only).
+
+
+## Plan retrospective (binding)
+
+At the end of every completed plan, before reporting the plan complete:
+
+- Add one timestamped, plan-tagged entry at the top of
+  `docs/superpowers/retrospectives.md` answering: **What went well?**,
+  **What would we like to continue doing?**, and **What would we like to
+  stop doing?**
+- Present the same three answers to the human in the completion message.
+- Write the entry once, after the plan is complete; do not add mid-plan retrospective entries.
