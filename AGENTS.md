@@ -98,3 +98,13 @@ Repo `opencode.json` pins (overrides global, this repo only): session +
 explicit `glm-5.3` model override at dispatch. `/plan`, `/finalize`, `/brainstorm`
 pin their phase models in frontmatter. Everything not pinned is advisory.
 
+## Plan retrospective (binding)
+
+At the end of every completed plan, before reporting the plan complete:
+
+- Add one timestamped, plan-tagged entry at the top of
+  `docs/superpowers/retrospectives.md` answering: **What went well?**,
+  **What would we like to continue doing?**, and **What would we like to
+  stop doing?**
+- Present the same three answers to the human in the completion message.
+- Write the entry once, after the plan is complete; do not add mid-plan retrospective entries.
