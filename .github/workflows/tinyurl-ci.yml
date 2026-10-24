@@ -1,0 +1,267 @@
+name: TinyURL CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tinyurl-backend:
+    name: tinyurl-backend
+    uses: ./.github/workflows/backend-ci.yml
+    with:
+      project-path: projects/tinyurl/service
+      gradle-module: projects:tinyurl:service
+
+  tinyurl-frontend:
+    name: tinyurl-frontend
+    uses: ./.github/workflows/frontend-ci.yml
+    with:
+      project-name: tinyurl-microfrontend
+
+  tinyurl-image:
+    name: tinyurl-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Rebuild the boot jar
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Build
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          npx tsx tools/prod-bundle-gate.ts dist/projects/tinyurl/microfrontend
+
+      - name: Log into GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        # v4.4.1 immutable release; verified against the official release page.
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+
+      - name: Build and push the arm64 image (SHA-tagged, attested)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: projects/tinyurl/Dockerfile
+          platforms: linux/arm64
+          provenance: true
+          push: true
+          tags: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+
+      - name: Scan the pushed image (non-blocking)
+        # v0.36.0 immutable release; verified against the official release page.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+          trivy-config: projects/tinyurl/ci/trivy.yaml
+          exit-code: '0'
+
+  deploy-test:
+    name: deploy-test
+    needs: tinyurl-image
+    if: vars.CD_ENABLED == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: test
+      image: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+    secrets: inherit
+
+  deploy-prod:
+    name: deploy-prod
+    needs: tinyurl-image
+    if: vars.CD_ENABLED == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: prod
+      image: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+    secrets: inherit
+
+  tinyurl-k3s-manifests:
+    name: tinyurl-k3s-manifests
+    needs: tinyurl-frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK and Node
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Rebuild the jar and the frontend, load a local amd64 image
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          docker build --platform linux/amd64 -f projects/tinyurl/Dockerfile -t tinyurl:ci .
+
+      - name: Install k3s (v1.37.1+k3s1, verified on the release page)
+        run: |
+          curl -sfL https://github.com/k3s-io/k3s/releases/download/v1.37.1%2Bk3s1/k3s -o k3s
+          chmod +x k3s
+          sudo ./k3s server --disable traefik --disable metrics-server &
+          for i in $(seq 1 60); do
+            [ -e /etc/rancher/k3s/k3s.yaml ] && sudo chmod 644 /etc/rancher/k3s/k3s.yaml && break
+            sleep 2
+          done
+
+      - name: Import image and render/apply every manifest
+        run: |
+          docker save tinyurl:ci | sudo ./k3s ctr images import -
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          export TINYURL_DB_NAME=tinyurl
+          export TINYURL_DB_USER=tinyurl
+          export TINYURL_DB_PASSWORD=ci-dummy
+          export TINYURL_IMAGE=tinyurl:ci
+          export TINYURL_IDENTITY_URI=http://identity:8080
+          export TINYURL_IDENTITY_JWK_SET_URI=http://identity:8080/oauth2/jwks
+          export TINYURL_IDENTITY_ISSUER_URI=http://identity:8080
+          mkdir -p /tmp/tinyurl-manifests
+          for manifest in projects/tinyurl/deploy/*.yaml; do
+            envsubst < "$manifest" > "/tmp/tinyurl-manifests/$(basename "$manifest")"
+          done
+          envsubst < projects/tinyurl/deploy/postgres-secret.yaml.template > /tmp/tinyurl-manifests/postgres-secret.yaml
+          kubectl apply -f /tmp/tinyurl-manifests/namespace.yaml
+          for manifest in /tmp/tinyurl-manifests/*.yaml; do
+            [ "$manifest" = /tmp/tinyurl-manifests/namespace.yaml ] && continue
+            kubectl apply -f "$manifest"
+          done
+
+      - name: Wait for Postgres and verify its PVC + readiness
+        run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          kubectl -n tinyurl rollout status statefulset/postgres --timeout=180s
+          kubectl -n tinyurl wait --for=jsonpath='{.status.phase}'=Bound pvc/data-postgres-0 --timeout=180s
+          kubectl -n tinyurl exec postgres-0 -- pg_isready -U tinyurl
+
+      - name: Wait for TinyURL and probe it
+        run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          kubectl -n tinyurl rollout status deployment/tinyurl --timeout=300s
+          kubectl -n tinyurl port-forward service/tinyurl 18082:8082 &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18082/actuator/health || true)
+            [ "$code" = "200" ] && break
+            sleep 4
+          done
+          curl -s http://localhost:18082/actuator/health | grep -q '"status":"UP"'
+          curl -s http://localhost:18082/api/links | grep -q '"links"'
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get pods,events -A || true
+          kubectl -n tinyurl logs deployment/tinyurl --tail=200 || true
+          kubectl -n tinyurl logs statefulset/postgres --tail=200 || true
+
+  tinyurl-arm-smoke:
+    name: tinyurl-arm-smoke
+    needs: tinyurl-image
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      packages: read
+    steps:
+      - name: Log into GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start a same-arch Postgres next to the pushed image
+        run: |
+          docker network create tinyurl-smoke
+          docker run -d --name postgres --network tinyurl-smoke \
+            -e POSTGRES_DB=tinyurl -e POSTGRES_USER=tinyurl -e POSTGRES_PASSWORD=smoke \
+            postgres:18-alpine
+
+      - name: Run the pushed arm64 image and probe it
+        run: |
+          docker run -d --name tinyurl --network tinyurl-smoke -p 18082:8082 \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/tinyurl \
+            -e SPRING_DATASOURCE_USERNAME=tinyurl -e SPRING_DATASOURCE_PASSWORD=smoke \
+            -e SUPPORTFOLIO_TINYURL_JWK_SET_URI=http://identity:8080/oauth2/jwks \
+            -e SUPPORTFOLIO_TINYURL_ISSUER_URI=http://identity:8080 \
+            ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18082/actuator/health || true)
+            [ "$code" = "200" ] && break
+            sleep 4
+          done
+          curl -s http://localhost:18082/actuator/health | grep -q '"status":"UP"'
+          curl -s http://localhost:18082/api/links | grep -q '"links"'
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: docker logs tinyurl --tail=200 || true
+
+  tinyurl-prod-login:
+    name: tinyurl-prod-login
+    needs: tinyurl-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TINYURL_IMAGE: tinyurl:e2e
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK and Node
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Build amd64 image for the browser runner
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          npx tsx tools/prod-bundle-gate.ts dist/projects/tinyurl/microfrontend
+          docker build --platform linux/amd64 -f projects/tinyurl/Dockerfile -t tinyurl:e2e .
+
+      - name: Bring the prod-bundle stack up
+        run: |
+          docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml up -d --wait
+
+      - name: Install Chromium and run the login flow
+        run: |
+          npx playwright install chromium --with-deps
+          npx playwright test --config=projects/tinyurl/ci/playwright.prod.config.ts
+
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml logs --tail=200
+
+      - name: Tear the stack down
+        if: always()
+        run: docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml down -v

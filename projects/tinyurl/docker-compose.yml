@@ -1,0 +1,23 @@
+# Localhost-only dev defaults for TinyURL's own database. Every non-dev
+# environment supplies its own values; nothing here is stored anywhere but
+# the operator's local container (database-per-service).
+services:
+  postgres:
+    image: postgres:18-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: tinyurl
+      POSTGRES_USER: tinyurl
+      POSTGRES_PASSWORD: tinyurl
+    volumes:
+      # Postgres 18+ image layout: data lives in a subdirectory of /var/lib/postgresql
+      - tinyurl-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tinyurl -d tinyurl"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tinyurl-pgdata:

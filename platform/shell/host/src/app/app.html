@@ -1,4 +1,12 @@
 <header data-testid="shell-header" class="shell-header">
   <span class="brand">Supportfolio</span>
+  <nav class="session">
+    @if (auth.session(); as session) {
+    <span data-testid="session-user" class="session-user">{{ session.principal.displayName }}</span>
+    <button data-testid="sign-out" type="button" (click)="auth.clear()">Sign out</button>
+    } @else {
+    <a data-testid="header-sign-in" routerLink="/signin">Sign in</a>
+    }
+  </nav>
 </header>
 <router-outlet />

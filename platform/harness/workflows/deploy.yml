@@ -1,0 +1,73 @@
+name: deploy
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      namespace:
+        required: false
+        type: string
+        default: tinyurl
+      manifests-path:
+        required: false
+        type: string
+        default: projects/tinyurl/deploy
+    secrets:
+      KUBECONFIG:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      # Interpolations stay out of run: bodies: values travel through env only.
+      DEPLOY_ENV_KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      DEPLOY_ENV_IMAGE: ${{ inputs.image }}
+      DEPLOY_ENV_NAMESPACE: ${{ inputs.namespace }}
+      DEPLOY_ENV_MANIFESTS_PATH: ${{ inputs.manifests-path }}
+      DEPLOY_ENV_IDENTITY_URI: ${{ vars.TINYURL_IDENTITY_URI }}
+      DEPLOY_ENV_IDENTITY_JWK_SET_URI: ${{ vars.TINYURL_IDENTITY_JWK_SET_URI }}
+      DEPLOY_ENV_IDENTITY_ISSUER_URI: ${{ vars.TINYURL_IDENTITY_ISSUER_URI }}
+      DEPLOY_ENV_HOST: ${{ vars.TINYURL_HOST }}
+      TINYURL_DB_NAME: ${{ vars.TINYURL_DB_NAME }}
+      TINYURL_DB_USER: ${{ vars.TINYURL_DB_USER }}
+      TINYURL_DB_PASSWORD: ${{ secrets.TINYURL_DB_PASSWORD }}
+    steps:
+      - name: Checkout the manifests
+        uses: actions/checkout@v6
+
+      - name: Prime kubectl with the environment's kubeconfig
+        run: |
+          echo "$DEPLOY_ENV_KUBECONFIG" > kubeconfig
+          chmod 600 kubeconfig
+          echo "KUBECONFIG=${PWD}/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Install envsubst
+        run: sudo apt-get install -y gettext-base
+
+      - name: Render the secret template and every manifest
+        run: |
+          mkdir -p rendered
+          export TINYURL_IMAGE="$DEPLOY_ENV_IMAGE"
+          export TINYURL_IDENTITY_URI="$DEPLOY_ENV_IDENTITY_URI"
+          export TINYURL_IDENTITY_JWK_SET_URI="$DEPLOY_ENV_IDENTITY_JWK_SET_URI"
+          export TINYURL_IDENTITY_ISSUER_URI="$DEPLOY_ENV_IDENTITY_ISSUER_URI"
+          export TINYURL_HOST="$DEPLOY_ENV_HOST"
+          find "$DEPLOY_ENV_MANIFESTS_PATH" -maxdepth 1 -name '*.yaml' \
+            -exec bash -c 'envsubst < "$1" > "rendered/$(basename "$1")"' _ {} \;
+          find "$DEPLOY_ENV_MANIFESTS_PATH" -maxdepth 1 -name '*.yaml.template' \
+            -exec bash -c 'envsubst < "$1" > "rendered/$(basename "${1%.yaml.template}").yaml"' _ {} \;
+
+      - name: Apply the namespace first, then everything else
+        run: |
+          kubectl apply -f "rendered/namespace.yaml"
+          find rendered -maxdepth 1 -name '*.yaml' ! -name namespace.yaml -exec kubectl apply -f {} \;
+
+      - name: Wait for the rollout
+        run: |
+          kubectl -n "$DEPLOY_ENV_NAMESPACE" rollout status deployment/tinyurl --timeout=180s

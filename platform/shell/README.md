@@ -13,8 +13,9 @@ trusted-origin allowlist. It contains **no project business logic**.
 #    SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_PEM)
 ./gradlew :platform:identity:bootRun
 
-# 2. The fixture card remote (serves remoteEntry.js on 4301)
-npx nx serve identity-card --port 4301
+# 2. The TinyURL remote (serves remoteEntry.js on 4201; needs Postgres + identity started first)
+#    Identity must include 4201 in SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS for the app's own login.
+npx nx serve tinyurl-microfrontend
 
 # 3. The shell gateway (three SUPPORTFOLIO_SHELL_* env vars, defaults shown)
 ./gradlew :platform:shell:bootRun
@@ -24,7 +25,7 @@ npx nx serve shell-host
 ```
 
 Defaults: identity `http://localhost:8081`, registry file
-`platform/shell/config/remote-registry.json`, trusted origins `http://localhost:4301`.
+`platform/shell/config/remote-registry.json`, trusted origins `http://localhost:4201`.
 Override with `SUPPORTFOLIO_SHELL_IDENTITY_URI`, `SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE`,
 `SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS`.
 

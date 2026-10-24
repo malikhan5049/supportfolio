@@ -98,8 +98,3 @@ Repo `opencode.json` pins (overrides global, this repo only): session +
 explicit `glm-5.3` model override at dispatch. `/plan`, `/finalize`, `/brainstorm`
 pin their phase models in frontmatter. Everything not pinned is advisory.
 
-## Legacy name substitutions (human decisions 2026-10-19)
-
-"Qwen 2.5 Coder" → `qwen3.8-flash` · "MiMo V2.6 Flash" → `glm-5.3-flash` (catalog
-still lists `mimo-v2.6-flash` active; mapping covers legacy text only) · "DeepSeek
-V3 Lite" → `deepseek-v4.1-flash`.

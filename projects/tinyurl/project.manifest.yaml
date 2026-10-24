@@ -1,0 +1,21 @@
+id: tinyurl
+displayName: TinyURL
+shortDescription: Share short links and see how often they are used.
+features:
+  - Shorten any public URL
+  - Public link list with click counts
+  - Twenty shortens per user per hour
+openUrl: http://localhost:4201
+exposedModules:
+  - name: card
+    version: 1.0.0
+    remoteEntry: http://localhost:4201/remoteEntry.js
+pipeline:
+  stages:
+    - build
+    - test
+    - deploy
+environments:
+  - dev
+  - test
+  - prod

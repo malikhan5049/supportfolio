@@ -38,13 +38,13 @@ jobs:
         run: npm ci
 
       - name: Lint and test frontend projects
-        run: npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,identity-card
+        run: npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,tinyurl-microfrontend
 
       - name: Build shell host
         run: npx nx build shell-host
 
-      - name: Build identity card remote
-        run: npx nx build identity-card
+      - name: Build tinyurl remote
+        run: npx nx build tinyurl-microfrontend
 
   shell-e2e:
     runs-on: ubuntu-latest

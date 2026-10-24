@@ -1,0 +1,24 @@
+<section>
+  <app-shorten-form (created)="onCreate()"></app-shorten-form>
+
+  @if (failed()) {
+    <p data-testid="browse-error">The link list cannot be loaded right now.</p>
+  } @else if (links(); as current) {
+    @if (current.length === 0) {
+      <p data-testid="browse-empty">No links yet.</p>
+    } @else {
+      <ul data-testid="browse-list">
+        @for (link of current; track link.slug) {
+          <li [attr.data-testid]="'link-row-' + link.slug">
+            <a [href]="'/go/' + link.slug" target="_blank" rel="noopener">{{ link.slug }}</a>
+            <span>{{ link.targetUrl }}</span>
+            <span [attr.data-testid]="'click-count-' + link.slug"
+              >{{ link.clickCount }} clicks</span
+            >
+            <time>{{ link.createdAt }}</time>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

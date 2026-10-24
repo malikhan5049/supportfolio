@@ -1,0 +1,10 @@
+<header data-testid="tinyurl-header">
+  <h1>TinyURL</h1>
+  @if (displayName(); as name) {
+  <span data-testid="signed-in-as">{{ name }}</span>
+  <button type="button" (click)="signOut()" data-testid="sign-out">Sign out</button>
+  } @else {
+  <a routerLink="/signin" data-testid="sign-in-link">Sign in</a>
+  }
+</header>
+<router-outlet></router-outlet>

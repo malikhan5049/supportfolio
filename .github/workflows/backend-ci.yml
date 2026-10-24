@@ -1,0 +1,33 @@
+name: Backend CI
+
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        description: 'Path to the backend service project (used for concurrency/labels)'
+        required: true
+        type: string
+      gradle-module:
+        description: 'Gradle module path of the service, built from the repo root (composite build)'
+        required: true
+        type: string
+
+concurrency: { group: "backend-ci-${{ inputs.project-path }}", cancel-in-progress: false }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build backend service
+        env:
+          GRADLE_MODULE: ${{ inputs.gradle-module }}
+        run: ./gradlew ":$GRADLE_MODULE:build"

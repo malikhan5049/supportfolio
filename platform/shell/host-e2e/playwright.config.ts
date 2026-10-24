@@ -8,8 +8,8 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
   webServer: [
     {
-      command: 'npx nx serve identity-card --port 4301 --configuration=development',
-      url: 'http://localhost:4301/remoteEntry.js',
+      command: 'npx nx serve tinyurl-microfrontend --port 4201 --configuration=development',
+      url: 'http://localhost:4201/remoteEntry.js',
       timeout: 180_000,
       reuseExistingServer: !process.env.CI,
     },

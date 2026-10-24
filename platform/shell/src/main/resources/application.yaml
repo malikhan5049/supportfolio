@@ -5,7 +5,7 @@ supportfolio:
   shell:
     identity-uri: ${SUPPORTFOLIO_SHELL_IDENTITY_URI:http://localhost:8081}
     remote-registry-file: ${SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE:platform/shell/config/remote-registry.json}
-    trusted-remote-origins: ${SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS:http://localhost:4301}
+    trusted-remote-origins: ${SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS:http://localhost:4201}
   security:
     resource-server:
       enabled: true
