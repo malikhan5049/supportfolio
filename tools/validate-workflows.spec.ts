@@ -240,7 +240,7 @@ describe('tinyurl-ci.yml', () => {
     const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
     const raw = JSON.stringify(doc.jobs['tinyurl-prod-login']);
     expect(raw).toContain('docker-compose.prod-e2e.yml');
-    expect(raw).toContain('github.sha');
+    expect(raw).toContain('tinyurl:e2e');
     expect(raw).toContain('playwright.prod.config.ts');
     expect(raw).toContain('down -v');
     expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-prod-login'");
@@ -253,6 +253,14 @@ describe('tinyurl-ci.yml', () => {
     expect(compose.services.tinyurl.healthcheck.test).toContain(
       'http://127.0.0.1:8082/actuator/health',
     );
+  });
+
+  it('builds a local amd64 image for prod login on the x86 runner', () => {
+    const job: any = entry().jobs['tinyurl-prod-login'];
+    const raw = job.steps.map((step: any) => step.run ?? '').join('\n');
+    expect(raw).toContain('docker build --platform linux/amd64');
+    const composeStep = job.steps.find((step: any) => step.env?.TINYURL_IMAGE);
+    expect(composeStep.env.TINYURL_IMAGE).toBe('tinyurl:e2e');
   });
 
   it('renders EVERY manifest through envsubst, never copies templates verbatim', () => {

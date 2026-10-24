@@ -230,22 +230,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Log into GHCR
-        uses: docker/login-action@v3
+      - name: Set up JDK and Node
+        uses: actions/setup-java@v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Build amd64 image for the browser runner
+        run: |
+          ./gradlew :projects:tinyurl:service:bootJar
+          npm ci
+          npx nx build tinyurl-microfrontend
+          npx tsx tools/prod-bundle-gate.ts dist/projects/tinyurl/microfrontend
+          docker build --platform linux/amd64 -f projects/tinyurl/Dockerfile -t tinyurl:e2e .
 
       - name: Bring the prod-bundle stack up
         run: |
           docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml up -d --wait
         env:
-          TINYURL_IMAGE: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+          TINYURL_IMAGE: tinyurl:e2e
 
       - name: Install Chromium and run the login flow
         run: |
-          npm ci
           npx playwright install chromium --with-deps
           npx playwright test --config=projects/tinyurl/ci/playwright.prod.config.ts
 
