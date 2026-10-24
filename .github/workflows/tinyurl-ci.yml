@@ -226,6 +226,8 @@ jobs:
     needs: tinyurl-image
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TINYURL_IMAGE: tinyurl:e2e
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -250,8 +252,6 @@ jobs:
       - name: Bring the prod-bundle stack up
         run: |
           docker compose -f projects/tinyurl/ci/docker-compose.prod-e2e.yml up -d --wait
-        env:
-          TINYURL_IMAGE: tinyurl:e2e
 
       - name: Install Chromium and run the login flow
         run: |

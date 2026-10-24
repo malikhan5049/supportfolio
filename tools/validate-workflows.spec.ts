@@ -259,8 +259,7 @@ describe('tinyurl-ci.yml', () => {
     const job: any = entry().jobs['tinyurl-prod-login'];
     const raw = job.steps.map((step: any) => step.run ?? '').join('\n');
     expect(raw).toContain('docker build --platform linux/amd64');
-    const composeStep = job.steps.find((step: any) => step.env?.TINYURL_IMAGE);
-    expect(composeStep.env.TINYURL_IMAGE).toBe('tinyurl:e2e');
+    expect(job.env.TINYURL_IMAGE).toBe('tinyurl:e2e');
   });
 
   it('renders EVERY manifest through envsubst, never copies templates verbatim', () => {
