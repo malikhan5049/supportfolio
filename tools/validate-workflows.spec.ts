@@ -148,6 +148,18 @@ describe('tinyurl-ci.yml', () => {
     expect(setupNodeIndex).toBeLessThan(npmCiIndex);
   });
 
+  it('sets up an immutable Buildx builder before attested image publishing', () => {
+    const steps = entry().jobs['tinyurl-image'].steps;
+    const setupBuildxIndex = steps.findIndex((step: any) =>
+      String(step.uses).startsWith('docker/setup-buildx-action@'),
+    );
+    const pushIndex = steps.findIndex((step: any) => String(step.name).includes('Build and push'));
+    expect(steps[setupBuildxIndex].uses).toBe(
+      'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
+    );
+    expect(setupBuildxIndex).toBeLessThan(pushIndex);
+  });
+
   it('pins the privileged Trivy action to its verified immutable release commit', () => {
     const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
       String(step.uses).startsWith('aquasecurity/trivy-action@'),
