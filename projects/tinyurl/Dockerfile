@@ -1,4 +1,5 @@
-FROM eclipse-temurin:17-jre-alpine
+# Verified official Temurin JRE tag includes linux/arm64/v8 (Docker Hub manifest checked 2026-10-24).
+FROM eclipse-temurin:17.0.20.1_1-jre-jammy
 
 # TinyURL runtime image: pre-built artifacts only — the CI build compiles the jar and the
 # microfrontend; this image neither downloads nor compiles anything.

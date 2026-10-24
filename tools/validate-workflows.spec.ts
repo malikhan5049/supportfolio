@@ -160,6 +160,11 @@ describe('tinyurl-ci.yml', () => {
     expect(setupBuildxIndex).toBeLessThan(pushIndex);
   });
 
+  it('uses the verified Java 17 base image that includes ARM64', () => {
+    const dockerfile = fs.readFileSync('projects/tinyurl/Dockerfile', 'utf8');
+    expect(dockerfile.match(/^FROM .+$/m)?.[0]).toBe('FROM eclipse-temurin:17.0.20.1_1-jre-jammy');
+  });
+
   it('pins the privileged Trivy action to its verified immutable release commit', () => {
     const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
       String(step.uses).startsWith('aquasecurity/trivy-action@'),
