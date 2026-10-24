@@ -12,6 +12,29 @@
 
 ---
 
+## 2026-10-24 · Plan 4 complete — TinyURL (Tasks 0–27, deep review, merged via #20)
+
+### What went well?
+
+- The end-to-end TinyURL slice landed: independent Spring/PostgreSQL service, full microfrontend, runtime remote replacement, deploy artifacts, and CI proof jobs; the PR's backend, frontend, k3s, ARM, prod-login, shell E2E, and standard checks all passed before merge.
+- Deep review and Testcontainers/browser tests caught real defects beyond happy-path unit coverage: PostgreSQL slug-collision retry needed transaction isolation, committed matrix fixtures polluted later tests, and production short links needed an absolute same-origin URL.
+- The PR's first hosted run proved the value of executable CI: it exposed missing Postgres manifests and runner assumptions around npm's Node version, Buildx attestation support, ARM base-image availability, Trivy's scan platform, and x86-vs-ARM prod-login execution. Each failure was traced from logs and fixed; the final hosted run passed without deploying or enabling CD.
+
+### What should we keep doing?
+
+- Keep deep review mandatory for high-shape service/auth/CI changes, and take every Critical/Important finding through a specific RED→GREEN regression test and one fix pass.
+- Keep real runtime proofs: browser E2E for new user flows, and hosted k3s/ARM jobs for deploy artifacts. Structural workflow assertions are useful, but the PR run is the proof.
+- Keep environment and architecture explicit (Node 24, Buildx builder, image base platform, Trivy scan platform), and record deviations/rulings in the ledger while they're fresh.
+
+### What should we stop doing?
+
+- Stop assuming hosted-runner defaults match local state: implicit Node/npm and Buildx drivers broke the image job despite local builds passing.
+- Stop validating only that an image builds on the developer's architecture; inspect the official manifest list and test the actual target architecture before declaring the artifact ready.
+- Stop treating Compose `up --wait` as application readiness without a healthcheck, and keep variables needed by teardown/diagnostic steps at a scope those steps can read.
+- Stop closing a plan on structural CI tests alone; wait for the required checks on its PR to complete.
+
+---
+
 ## 2026-10-20 · Plan 3 complete — shell/gateway (Tasks 1–17, deep review, merged via #17)
 
 ### What went well?
