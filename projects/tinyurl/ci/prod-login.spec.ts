@@ -15,6 +15,8 @@ test('the prod bundle serves, logs in through stub identity, shortens, and count
   await page.getByTestId('sign-in-link').click();
   await page.getByRole('button', { name: 'Sign in with GitHub' }).click();
   await page.waitForURL(/auth\/callback/);
+  // The callback exchanges the code asynchronously before navigating back to the captured route.
+  await expect(page.getByTestId('signed-in-as')).toHaveText('Stub User');
   await page.goto('/');
   await expect(page.getByTestId('signed-in-as')).toHaveText('Stub User');
 

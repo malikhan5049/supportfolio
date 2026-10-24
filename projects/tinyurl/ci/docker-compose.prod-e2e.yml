@@ -39,4 +39,9 @@ services:
       SUPPORTFOLIO_TINYURL_JWK_SET_URI: http://stub-identity:8090/oauth2/jwks
       SUPPORTFOLIO_TINYURL_ISSUER_URI: http://stub-identity:8090
       SUPPORTFOLIO_TINYURL_IDENTITY_URI: http://stub-identity:8090
-      SUPPORTFOLIO_TINYURL_PUBLIC_BASE_URL: http://localhost:18088
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 90s

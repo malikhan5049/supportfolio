@@ -20,6 +20,7 @@ function link(): Link {
 describe('ShortenFormComponent', () => {
   let http: HttpTestingController;
   let store: AuthTokenStore;
+  let shortLinkBaseUrl: string;
 
   const signIn = () => {
     store.set({
@@ -39,6 +40,7 @@ describe('ShortenFormComponent', () => {
   };
 
   beforeEach(() => {
+    shortLinkBaseUrl = 'http://localhost:8082';
     TestBed.configureTestingModule({
       imports: [ShortenFormComponent],
       providers: [
@@ -47,7 +49,7 @@ describe('ShortenFormComponent', () => {
         provideRouter([]),
         AuthTokenStore,
         LinkApiService,
-        { provide: SHORT_LINK_BASE_URL, useValue: 'http://localhost:8082' },
+        { provide: SHORT_LINK_BASE_URL, useFactory: () => shortLinkBaseUrl },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -141,6 +143,32 @@ describe('ShortenFormComponent', () => {
     fixture.detectChanges();
     expect(store.token()).toBeNull();
     expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeTruthy();
+  });
+
+  it('shows and copies an absolute same-origin link when the production base is relative', async () => {
+    signIn();
+    shortLinkBaseUrl = '';
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const fixture = await renderForm();
+    const el = fixture.nativeElement as HTMLElement;
+    (el.querySelector('[data-testid="target-url"]') as HTMLInputElement).value =
+      'https://example.com/a';
+    (el.querySelector('[data-testid="target-url"]') as HTMLInputElement).dispatchEvent(
+      new Event('input'),
+    );
+    (el.querySelector('[data-testid="shorten-submit"]') as HTMLButtonElement).click();
+    http.expectOne('/api/links').flush(link(), { status: 201, statusText: 'Created' });
+    await drain();
+    fixture.detectChanges();
+
+    const anchor = el.querySelector('[data-testid="short-link"]') as HTMLAnchorElement;
+    const shareableUrl = 'http://localhost/go/abc12345';
+    expect(anchor.textContent).toBe(shareableUrl);
+    expect(anchor.href).toBe(shareableUrl);
+    (el.querySelector('[data-testid="copy-link"]') as HTMLButtonElement).click();
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledWith(shareableUrl);
   });
 
   it('copies the short link', async () => {

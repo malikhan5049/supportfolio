@@ -121,7 +121,7 @@ describe('tinyurl-ci.yml', () => {
     );
     expect(doc.on.workflow_call.inputs['gradle-module']).toBeDefined();
     expect(doc.jobs.build.steps.map((s: any) => s.run).join('\n')).toContain(
-      './gradlew :${{ inputs.gradle-module }}:build',
+      './gradlew ":$GRADLE_MODULE:build"',
     );
   });
 
@@ -137,6 +137,13 @@ describe('tinyurl-ci.yml', () => {
     expect(raw).toContain('linux/arm64');
     expect(raw).toContain('provenance');
     expect(raw).toContain('github.sha');
+  });
+
+  it('pins the privileged Trivy action to its verified immutable release commit', () => {
+    const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
+      String(step.uses).startsWith('aquasecurity/trivy-action@'),
+    );
+    expect(scan.uses).toBe('aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25');
   });
 
   it('branch protection requires the tinyurl checks', () => {
@@ -164,12 +171,20 @@ describe('tinyurl-ci.yml', () => {
 
   it('executes the manifests on a disposable k3s, not just lints them', () => {
     const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
-    const raw = JSON.stringify(doc.jobs['tinyurl-k3s-manifests']);
+    const job = doc.jobs['tinyurl-k3s-manifests'];
+    const raw = job.steps.map((step: any) => step.run ?? '').join('\n');
     expect(raw).toContain('k3s');
     expect(raw).toContain('kubectl apply');
     expect(raw).toContain('rollout status');
     expect(raw).toContain('pg_isready');
-    expect(raw).toContain('get pvc');
+    expect(raw).toContain('projects/tinyurl/deploy/*.yaml');
+    expect(raw).toContain('envsubst < "$manifest"');
+    expect(raw).toContain('for manifest in /tmp/tinyurl-manifests/*.yaml');
+    expect(raw).toContain('kubectl apply -f "$manifest"');
+    expect(raw).toContain('sudo ./k3s ctr images import -');
+    expect(raw).not.toContain('sudo kubectl');
+    expect(fs.readdirSync('projects/tinyurl/deploy')).toContain('postgres-statefulset.yaml');
+    expect(raw).toContain("wait --for=jsonpath='{.status.phase}'=Bound pvc/data-postgres-0");
     expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain(
       "'tinyurl-k3s-manifests'",
     );
@@ -194,5 +209,47 @@ describe('tinyurl-ci.yml', () => {
     expect(raw).toContain('playwright.prod.config.ts');
     expect(raw).toContain('down -v');
     expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-prod-login'");
+  });
+
+  it('waits for the prod TinyURL container health before running the browser flow', () => {
+    const compose: any = yaml.load(
+      fs.readFileSync('projects/tinyurl/ci/docker-compose.prod-e2e.yml', 'utf8'),
+    );
+    expect(compose.services.tinyurl.healthcheck.test).toContain(
+      'http://127.0.0.1:8082/actuator/health',
+    );
+  });
+
+  it('renders EVERY manifest through envsubst, never copies templates verbatim', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
+    const render = doc.jobs.deploy.steps.map((s: any) => s.run).join('\n');
+    expect(render).not.toContain('cp {} rendered/');
+    expect(render).toContain('envsubst < ');
+    expect(render).toContain('find ');
+    expect(render).toContain('basename ');
+  });
+
+  it('never embeds secrets or inputs directly inside run: bodies (script-injection)', () => {
+    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
+    for (const step of doc.jobs.deploy.steps as any[]) {
+      if (step.run) {
+        expect(step.run).not.toContain('${{ secrets.');
+        expect(step.run).not.toContain('${{');
+      }
+    }
+  });
+});
+
+describe('backend-ci gradle module injection', () => {
+  it('passes the module through env, not through run-string interpolation', () => {
+    const source = fs.existsSync('.github/workflows/backend-ci.yml')
+      ? '.github/workflows/backend-ci.yml'
+      : 'platform/harness/workflows/backend-ci.yml';
+    const doc: any = yaml.load(fs.readFileSync(source, 'utf8'));
+    const build = doc.jobs.build.steps.find(
+      (s: any) => s.run && String(s.run).includes('./gradlew'),
+    );
+    expect(build.run).not.toContain('${{');
+    expect(build.env['GRADLE_MODULE']).toContain('inputs.gradle-module');
   });
 });

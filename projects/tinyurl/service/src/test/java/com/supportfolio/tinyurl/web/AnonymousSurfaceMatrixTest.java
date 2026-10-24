@@ -6,6 +6,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.supportfolio.tinyurl.PostgresIntegrationTest;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -25,6 +26,7 @@ import org.springframework.web.client.RestClient;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {"spring.web.resources.static-locations=classpath:/test-static/"})
 @org.springframework.test.annotation.Commit
+@org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
 class AnonymousSurfaceMatrixTest extends PostgresIntegrationTest {
 
   static final String SEEDED_SLUG = "matrix123";
@@ -62,6 +64,13 @@ class AnonymousSurfaceMatrixTest extends PostgresIntegrationTest {
         .requestFactory(new JdkClientHttpRequestFactory())
         .baseUrl("http://localhost:" + environment.getProperty("local.server.port"))
         .build();
+  }
+
+  @AfterAll
+  void removesTheMatrixSeedAndItsClickRows() {
+    // The class-level @Commit makes the server-thread click visible; remove that committed fixture
+    // before the next integration-test class observes the shared database.
+    jdbc.update("delete from links where slug = ?", SEEDED_SLUG);
   }
 
   @org.junit.jupiter.api.BeforeEach

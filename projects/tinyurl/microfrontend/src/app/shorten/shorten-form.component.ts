@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, inject, output, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthTokenStore } from 'shared-ui-lib';
@@ -18,6 +19,7 @@ const ERROR_MESSAGES: Record<number, string> = {
   templateUrl: './shorten-form.component.html',
 })
 export class ShortenFormComponent {
+  private readonly document = inject(DOCUMENT);
   private readonly api = inject(LinkApiService);
   private readonly store = inject(AuthTokenStore);
 
@@ -36,7 +38,7 @@ export class ShortenFormComponent {
     this.shortLink.set(null);
     try {
       const link = await this.api.create(url);
-      this.shortLink.set(this.api.shortUrl(link.slug));
+      this.shortLink.set(new URL(this.api.shortUrl(link.slug), this.document.baseURI).href);
       this.created.emit(link);
     } catch (caught) {
       const status = caught instanceof ApiError ? caught.status : 0;

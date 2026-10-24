@@ -59,8 +59,12 @@ public class LinkService {
     return link.getTargetUrl();
   }
 
-  /** Creation-specific part of the business (rate limiting lands with its task). */
-  @Transactional
+  /**
+   * Creation-specific part of the business (rate limiting lands with its task). Deliberately NOT
+   * {@code @Transactional}: on PostgreSQL the first unique-key violation aborts the surrounding
+   * transaction, so the plan's race retry only works when each {@code saveAndFlush} commits in its
+   * own transaction (see LinkSlugRaceIntegrationTest).
+   */
   public LinkView create(String rawTargetUrl, String createdBy) {
     // Acquire BEFORE validation: an over-cap user gets 429 without spending any validation work,
     // and nothing at all is stored on a rejected request.

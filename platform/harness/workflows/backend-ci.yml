@@ -28,4 +28,6 @@ jobs:
           java-version: '17'
 
       - name: Build backend service
-        run: ./gradlew :${{ inputs.gradle-module }}:build
+        env:
+          GRADLE_MODULE: ${{ inputs.gradle-module }}
+        run: ./gradlew ":$GRADLE_MODULE:build"
