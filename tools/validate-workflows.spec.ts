@@ -139,6 +139,15 @@ describe('tinyurl-ci.yml', () => {
     expect(raw).toContain('github.sha');
   });
 
+  it('sets up the pinned Node runtime before npm ci in the image job', () => {
+    const steps = entry().jobs['tinyurl-image'].steps;
+    const setupNodeIndex = steps.findIndex((step: any) => step.uses === 'actions/setup-node@v7');
+    const npmCiIndex = steps.findIndex((step: any) => String(step.run).includes('npm ci'));
+    expect(setupNodeIndex).toBeGreaterThanOrEqual(0);
+    expect(steps[setupNodeIndex].with['node-version']).toBe(24);
+    expect(setupNodeIndex).toBeLessThan(npmCiIndex);
+  });
+
   it('pins the privileged Trivy action to its verified immutable release commit', () => {
     const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
       String(step.uses).startsWith('aquasecurity/trivy-action@'),
