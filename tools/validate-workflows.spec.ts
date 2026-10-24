@@ -172,6 +172,15 @@ describe('tinyurl-ci.yml', () => {
     expect(scan.uses).toBe('aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25');
   });
 
+  it('scans the pushed ARM64 image using Trivy arm64 platform config', () => {
+    const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
+      String(step.uses).startsWith('aquasecurity/trivy-action@'),
+    );
+    expect(scan.with['trivy-config']).toBe('projects/tinyurl/ci/trivy.yaml');
+    const config: any = yaml.load(fs.readFileSync('projects/tinyurl/ci/trivy.yaml', 'utf8'));
+    expect(config.image.platform).toBe('linux/arm64');
+  });
+
   it('branch protection requires the tinyurl checks', () => {
     const source = fs.readFileSync('tools/branch-protection.ts', 'utf8');
     for (const check of ['tinyurl-backend', 'tinyurl-frontend', 'tinyurl-image'])

@@ -73,6 +73,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ghcr.io/malikhan5049/tinyurl:sha-${{ github.sha }}
+          trivy-config: projects/tinyurl/ci/trivy.yaml
           exit-code: '0'
 
   deploy-test:
