@@ -15,6 +15,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.5.1")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
 }
