@@ -9,5 +9,5 @@ dependencies {
     implementation("org.springframework.security:spring-security-oauth2-jose")
 
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.5.1")
 }
