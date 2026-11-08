@@ -30,6 +30,11 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("com.squareup.okhttp3:mockwebserver:5.5.1")
+    // mockwebserver:5.x routes through mockwebserver3, which needs OkHttp 5 internals; the
+    // spring-cloud BOM still pins the okhttp family to 4.12.0 (since the Boot 3.4 BOM dropped
+    // that management). Declare okhttp explicitly so mockwebserver's transitive dep isn't
+    // downgraded, breaking MockWebServer startup with NoClassDefFoundError _UtilJvmKt.
+    testImplementation("com.squareup.okhttp3:okhttp:5.5.1")
 }
 
 dependencyManagement {
