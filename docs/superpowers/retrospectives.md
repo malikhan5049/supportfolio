@@ -12,6 +12,27 @@
 
 ---
 
+## 2026-11-08 · Task complete — repair and merge the 6 open Dependabot PRs (#24, #25, #26, #27, #32, #33)
+
+### What went well?
+
+- The only genuinely failing PR (#24, mockwebserver 4.12.0 → 5.5.1) was fixed by systematic debugging, not guesswork: CI logs → local repro → POM/`.module` inspection → `dependencyInsight` exposed the real chain — `spring-cloud-dependencies` (via `spring-cloud-commons-dependencies` → `okhttp-bom`) still pins the okhttp family to 4.12.0, so `mockwebserver3` 5.x ran without OkHttp 5 internals (`NoClassDefFoundError okhttp3/internal/_UtilJvmKt`). The one-line-per-module fix (explicit `okhttp:5.5.1` next to `mockwebserver:5.5.1` in the two BOM-importing modules) was proven locally, then on hosted `tinyurl-backend/build`, before merge.
+- All 6 PRs landed with the four required checks green on their own head SHAs, and the integrated `main` was re-verified locally with `./gradlew build` (9m04s green).
+
+### What would we like to continue doing?
+
+- Read the published artifact chain (POMs, Gradle module metadata, BOM imports) when a class disappears at runtime — repo grep could never have found a pin that lives three BOM imports deep.
+- For branch-protected repos that require up-to-date heads: run a strict serial rebase → wait-for-green-on-head-SHA → merge cycle, and verify every step's output (nothing piped to `Out-Null`).
+
+### What would we like to stop doing?
+
+- Stop writing merge-automation loops that rebase against a cached `origin/main` ref: one 80-minute loop failed silently because each round used a stale base; the fix was fetching `origin/main` after every merge.
+- Stop inferring check status from loosely filtered `gh pr checks` text lines (a `pending` line slipped through); use the JSON `statusCheckRollup` keyed to the head SHA instead.
+
+`Ruling:` the 2026-11-08 AGENTS.md update routes mechanical work to dispatched subagents; this harness exposes no subagent tool, so steps ran inline on the controller.
+
+---
+
 ## 2026-10-24 · Plan 4 complete — TinyURL (Tasks 0–27, deep review, merged via #20)
 
 ### What went well?
