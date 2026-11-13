@@ -20,6 +20,12 @@ npx nx e2e shell-host-e2e
 npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"
 ```
 
+## Branching (GitHub repo rules enforced)
+
+- **Never commit directly to `main`.** GitHub repository rules reject direct pushes to `main` (remote rejected: push declined due to repository rule violations).
+- Every change — no matter how small — goes on a feature branch (`feat/…`, `chore/…`, `fix/…`) and is pushed as a **pull request** targeting `main`.
+- Never `git commit` while on `main`; `git switch -c <branch>` first. If commits already landed on local `main`, move them to a branch (`git switch -c <branch> && git branch -f main origin/main`) and open a PR.
+
 ## No-loop rule
 
 Max **2 attempts** on a failing command, only with a changed hypothesis. Same error after one failed diagnosis → stop, investigate, then **report back** (command, output, ruled-out causes). Never rerun blind.
@@ -46,25 +52,23 @@ Windows/PowerShell first (`gradlew.bat` locally, `./gradlew` in CI). Node 24, JD
 
 # Superpowers Framework Instructions: Dynamic Model Routing
 
-When executing workflow phases, assess task complexity before delegating work or selecting an agent mode:
+The session runs on the **`controller`** primary agent (gpt-6-luna#medium). The
+controller does **not** change models between phases — it stays on
+gpt-6-luna and dispatches subagents for the mechanical work. Assess task
+complexity before choosing which subagent to dispatch:
 
 ### 1. Complexity Criteria
 * **TRIVIAL / MEDIUM:**
   - Isolated bug fixes, minor CRUD endpoints, CSS/UI tweaks.
   - Adding single tests, simple state updates, single-file edits.
-  - **Action:** Delegate to standard agents (`brainstorm`, `plan`, `build`).
+  - **Action:** dispatch `build` (implementation) and `reviewer` (review).
 
 * **COMPLEX / HIGH RISK:**
   - Cross-microservice event contracts, distributed data models, auth/security.
   - Multi-module refactoring across microservices or microfrontend boundaries.
   - Concurrent data structures, transaction boundaries, performance-critical loops.
-  - **Action:** Explicitly switch to deep reasoning agents (`brainstorm-deep`, `plan-deep`, `build-complex`, `reviewer-deep`).
+  - **Action:** dispatch `build-complex` (implementation) and `reviewer-deep` (review).
 
-### 2. Automatic Phase Delegation Rules
-1. **Brainstorm Phase:** Evaluate requirement scope. If it involves cross-service dependencies, route internally to `brainstorm-deep`. Otherwise, use `brainstorm`.
-2. **Planning Phase:** Check step dependencies. If plans touch multiple API contracts, delegate step decomposition to `plan-deep`.
-3. **Build Phase:** For standard step execution, use `build`. If 2+ consecutive TDD attempts fail due to complex multi-file state issues, escalate task execution to `build-complex`.
-4. **Review Phase:** Standard plans run `reviewer`. High-shape plans (auth/security/CSP/MF - retro 2026-10-20 standing item) route to `reviewer-deep` (deepseek-v4-pro, read-only).
 
 
 ## Plan retrospective (binding)

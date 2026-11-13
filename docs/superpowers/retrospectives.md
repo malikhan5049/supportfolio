@@ -12,6 +12,10 @@
 
 ---
 
+## 2026-11-13 · Ruling (task: push rejected main commits)
+
+- `Ruling:` Orchestrator handled the git branch/push/PR mutations directly instead of dispatching subagents — state-changing git operations against repo-rule-protected `main` are too risky to delegate blind; info-gathering stayed within the 2-call direct allowance. Result: branch `chore/dependabot-security-only` pushed, PR #43 opened, local `main` reset to `origin/main`.
+
 ## 2026-11-08 · Task complete — repair and merge the 6 open Dependabot PRs (#24, #25, #26, #27, #32, #33)
 
 ### What went well?
