@@ -8,9 +8,7 @@
   "targets": {
     "build": {
       "executor": "@nx/angular:webpack-browser",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/platform/shell/host",
@@ -24,9 +22,7 @@
             "output": "."
           }
         ],
-        "styles": [
-          "platform/shell/host/src/styles.css"
-        ],
+        "styles": ["platform/shell/host/src/styles.css"],
         "customWebpackConfig": {
           "path": "platform/shell/host/webpack.config.js"
         },
@@ -104,19 +100,6 @@
       "executor": "@angular-devkit/build-angular:extract-i18n",
       "options": {
         "buildTarget": "shell-host:build"
-      }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/{projectRoot}"
-      ],
-      "options": {
-        "jestConfig": "platform/shell/host/jest.config.cts",
-        "tsConfig": "platform/shell/host/tsconfig.spec.json"
       }
     },
     "serve-static": {
