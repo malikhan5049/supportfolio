@@ -1,21 +1,56 @@
+# Security-only Dependabot configuration.
+#
+# Strategy:
+# - `open-pull-requests-limit: 0` disables *version update* PRs entirely
+#   (no more weekly dependency-bump PRs). Security updates are a separate
+#   repo feature (Settings -> Code security -> Dependabot security updates)
+#   and keep running independently of this file.
+# - The security groups below bundle all minor/patch security fixes into a
+#   single PR per ecosystem instead of one PR per package.
+# - `schedule` is mandatory in each entry but is effectively inert while
+#   version updates are disabled; it only matters if you ever raise the
+#   limit above 0.
 version: 2
 updates:
+  # Root npm project (Angular 22 shell-host + Nx/Jest/ESLint tooling).
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 0
     groups:
-      angular:
-        applies-to: version-updates
-        patterns:
-          - "@angular*"
-      jest:
-        applies-to: version-updates
-        patterns:
-          - "jest"
-          - "jest-*"
-          - "ts-jest"
+      security-bundle:
+        applies-to: security-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Root Gradle multi-project build (platform/* + projects/*).
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 0
+    groups:
+      security-bundle:
+        applies-to: security-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # build-logic convention plugins: separate Gradle build with its own
+  # settings.gradle.kts, so it needs its own entry.
+  - package-ecosystem: "gradle"
+    directory: "build-logic"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 0
+    groups:
+      security-bundle:
+        applies-to: security-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
