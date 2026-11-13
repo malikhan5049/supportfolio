@@ -91,17 +91,6 @@
         "buildTarget": "tinyurl-microfrontend:build"
       }
     },
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
-      "options": {
-        "jestConfig": "projects/tinyurl/microfrontend/jest.config.cts",
-        "tsConfig": "projects/tinyurl/microfrontend/tsconfig.spec.json"
-      }
-    },
     "serve-static": {
       "continuous": true,
       "executor": "@nx/web:file-server",
