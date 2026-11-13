@@ -233,9 +233,14 @@ jobs:
           kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null | tail -n 80 || true
           kubectl -n tinyurl describe pod postgres-0 || true
           kubectl -n tinyurl describe pvc data-postgres-0 || true
-          kubectl -n tinyurl logs statefulset/postgres --all-containers --tail=100 || true
+          # 2026-11-13: postgres container ran 3m without ever accepting
+          # connections and produced zero log output via the statefulset
+          # selector; introspect the running pod directly instead.
+          kubectl -n tinyurl logs postgres-0 --all-containers --tail=200 --prefix || true
+          kubectl -n tinyurl get pod postgres-0 -o jsonpath='{range .status.containerStatuses[*]}{.name}{" state="}{.state}{" lastState="}{.lastState}{" restarts="}{.restartCount}{"\n"}{end}' || true
+          kubectl -n tinyurl exec postgres-0 --request-timeout=15s -- sh -c 'ps aux; echo ---PGDATA---; ls -la /var/lib/postgresql /var/lib/postgresql/data 2>&1; echo ---PGISREADY---; pg_isready; echo ---LISTEN---; netstat -ltn 2>/dev/null | head -20' || true
+          kubectl -n tinyurl logs deployment/tinyurl --all-containers --tail=100 --prefix || true
           sudo ./k3s ctr images ls 2>/dev/null | grep -Ei 'postgres|busybox|tinyurl|local-path|coredns|pause|flannel' || true
-          sudo journalctl -u k3s --no-pager 2>/dev/null | tail -n 100 || true
 
   tinyurl-arm-smoke:
     name: tinyurl-arm-smoke
