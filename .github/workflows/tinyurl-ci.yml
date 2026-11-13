@@ -99,7 +99,13 @@ jobs:
   tinyurl-k3s-manifests:
     name: tinyurl-k3s-manifests
     needs: tinyurl-frontend
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 on purpose: ubuntu-latest migrated to Ubuntu 26
+    # (kernel 7.0) on 2026-10-19 and k3s v1.37.1's service networking is
+    # broken on it — kube-dns ClusterIP never allocated ("repairing"),
+    # in-pod DNS dead ("nc: bad address 'postgres'"), and the postgres
+    # entrypoint spun at 100% CPU without ever starting initdb. On the
+    # 24.04 image this job was green at Plan 4 merge (2026-10-24).
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       # Every kubectl step in this job (including the failure diagnostics)
