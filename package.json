@@ -45,8 +45,8 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
-    "webpack": "5.111.0",
-    "webpack-merge": "^6.0.1"
+    "webpack": "5.112.0",
+    "webpack-merge": "^5.10.0"
   },
   "dependencies": {
     "@angular/common": "~22.2.5",
