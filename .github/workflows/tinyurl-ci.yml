@@ -99,8 +99,19 @@ jobs:
   tinyurl-k3s-manifests:
     name: tinyurl-k3s-manifests
     needs: tinyurl-frontend
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 on purpose: ubuntu-latest migrated to Ubuntu 26
+    # (kernel 7.0) on 2026-10-19 and k3s v1.37.1's service networking is
+    # broken on it — kube-dns ClusterIP never allocated ("repairing"),
+    # in-pod DNS dead ("nc: bad address 'postgres'"), and the postgres
+    # entrypoint spun at 100% CPU without ever starting initdb. On the
+    # 24.04 image this job was green at Plan 4 merge (2026-10-24).
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      # Every kubectl step in this job (including the failure diagnostics)
+      # talks to the ephemeral k3s API server; without this the diagnostics
+      # step silently fell back to localhost:8080 and captured nothing.
+      KUBECONFIG: /etc/rancher/k3s/k3s.yaml
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -121,6 +132,19 @@ jobs:
           npx nx build tinyurl-microfrontend
           docker build --platform linux/amd64 -f projects/tinyurl/Dockerfile -t tinyurl:ci .
 
+      - name: Pre-stage k3s airgap images (coredns, flannel, local-path-provisioner, pause)
+        run: |
+          # k3s auto-imports tarballs from agent/images/ at first boot. Without
+          # this the system pods (notably local-path-provisioner, whose readiness
+          # gates PVC binding) are pulled from Docker Hub at pod start, and
+          # anonymous pull throttling on ephemeral runners stalled them past the
+          # 180s PVC timeout (5 consecutive failures on main since 2026-11-10).
+          curl -fsSL -o k3s-airgap.tar.zst https://github.com/k3s-io/k3s/releases/download/v1.37.1%2Bk3s1/k3s-airgap-images-amd64.tar.zst
+          sudo apt-get install -y zstd >/dev/null
+          zstd -d k3s-airgap.tar.zst -o k3s-airgap.tar
+          sudo mkdir -p /var/lib/rancher/k3s/agent/images
+          sudo mv k3s-airgap.tar /var/lib/rancher/k3s/agent/images/
+
       - name: Install k3s (v1.37.1+k3s1, verified on the release page)
         run: |
           curl -sfL https://github.com/k3s-io/k3s/releases/download/v1.37.1%2Bk3s1/k3s -o k3s
@@ -131,9 +155,41 @@ jobs:
             sleep 2
           done
 
+      - name: Wait for k3s readiness (API, node, local-path-provisioner)
+        run: |
+          # k3s.yaml can exist while the API is still bootstrapping (observed:
+          # [-]poststarthook/rbac/bootstrap-roles failed during readyz). Applying
+          # and waiting before the node and provisioner are Ready converted
+          # transient stalls into hard 180s timeouts.
+          for i in $(seq 1 90); do
+            kubectl get --raw='/readyz' 2>/dev/null | grep -q ok && break
+            sleep 2
+          done
+          kubectl get --raw='/readyz' | grep -q ok
+          kubectl wait --for=condition=Ready nodes --all --timeout=180s
+          kubectl -n kube-system rollout status deployment/local-path-provisioner --timeout=180s
+
       - name: Import image and render/apply every manifest
         run: |
+          # Airgap the Docker Hub workload images: ephemeral runners hit
+          # anonymous pull throttling, and a stalled kubelet pull left the
+          # postgres pod non-Ready for the full rollout timeout. Pulling here
+          # (with retries) fails loudly instead of silently stalling kubelet.
+          pulled=false
+          for attempt in 1 2 3 4 5; do
+            if docker pull docker.io/library/postgres:18-alpine && docker pull docker.io/library/busybox:1.36; then
+              pulled=true
+              break
+            fi
+            sleep 10
+          done
+          [ "$pulled" = true ] || { echo "::error::docker pull failed for postgres:18-alpine or busybox:1.36"; exit 1; }
+          docker save postgres:18-alpine | sudo ./k3s ctr images import -
+          docker save busybox:1.36 | sudo ./k3s ctr images import -
           docker save tinyurl:ci | sudo ./k3s ctr images import -
+          # Guard against silent name mismatches between imported refs and the
+          # image: refs the manifests actually request.
+          sudo ./k3s ctr images ls | grep -E 'docker\.io/library/postgres:18-alpine|docker\.io/library/busybox:1\.36|tinyurl:ci'
           export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
           export TINYURL_DB_NAME=tinyurl
           export TINYURL_DB_USER=tinyurl
@@ -176,9 +232,21 @@ jobs:
       - name: Dump diagnostics on failure
         if: failure()
         run: |
-          kubectl get pods,events -A || true
-          kubectl -n tinyurl logs deployment/tinyurl --tail=200 || true
-          kubectl -n tinyurl logs statefulset/postgres --tail=200 || true
+          # KUBECONFIG comes from the job-level env; this used to fall back to
+          # localhost:8080 and capture nothing on every failure.
+          kubectl get nodes -o wide || true
+          kubectl get pods -A -o wide || true
+          kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null | tail -n 80 || true
+          kubectl -n tinyurl describe pod postgres-0 || true
+          kubectl -n tinyurl describe pvc data-postgres-0 || true
+          # 2026-11-13: postgres container ran 3m without ever accepting
+          # connections and produced zero log output via the statefulset
+          # selector; introspect the running pod directly instead.
+          kubectl -n tinyurl logs postgres-0 --all-containers --tail=200 --prefix || true
+          kubectl -n tinyurl get pod postgres-0 -o jsonpath='{range .status.containerStatuses[*]}{.name}{" state="}{.state}{" lastState="}{.lastState}{" restarts="}{.restartCount}{"\n"}{end}' || true
+          kubectl -n tinyurl exec postgres-0 --request-timeout=15s -- sh -c 'ps aux; echo ---PGDATA---; ls -la /var/lib/postgresql /var/lib/postgresql/data 2>&1; echo ---PGISREADY---; pg_isready; echo ---LISTEN---; netstat -ltn 2>/dev/null | head -20' || true
+          kubectl -n tinyurl logs deployment/tinyurl --all-containers --tail=100 --prefix || true
+          sudo ./k3s ctr images ls 2>/dev/null | grep -Ei 'postgres|busybox|tinyurl|local-path|coredns|pause|flannel' || true
 
   tinyurl-arm-smoke:
     name: tinyurl-arm-smoke
