@@ -14,4 +14,9 @@ public class SpaForwardController {
   String forwardToIndex() {
     return "forward:/index.html";
   }
+
+  @GetMapping("/apps/{id}")
+  String appRoot(@org.springframework.web.bind.annotation.PathVariable String id) {
+    return "redirect:/apps/" + id + "/";
+  }
 }

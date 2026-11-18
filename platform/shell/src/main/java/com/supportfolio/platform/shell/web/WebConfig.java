@@ -1,6 +1,7 @@
 package com.supportfolio.platform.shell.web;
 
 import com.supportfolio.platform.shell.registry.RemoteRegistryProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,20 @@ public class WebConfig {
         new FilterRegistrationBean<>(new SecurityHeadersFilter(cspPolicy));
     registration.addUrlPatterns("/*");
     registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+    return registration;
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "supportfolio.shell",
+      name = "noindex",
+      havingValue = "true",
+      matchIfMissing = true)
+  FilterRegistrationBean<NoIndexFilter> noIndexFilter() {
+    FilterRegistrationBean<NoIndexFilter> registration =
+        new FilterRegistrationBean<>(new NoIndexFilter());
+    registration.addUrlPatterns("/*");
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
     return registration;
   }
 }
