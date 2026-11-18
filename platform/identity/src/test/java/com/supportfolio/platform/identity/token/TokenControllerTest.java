@@ -126,7 +126,8 @@ class TokenControllerTest {
             "unused",
             "https://api.github.com",
             0,
-            3600);
+            3600,
+            null);
     // A code minted with a zero TTL is already dead on arrival; the endpoint must answer with
     // the same uniform error it gives for an unknown code, since expired is indistinguishable
     // from unknown in the store.

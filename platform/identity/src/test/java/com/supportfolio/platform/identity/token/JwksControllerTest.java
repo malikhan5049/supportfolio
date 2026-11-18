@@ -90,7 +90,8 @@ class JwksControllerTest {
         privateKeyPem,
         "https://api.github.com",
         60,
-        ACCESS_TOKEN_TTL_SECONDS);
+        ACCESS_TOKEN_TTL_SECONDS,
+        null);
   }
 
   private static String pem(PrivateKey privateKey) {

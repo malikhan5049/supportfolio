@@ -109,7 +109,8 @@ class GitHubIdentityProviderTest {
             null,
             baseUrl,
             60,
-            3600);
+            3600,
+            null);
     return new GitHubIdentityProvider(RestClient.builder(), identityProperties);
   }
 

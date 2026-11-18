@@ -12,9 +12,12 @@ import com.nimbusds.jwt.SignedJWT;
 import com.supportfolio.platform.identity.IdentityProperties;
 import com.supportfolio.platform.identity.principal.IdentityRole;
 import com.supportfolio.platform.identity.principal.InternalPrincipal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.List;
@@ -104,11 +107,44 @@ class JwtIssuerTest {
     assertThrows(IllegalStateException.class, () -> new JwtIssuer(properties("", null)));
   }
 
+  @Test
+  void issuesTokenFromPrivateKeyFileWhenPemIsBlank() throws Exception {
+    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+    generator.initialize(2048);
+    KeyPair keyPair = generator.generateKeyPair();
+    RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+    String pem = pem(keyPair.getPrivate());
+
+    Path keyFile = Files.createTempFile("jwt-key", ".pem");
+    try {
+      Files.writeString(keyFile, pem);
+      JwtIssuer fileIssuer =
+          new JwtIssuer(properties(ISSUER, "", keyFile.toAbsolutePath().toString()));
+
+      String fileToken =
+          fileIssuer.issue(
+              new InternalPrincipal("123", "octocat", "a@x.com", "The Octocat", IdentityRole.USER));
+      SignedJWT parsed = SignedJWT.parse(fileToken);
+
+      assertTrue(parsed.verify(new RSASSAVerifier(publicKey)));
+      assertEquals(
+          JwtIssuer.keyIdOf(JwtIssuer.publicKeyOf((RSAPrivateKey) keyPair.getPrivate())),
+          parsed.getHeader().getKeyID());
+    } finally {
+      Files.deleteIfExists(keyFile);
+    }
+  }
+
   private static IdentityProperties properties(String privateKeyPem) {
-    return properties(ISSUER, privateKeyPem);
+    return properties(ISSUER, privateKeyPem, null);
   }
 
   private static IdentityProperties properties(String issuer, String privateKeyPem) {
+    return properties(issuer, privateKeyPem, null);
+  }
+
+  private static IdentityProperties properties(
+      String issuer, String privateKeyPem, String jwtPrivateKeyFile) {
     return new IdentityProperties(
         issuer,
         "owner-login",
@@ -117,7 +153,8 @@ class JwtIssuerTest {
         privateKeyPem,
         "https://api.github.com",
         60,
-        ACCESS_TOKEN_TTL_SECONDS);
+        ACCESS_TOKEN_TTL_SECONDS,
+        jwtPrivateKeyFile);
   }
 
   private static String pem(PrivateKey privateKey) {

@@ -124,6 +124,7 @@ class LoginSuccessHandlerTest {
         "unused-private-key-pem",
         "https://api.github.com",
         60,
-        3600);
+        3600,
+        null);
   }
 }

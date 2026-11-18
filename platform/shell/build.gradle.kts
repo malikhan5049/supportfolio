@@ -18,3 +18,11 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
 }
+
+tasks.bootJar {
+    archiveFileName = "shell.jar"
+}
+
+tasks.jar {
+    enabled = false
+}

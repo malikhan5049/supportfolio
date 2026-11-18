@@ -17,7 +17,8 @@ class LoginRedirectControllerTest {
         null,
         "https://api.github.com",
         60,
-        3600);
+        3600,
+        null);
   }
 
   @Test
