@@ -1,5 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { AUTH_CONFIG } from './auth.config';
+import type { AuthConfig } from './auth.types';
 import { AuthTokenStore } from './auth-token.store';
 
 /**
@@ -8,11 +10,12 @@ import { AuthTokenStore } from './auth-token.store';
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = inject(AuthTokenStore).token();
+  const config = inject<AuthConfig>(AUTH_CONFIG);
   if (
     token !== null &&
     !req.url.startsWith('/api/token') &&
-    req.url.startsWith('/api/') &&
-    !req.url.includes('://')
+    !req.url.includes('://') &&
+    config.apiUrlPrefixes.some((prefix) => req.url.startsWith(prefix))
   ) {
     return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
   }

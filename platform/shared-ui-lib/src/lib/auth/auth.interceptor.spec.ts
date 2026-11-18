@@ -1,9 +1,10 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { AUTH_CONFIG } from './auth.config';
 import { authInterceptor } from './auth.interceptor';
 import { AuthTokenStore } from './auth-token.store';
-import type { Principal } from './auth.types';
+import type { AuthConfig, Principal } from './auth.types';
 
 const principal = (): Principal => ({
   id: '1',
@@ -20,16 +21,21 @@ const setup = () => {
   return { store, http, client };
 };
 
+const configure = (config: Partial<AuthConfig>) => {
+  sessionStorage.clear();
+  TestBed.configureTestingModule({
+    providers: [
+      provideHttpClient(withInterceptors([authInterceptor])),
+      provideHttpClientTesting(),
+      AuthTokenStore,
+      { provide: AUTH_CONFIG, useValue: { apiUrlPrefixes: ['/api/'], ...config } as AuthConfig },
+    ],
+  });
+};
+
 describe('authInterceptor', () => {
   beforeEach(() => {
-    sessionStorage.clear();
-    TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(withInterceptors([authInterceptor])),
-        provideHttpClientTesting(),
-        AuthTokenStore,
-      ],
-    });
+    configure({});
   });
 
   it('attaches the bearer only to protected same-origin api calls', () => {
@@ -58,5 +64,30 @@ describe('authInterceptor', () => {
     ).toBe(false);
     client.post('/api/token', { code: 'x' }).subscribe();
     expect(http.expectOne('/api/token').request.headers.has('Authorization')).toBe(false);
+  });
+
+  it('attaches the bearer only to configured same-origin prefixes', () => {
+    configure({ apiUrlPrefixes: ['/apps/tinyurl/api/'] });
+    const { store, http, client } = setup();
+    store.set({
+      accessToken: 'jwt',
+      principal: principal(),
+      expiresAt: Date.now() + 60_000,
+    });
+
+    client.get('/apps/tinyurl/api/links').subscribe();
+    expect(http.expectOne('/apps/tinyurl/api/links').request.headers.get('Authorization')).toBe(
+      'Bearer jwt',
+    );
+
+    client.get('/api/links').subscribe();
+    expect(http.expectOne('/api/links').request.headers.has('Authorization')).toBe(false);
+
+    client.get('http://evil.example/apps/tinyurl/api/links').subscribe();
+    expect(
+      http
+        .expectOne('http://evil.example/apps/tinyurl/api/links')
+        .request.headers.has('Authorization'),
+    ).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ export interface AuthConfig {
   identityLoginBaseUrl: string;
   apiBaseUrl: string;
   callbackPath: string;
+  apiUrlPrefixes: string[];
 }
 
 export interface Principal {
