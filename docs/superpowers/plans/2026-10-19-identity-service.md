@@ -703,7 +703,23 @@ Routing per AGENTS.md (2026-10-19 revision). Limitation: providers expose no tok
 | 9 | 5 Build | High (security-sensitive autoconfig) | `opencode-go/glm-5.3-flash` | security-sensitive; medium shape | starter 4/4 + identity 42/42; review Approved, 2 minors | 0 |
 | 10 | 5 Build | Low (YAML transcription) | `opencode-go/qwen3.8-flash` | boilerplate/YAML | tools 13 suites/48 tests; review Approved, 1 minor | 0 |
 | review | 6 Review | per-task routine (10×) | deepseek unavailable (region) → `opencode-go/glm-5.3-flash` ×10 | AGENTS.md Phase 6 fb + residual-risk flag | 1 Important caught & fixed (T2); 0 regression misses so far | 0 loops beyond T2 |
-| final | 6 Review | Deep whole-branch | `opencode-go/glm-5.3` | High-shape change set (auth) | pending | — |
+| final | 6 Review | Deep whole-branch | `deepseek-v4.1-flash-free` (high) | High-shape change set (auth) | 0 Critical, 3 Important, 7 Minor; With fixes | 0 |
+
+### Final whole-branch deep review (2026-11-18 — closes the `pending` row)
+
+The plan was executed 2026-10-19/20 with per-task reviews, but the whole-branch `final` review was never recorded, leaving the row above as `pending`. It was run on 2026-11-18 against the then-current branch (static review; no build or runtime execution). Verdict: **With fixes** — all five pinned failure modes are implemented and pinned by tests, and no Critical defect was found.
+
+**Important (open — fix round not yet dispatched):**
+
+| # | Location | Finding |
+|---|---|---|
+| I1 | `login/SecurityConfig.java:67`, `provider/GitHubIdentityProvider.java:16-33` | GitHub adapter uses a bare `RestClient.builder()` with no connect/read timeout, so a slow IdP pins login threads; also bypasses Boot's configured client. |
+| I2 | `principal/RoleResolver.java:21-26` | Admin/allowlist keyed on the mutable GitHub **login** rather than the immutable `sub`; a rename frees the string for anyone to reclaim. Plan-pinned as `admin-login`, so this is a design-risk flag, not a transcription bug. |
+| I3 | `login/LoginSuccessHandler.java:43-45`, `login/LoginFailureHandler.java:28-30`, `token/TokenController.java:59` | One-time code travels in a query string with no `Referrer-Policy`, and the token response sets no `Cache-Control: no-store` (RFC 6749 §5.1). Confirms the "token transport hardening" risk the plan knowingly deferred; the two headers are the cheap mitigation. |
+
+**Minor:** M1 `OneTimeCodeStore` has no eviction/size bound; M2 `post-login-redirect` session attribute is never cleared; M3 adapter throws `IllegalStateException` instead of `OAuth2AuthenticationException` (500 instead of `error=access_denied`); M4 allowlist match is case-sensitive while admin is case-insensitive; M5 tamper test flips a signature bit, so "modified claims fail verification" is proven only transitively; M6 no validation on `codeTtlSeconds`/`accessTokenTtlSeconds`; M7 starter `SecurityFilterChain` lacks `@ConditionalOnMissingBean` and a `securityMatcher`.
+
+**Explicitly not proven at review time:** `state` mismatch rejection (framework-generated, happy path only), multi-threaded consume of `OneTimeCodeStore` (correct by construction, no concurrent test), and JWT issuance for a null email.
 
 ## Handoffs to Plan 3
 
