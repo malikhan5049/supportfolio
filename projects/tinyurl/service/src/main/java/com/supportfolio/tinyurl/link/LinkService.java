@@ -47,7 +47,7 @@ public class LinkService {
         .map(
             row ->
                 new LinkView(
-                    row.getSlug(), row.getTargetUrl(), row.getClickCount(), row.getCreatedAt()))
+                    row.getSlug(), row.getTargetUrl(), "", row.getClickCount(), row.getCreatedAt()))
         .toList();
   }
 
@@ -86,7 +86,7 @@ public class LinkService {
                     validated.toString(),
                     createdBy,
                     Instant.now(clock)));
-        return new LinkView(saved.getSlug(), saved.getTargetUrl(), 0, saved.getCreatedAt());
+        return new LinkView(saved.getSlug(), saved.getTargetUrl(), "", 0, saved.getCreatedAt());
       } catch (DataIntegrityViolationException race) {
         // another writer took the slug between the existence check and the insert
       }
