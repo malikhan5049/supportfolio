@@ -50,25 +50,6 @@ Touched Angular code → run `npx nx build <project>` before closing. New runtim
 
 Windows/PowerShell first (`gradlew.bat` locally, `./gradlew` in CI). Node 24, JDK 17, `npm ci` only.
 
-# Superpowers Framework Instructions: Dynamic Model Routing
-
-The session runs on the **`controller`** primary agent (gpt-6-luna#medium). The
-controller does **not** change models between phases — it stays on
-gpt-6-luna and dispatches subagents for the mechanical work. Assess task
-complexity before choosing which subagent to dispatch:
-
-### 1. Complexity Criteria
-* **TRIVIAL / MEDIUM:**
-  - Isolated bug fixes, minor CRUD endpoints, CSS/UI tweaks.
-  - Adding single tests, simple state updates, single-file edits.
-  - **Action:** dispatch `build` (implementation) and `reviewer` (review).
-
-* **COMPLEX / HIGH RISK:**
-  - Cross-microservice event contracts, distributed data models, auth/security.
-  - Multi-module refactoring across microservices or microfrontend boundaries.
-  - Concurrent data structures, transaction boundaries, performance-critical loops.
-  - **Action:** dispatch `build-complex` (implementation) and `reviewer-deep` (review).
-
 
 
 ## Plan retrospective (binding)
