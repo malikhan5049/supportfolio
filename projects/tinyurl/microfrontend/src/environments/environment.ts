@@ -4,6 +4,9 @@ export const environment = {
   apiBaseUrl: '',
   identityLoginBaseUrl: 'http://localhost:8081',
   publicBaseUrl: 'http://localhost:8082',
+  linkApiBaseUrl: '',
+  callbackPath: '/auth/callback',
+  apiUrlPrefixes: ['/api/'],
 };
 
 export default environment;

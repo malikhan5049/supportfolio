@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { SHORT_LINK_BASE_URL } from './short-link-base-url';
+import { LINK_API_BASE_URL } from './link-api-base-url';
 import type { Link, LinkListResponse } from './link.types';
 
 /** A failed API call, carrying the HTTP status so callers can render typed messages. */
@@ -18,19 +18,19 @@ export class ApiError extends Error {
 @Injectable()
 export class LinkApiService {
   private readonly http = inject(HttpClient);
-  private readonly shortLinkBaseUrl = inject(SHORT_LINK_BASE_URL);
+  private readonly linkApiBaseUrl = inject(LINK_API_BASE_URL);
+
+  private get linksUrl(): string {
+    return `${this.linkApiBaseUrl}/api/links`;
+  }
 
   async list(): Promise<Link[]> {
-    const envelope = await this.request<LinkListResponse>('get', '/api/links');
+    const envelope = await this.request<LinkListResponse>('get', this.linksUrl);
     return envelope.links;
   }
 
   async create(targetUrl: string): Promise<Link> {
-    return this.request<Link>('post', '/api/links', { targetUrl });
-  }
-
-  shortUrl(slug: string): string {
-    return `${this.shortLinkBaseUrl}/go/${slug}`;
+    return this.request<Link>('post', this.linksUrl, { targetUrl });
   }
 
   private async request<T>(method: 'get' | 'post', url: string, body?: unknown): Promise<T> {

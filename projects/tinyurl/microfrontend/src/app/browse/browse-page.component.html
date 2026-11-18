@@ -10,7 +10,7 @@
       <ul data-testid="browse-list">
         @for (link of current; track link.slug) {
           <li [attr.data-testid]="'link-row-' + link.slug">
-            <a [href]="'/go/' + link.slug" target="_blank" rel="noopener">{{ link.slug }}</a>
+            <a [href]="link.shortUrl" target="_blank" rel="noopener">{{ link.slug }}</a>
             <span>{{ link.targetUrl }}</span>
             <span [attr.data-testid]="'click-count-' + link.slug"
               >{{ link.clickCount }} clicks</span
