@@ -678,8 +678,8 @@ Expected: FAIL listing exactly the assertions named in the spec's delete-list im
 
 - [ ] **Step 2: Rewrite the assertions**
 
-- `validate-workflows.spec.ts`: drop the arm64/attestation/trivy/k3s/ARM-runner/deploy blocks; assert instead that `tinyurl-ci.yml` contains a `demo-stack` job that runs `docker compose -f docker-compose.demo.yml` and the Playwright demo spec, and that `deploy.yml` no longer exists.
-- `validate-tinyurl-docs.spec.ts`: remove the deploy README assertion and the `tinyurl-k3s-manifests` check; keep the environment-protection assertion only if `deploy.yml` still exists (it does not — drop it); replace the `4201` assertion with `/apps/tinyurl`.
+- `validate-workflows.spec.ts`: drop the arm64/attestation/trivy/k3s/ARM-runner/deploy blocks now; the new `demo-stack` assertions are added by Task 12 when the job exists — do not assert a job that is not there yet.
+- `validate-tinyurl-docs.spec.ts`: remove the deploy README assertion and the `tinyurl-k3s-manifests` check; drop the environment-protection and GHCR assertions (nothing gates them anymore); replace the `4201` assertion with `/apps/tinyurl`.
 - `branch-protection.ts` + spec: replace `tinyurl-k3s-manifests` with `demo-stack`.
 - `sync-harness-workflows.ts`: remove `deploy.yml` from the sync list.
 - `ACTIVATION.md`: replace the k3s/GHCR check description with the demo-stack description.
