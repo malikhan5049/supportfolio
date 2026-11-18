@@ -34,11 +34,11 @@ class RemoteRegistryTest {
           "displayName":"Identity",
           "shortDescription":"SSO and JWT issuance.",
           "features":["GitHub sign-in"],
-          "openUrl":"http://localhost:8081",
+          "openUrl":"%s",
           "exposedModules":[{"name":"card","version":"%s","remoteEntry":"%s"}]
         }]}
         """
-        .formatted(version, remoteEntry);
+        .formatted(TRUSTED_ORIGIN, version, remoteEntry);
   }
 
   private RemoteRegistry registryWith(String remoteEntry, String version) throws IOException {
@@ -57,6 +57,11 @@ class RemoteRegistryTest {
   private RemoteRegistryProperties properties(File file) {
     return new RemoteRegistryProperties(
         "http://localhost:8081", file.toPath().toString(), List.of(TRUSTED_ORIGIN));
+  }
+
+  private RemoteRegistry writeRegistry(String json) throws IOException {
+    File file = registryFileWith(json);
+    return new RemoteRegistry(properties(file), objectMapper);
   }
 
   @Test
@@ -89,11 +94,11 @@ class RemoteRegistryTest {
               "displayName":"Identity",
               "shortDescription":"SSO and JWT issuance.",
               "features":["GitHub sign-in"],
-              "openUrl":"http://localhost:8081",
+              "openUrl":"%s",
               "exposedModules":[{"name":"widget","version":"1.0.0","remoteEntry":"%s"}]
             }]}
             """
-                .formatted(TRUSTED_ORIGIN + "/remoteEntry.js"));
+                .formatted(TRUSTED_ORIGIN, TRUSTED_ORIGIN + "/remoteEntry.js"));
     assertThat(new RemoteRegistry(properties(file), objectMapper).projects()).isEmpty();
   }
 
@@ -104,14 +109,18 @@ class RemoteRegistryTest {
             """
             {"projects":[
               {"id":"identity","displayName":"First","shortDescription":"First wins.","features":[],
-               "openUrl":"http://localhost:8081",
+               "openUrl":"%s",
                "exposedModules":[{"name":"card","version":"1.0.0","remoteEntry":"%s"}]},
               {"id":"identity","displayName":"Second","shortDescription":"Dropped.","features":[],
-               "openUrl":"http://localhost:8081",
+               "openUrl":"%s",
                "exposedModules":[{"name":"card","version":"1.0.0","remoteEntry":"%s"}]}
             ]}
             """
-                .formatted(TRUSTED_ORIGIN + "/remoteEntry.js", TRUSTED_ORIGIN + "/remoteEntry.js"));
+                .formatted(
+                    TRUSTED_ORIGIN,
+                    TRUSTED_ORIGIN + "/remoteEntry.js",
+                    TRUSTED_ORIGIN,
+                    TRUSTED_ORIGIN + "/remoteEntry.js"));
     List<RemoteProject> projects = new RemoteRegistry(properties(file), objectMapper).projects();
     assertEquals(1, projects.size());
     assertEquals("First", projects.get(0).displayName());
@@ -156,14 +165,44 @@ class RemoteRegistryTest {
         """
         {"projects":[
           {"id":"identity","displayName":"Identity","shortDescription":"SSO.","features":[],
-           "openUrl":"http://localhost:8081",
+           "openUrl":"%s",
            "exposedModules":[{"name":"card","version":"1.0.0","remoteEntry":"%s"}]},
           {"id":"tinyurl","displayName":"TinyURL","shortDescription":"Short links.","features":[],
-           "openUrl":"http://localhost:8090",
+           "openUrl":"%s",
            "exposedModules":[{"name":"card","version":"1.0.0","remoteEntry":"%s"}]}
         ]}
         """
-            .formatted(TRUSTED_ORIGIN + "/remoteEntry.js", TRUSTED_ORIGIN + "/remoteEntry.js"));
+            .formatted(
+                TRUSTED_ORIGIN,
+                TRUSTED_ORIGIN + "/remoteEntry.js",
+                TRUSTED_ORIGIN,
+                TRUSTED_ORIGIN + "/remoteEntry.js"));
     assertEquals(2, registry.projects().size());
+  }
+
+  @Test
+  void acceptsRootRelativeOpenUrlAndRemoteEntry() throws IOException {
+    RemoteRegistry registry =
+        writeRegistry(
+            """
+            {"projects":[{"id":"tinyurl","displayName":"TinyURL","shortDescription":"d",\
+            "features":["f"],"openUrl":"/apps/tinyurl/",\
+            "exposedModules":[{"name":"card","version":"1.0.0",\
+            "remoteEntry":"/apps/tinyurl/remoteEntry.js"}]}]}
+            """);
+    assertThat(registry.projects()).hasSize(1);
+  }
+
+  @Test
+  void rejectsProtocolRelativeAndUntrustedAbsoluteEntries() throws IOException {
+    RemoteRegistry registry =
+        writeRegistry(
+            """
+            {"projects":[{"id":"tinyurl","displayName":"TinyURL","shortDescription":"d",\
+            "features":["f"],"openUrl":"//evil.example/x",\
+            "exposedModules":[{"name":"card","version":"1.0.0",\
+            "remoteEntry":"http://evil.example/remoteEntry.js"}]}]}
+            """);
+    assertThat(registry.projects()).isEmpty();
   }
 }

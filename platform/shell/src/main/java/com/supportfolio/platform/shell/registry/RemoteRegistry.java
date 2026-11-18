@@ -95,7 +95,7 @@ public class RemoteRegistry {
     if (project.features() == null) {
       violations.add("missing features");
     }
-    if (project.openUrl() == null || !isHttpUrl(project.openUrl())) {
+    if (project.openUrl() == null || !allowedEntryUrl(project.openUrl())) {
       violations.add("invalid openUrl");
     }
     if (project.exposedModules() == null || project.exposedModules().isEmpty()) {
@@ -109,9 +109,7 @@ public class RemoteRegistry {
       if (module.version() == null || !SEMVER.matcher(module.version()).matches()) {
         violations.add("module " + module.name() + " has a non-semver version");
       }
-      if (module.remoteEntry() == null
-          || !isHttpUrl(module.remoteEntry())
-          || !trustedOrigins.contains(originOf(module.remoteEntry()))) {
+      if (module.remoteEntry() == null || !allowedEntryUrl(module.remoteEntry())) {
         violations.add("module " + module.name() + " remoteEntry is not a trusted origin");
       }
     }
@@ -124,6 +122,15 @@ public class RemoteRegistry {
 
   private static boolean isHttpUrl(String url) {
     return originOf(url) != null;
+  }
+
+  private boolean allowedEntryUrl(String url) {
+    return url != null && (isHttpUrl(url) && trustedOrigins.contains(originOf(url)))
+        || isRootRelative(url);
+  }
+
+  private boolean isRootRelative(String url) {
+    return url != null && url.startsWith("/") && !url.startsWith("//") && url.indexOf(':') < 0;
   }
 
   private static String normalizedOrigin(String value) {
