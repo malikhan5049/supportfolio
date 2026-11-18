@@ -12,6 +12,24 @@
 
 ---
 
+## 2026-11-13 · Task complete — branch/worktree cleanup and archival
+
+### What went well?
+
+- Step-by-step verification after each mutation caught the one Windows long-path failure (`dependency-pr-repairs` worktree) early, before proceeding to branch deletion. The stash-then-force-remove sequence preserved uncommitted state safely.
+- All protected refs were left untouched: `main`, `chore/restore-agent-routing-config`, `dependabot/npm_and_yarn/nx/angular-24.0.4`, and `.worktrees/pr38` remain exactly as expected.
+- Deleted local branches were archived via tags before removal, so every unmerged state remains recoverable from `archive/*`.
+
+### What would we like to continue doing?
+
+- Verify `git worktree list`, `git branch -vv --all`, `git tag --list`, and `git stash list` as a final four-way check after any destructive repo cleanup.
+- Stash dirty worktrees explicitly by path before force-removing them, and keep the stash message tied to the worktree purpose.
+
+### What would we like to stop doing?
+
+- Stop relying on `git worktree remove --force` on Windows paths that may exceed `MAX_PATH`; have a fallback ready (e.g., `Remove-Item` with `-LiteralPath`, or robocopy/mirror empty) and prune afterward.
+- Stop using `&&` in PowerShell command strings; use `;` as the statement separator or invoke each command separately.
+
 ## 2026-11-13 · Ruling (task: push rejected main commits)
 
 - `Ruling:` Orchestrator handled the git branch/push/PR mutations directly instead of dispatching subagents — state-changing git operations against repo-rule-protected `main` are too risky to delegate blind; info-gathering stayed within the 2-call direct allowance. Result: branch `chore/dependabot-security-only` pushed, PR #43 opened, local `main` reset to `origin/main`.
