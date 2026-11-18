@@ -22,20 +22,26 @@ import org.springframework.web.client.RestClient;
 class GatewayRoutingTest {
 
   static MockWebServer mockIdentity = new MockWebServer();
+  static MockWebServer mockTinyurl = new MockWebServer();
 
   @LocalServerPort int port;
 
   @DynamicPropertySource
-  static void identity(DynamicPropertyRegistry registry) throws Exception {
+  static void upstream(DynamicPropertyRegistry registry) throws Exception {
     mockIdentity.start();
+    mockTinyurl.start();
     registry.add(
         "supportfolio.shell.identity-uri",
         () -> "http://localhost:%d".formatted(mockIdentity.getPort()));
+    registry.add(
+        "supportfolio.shell.tinyurl-uri",
+        () -> "http://localhost:%d".formatted(mockTinyurl.getPort()));
   }
 
   @AfterAll
   static void shutDown() throws Exception {
     mockIdentity.shutdown();
+    mockTinyurl.shutdown();
   }
 
   private RestClient rest() {
@@ -99,5 +105,23 @@ class GatewayRoutingTest {
             .toEntity(String.class)
             .getBody()
             .contains("shell-test-index"));
+  }
+
+  @Test
+  void forwardsAppApiToTinyurlWithStripPrefix() throws Exception {
+    mockTinyurl.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+    ResponseEntity<String> response =
+        rest().get().uri("/apps/tinyurl/api/links").retrieve().toEntity(String.class);
+    assertEquals(200, response.getStatusCode().value());
+    assertEquals("/api/links", mockTinyurl.takeRequest().getPath());
+  }
+
+  @Test
+  void forwardsGoRedirectToTinyurl() throws Exception {
+    mockTinyurl.enqueue(new MockResponse().setResponseCode(200).setBody("/target"));
+    ResponseEntity<String> response =
+        rest().get().uri("/go/abc").retrieve().toEntity(String.class);
+    assertEquals(200, response.getStatusCode().value());
+    assertEquals("/go/abc", mockTinyurl.takeRequest().getPath());
   }
 }
