@@ -61,7 +61,12 @@ Cloudflare quick tunnel.
 
 # Core stack only (localhost:18080, useful for CI/local validation)
 .\scripts\demo.ps1 -NoTunnel
+
+# Inert-flag check: same stack with demo login and demo seeding off
+.\scripts\demo.ps1 -NoTunnel -NoDemo
 ```
+
+The runner sets `DEMO_ENABLED=true` (demo login + seeded links); `-NoDemo` leaves those flags off.
 
 Smoke-test the localhost endpoints from PowerShell 5.1:
 

@@ -67,6 +67,22 @@ describe('LoginPageComponent', () => {
     expect(screen.getByTestId('demo-sign-in')).toBeTruthy();
   });
 
+  it('hides the GitHub sign-in button when /api/features returns demoLogin:true', async () => {
+    await render(LoginPageComponent, {
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideAuth({ identityLoginBaseUrl: 'http://localhost:8081' }),
+        { provide: Router, useValue: { navigate: mockNavigate } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/features').flush({ demoLogin: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByTestId('sign-in')).toBeNull();
+  });
+
   it('hides the demo sign-in button when /api/features returns demoLogin:false', async () => {
     await render(LoginPageComponent, {
       providers: [
@@ -81,6 +97,7 @@ describe('LoginPageComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(screen.queryByTestId('demo-sign-in')).toBeNull();
+    expect(screen.getByTestId('sign-in')).toBeTruthy();
   });
 
   it('hides the demo sign-in button when /api/features fails', async () => {

@@ -5,21 +5,30 @@
 .PARAMETER NoTunnel
   Skip the tunnel profile. Use this for CI/local core-stack validation.
 
+.PARAMETER NoDemo
+  Start the stack with demo login and demo seeding disabled (DEMO_ENABLED=false).
+  Use this to reproduce the inert-flag check on demand.
+
 .EXAMPLE
   .\scripts\demo.ps1
 
 .EXAMPLE
   .\scripts\demo.ps1 -NoTunnel
+
+.EXAMPLE
+  .\scripts\demo.ps1 -NoTunnel -NoDemo
 #>
 [CmdletBinding()]
 param(
-  [switch]$NoTunnel
+  [switch]$NoTunnel,
+  [switch]$NoDemo
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$previousDemoEnabled = $env:DEMO_ENABLED
 Push-Location $repoRoot
 
 try {
@@ -59,6 +68,17 @@ try {
 
   Write-Host 'Building TinyURL demo image...' -ForegroundColor Cyan
   docker build -f projects/tinyurl/Dockerfile -t supportfolio/tinyurl:demo .
+
+  # Demo login and demo seeding are opt-in in docker-compose.demo.yml (DEMO_ENABLED,
+  # default false). The runner turns them on so a fresh demo is immediately usable;
+  # -NoDemo keeps the flags off to reproduce the inert-flag check.
+  if ($NoDemo) {
+    $env:DEMO_ENABLED = 'false'
+    Write-Host 'Demo login and demo data are disabled (-NoDemo).' -ForegroundColor Yellow
+  }
+  else {
+    $env:DEMO_ENABLED = 'true'
+  }
 
   # Bring up the core stack and wait for health.
   Write-Host 'Starting core demo stack...' -ForegroundColor Cyan
@@ -106,5 +126,6 @@ Reset command (destroys the database volume):
   Write-Host $note -ForegroundColor Yellow
 }
 finally {
+  $env:DEMO_ENABLED = $previousDemoEnabled
   Pop-Location
 }

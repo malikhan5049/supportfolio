@@ -51,6 +51,8 @@ services:
       SUPPORTFOLIO_TINYURL_ISSUER_URI: http://identity:8081
       SUPPORTFOLIO_TINYURL_IDENTITY_URI: http://identity:8081
       SUPPORTFOLIO_TINYURL_DEMO_SEED_ENABLED: ${DEMO_ENABLED:-false}
+      # public demo: shared bucket; per-visitor ids are a future refinement
+      SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR: '200'
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health"]
       interval: 10s

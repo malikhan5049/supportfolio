@@ -67,7 +67,12 @@ The shell is the public entry point for the demo stack. Start it with everything
 
 # Core stack only on http://localhost:18080
 .\scripts\demo.ps1 -NoTunnel
+
+# Inert-flag check: demo login and demo seeding off
+.\scripts\demo.ps1 -NoTunnel -NoDemo
 ```
+
+The runner sets `DEMO_ENABLED=true`, so the demo login entry point is available without GitHub.
 
 Verify locally from PowerShell 5.1:
 
