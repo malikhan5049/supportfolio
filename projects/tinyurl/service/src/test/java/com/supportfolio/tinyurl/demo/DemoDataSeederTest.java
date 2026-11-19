@@ -42,8 +42,7 @@ class DemoDataSeederTest extends PostgresIntegrationTest {
   void seedsFiveLinksWithClicks() throws Exception {
     assertThat(links.count()).isEqualTo(5);
     assertThat(clicks.count()).isGreaterThan(0);
-    assertThat(links.findAllWithClickCounts())
-        .anyMatch(summary -> summary.getClickCount() > 0);
+    assertThat(links.findAllWithClickCounts()).anyMatch(summary -> summary.getClickCount() > 0);
 
     mockMvc
         .perform(get("/api/links"))
