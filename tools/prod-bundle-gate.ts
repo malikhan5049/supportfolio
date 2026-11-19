@@ -1,9 +1,9 @@
 /**
- * Spec gate: the TinyURL production bundle must not contain the dev Identity URL
+ * Spec gate: production bundles must not contain the dev Identity URL
  * (`localhost:8081`). Production login is same-origin through the service's own proxy
  * (`''` in environment.prod.ts), so any hit means a dev value leaked into the bundle.
  *
- * CLI: npx tsx tools/prod-bundle-gate.ts dist/projects/tinyurl/microfrontend (exit 1 on a hit)
+ * CLI: npx tsx tools/prod-bundle-gate.ts <dist-dir> [<dist-dir> ...] (exit 1 on a hit)
  */
 import assert from 'node:assert';
 import * as fs from 'node:fs';
@@ -25,7 +25,16 @@ export function findDevIdentityUrl(dir: string): string[] {
 }
 
 export function assertNoDevIdentityUrl(dir: string): void {
-  const offenders = findDevIdentityUrl(dir);
+  assertNoDevIdentityUrls([dir]);
+}
+
+export function assertNoDevIdentityUrls(dirs: string[]): void {
+  const offenders: string[] = [];
+  for (const dir of dirs) {
+    for (const file of findDevIdentityUrl(dir)) {
+      offenders.push(path.join(dir, file));
+    }
+  }
   assert.ok(
     offenders.length === 0,
     `The production bundle contains the dev Identity URL "localhost:8081" in: ${offenders.join(', ')}`,
@@ -33,14 +42,14 @@ export function assertNoDevIdentityUrl(dir: string): void {
 }
 
 if (require.main === module) {
-  const dir = process.argv[2];
-  if (!dir) {
-    console.error('usage: npx tsx tools/prod-bundle-gate.ts <dist-dir>');
+  const dirs = process.argv.slice(2).filter(Boolean);
+  if (dirs.length === 0) {
+    console.error('usage: npx tsx tools/prod-bundle-gate.ts <dist-dir> [<dist-dir> ...]');
     process.exit(2);
   }
   try {
-    assertNoDevIdentityUrl(dir);
-    console.log(`prod-bundle-gate: clean (${dir})`);
+    assertNoDevIdentityUrls(dirs);
+    console.log(`prod-bundle-gate: clean (${dirs.join(', ')})`);
   } catch (error) {
     console.error(getMessage(error));
     process.exit(1);

@@ -3,7 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
-import { assertNoDevIdentityUrl, findDevIdentityUrl } from './prod-bundle-gate';
+import {
+  assertNoDevIdentityUrl,
+  findDevIdentityUrl,
+  assertNoDevIdentityUrls,
+} from './prod-bundle-gate';
 
 describe('prod-bundle-gate', () => {
   let dir: string;
@@ -34,5 +38,32 @@ describe('prod-bundle-gate', () => {
   it('names the offending files in the error', () => {
     writeFileSync(path.join(dir, 'bad.js'), 'export const base = "http://localhost:8081";');
     expect(() => assertNoDevIdentityUrl(dir)).toThrow(/bad\.js/);
+  });
+
+  describe('multiple paths', () => {
+    let dirA: string;
+    let dirB: string;
+
+    beforeAll(() => {
+      dirA = mkdtempSync(path.join(tmpdir(), 'prod-bundle-gate-a-'));
+      dirB = mkdtempSync(path.join(tmpdir(), 'prod-bundle-gate-b-'));
+    });
+
+    afterAll(() => {
+      rmSync(dirA, { recursive: true });
+      rmSync(dirB, { recursive: true });
+    });
+
+    it('accepts clean bundles in multiple directories', () => {
+      writeFileSync(path.join(dirA, 'shell.js'), 'const u="";');
+      writeFileSync(path.join(dirB, 'tinyurl.js'), 'const u="";');
+      expect(() => assertNoDevIdentityUrls([dirA, dirB])).not.toThrow();
+    });
+
+    it('rejects when any directory contains the dev identity url', () => {
+      writeFileSync(path.join(dirB, 'leaked.js'), 'const u="http://localhost:8081";');
+      expect(() => assertNoDevIdentityUrls([dirA, dirB])).toThrow(/localhost:8081/);
+      expect(() => assertNoDevIdentityUrls([dirA, dirB])).toThrow(/leaked\.js/);
+    });
   });
 });

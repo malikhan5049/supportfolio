@@ -31,6 +31,7 @@ spring:
                 - Path=/apps/*/api/**
               filters:
                 - StripPrefix=2
+                - PreserveHostHeader
             - id: tinyurl-redirect
               uri: ${supportfolio.shell.tinyurl-uri}
               predicates:
