@@ -32,7 +32,7 @@ test('the demo stack serves the shell, signs in via demo login, shortens, and co
   const shortHref = await page.getByTestId('short-link').getAttribute('href');
   expect(shortHref).toMatch(/^http:\/\/localhost:18080\/go\//);
 
-  // Two follows, public count reflects both.
+  // Trigger the redirect twice; the public count reflects both.
   const slug = (shortHref ?? '').split('/go/')[1] ?? '';
   await page.request.get(shortHref!, { maxRedirects: 0 });
   await page.request.get(shortHref!, { maxRedirects: 0 });

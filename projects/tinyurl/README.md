@@ -32,9 +32,9 @@ the shell renders (`card@1.0.0`).
 | Variable | Goes to | Dev default | Prod |
 | --- | --- | --- | --- |
 | `SUPPORTFOLIO_TINYURL_DB_USER` / `_PASSWORD` | service datasource | `tinyurl` / `tinyurl` | env-only |
-| `SUPPORTFOLIO_TINYURL_IDENTITY_URI` | service gateway proxy | `http://localhost:8081` | `http://identity:8080` (deploy env) |
+| `SUPPORTFOLIO_TINYURL_IDENTITY_URI` | service gateway proxy | `http://localhost:8081` | `http://identity:8080` (demo stack env) |
 | `SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR` | service rate limiter | `20` | `20` |
-| `SUPPORTFOLIO_TINYURL_JWK_SET_URI` / `_ISSUER_URI` | service JWT validation | localhost 8081 | deploy env |
+| `SUPPORTFOLIO_TINYURL_JWK_SET_URI` / `_ISSUER_URI` | service JWT validation | localhost 8081 | demo stack env |
 
 The frontend dev/prod split lives in `microfrontend/src/environments/`; production resolves
 Identity login and short links same-origin (`''`), the dev defaults are `localhost:8081`/`8082`.

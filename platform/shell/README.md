@@ -35,9 +35,10 @@ Override with `SUPPORTFOLIO_SHELL_IDENTITY_URI`, `SUPPORTFOLIO_SHELL_REMOTE_REGI
 openUrl, exposedModules:[{name, version, remoteEntry}]}]}`. An unreadable registry answers
 `503 {"error":"registry_unavailable"}` (no path or validation detail leaked).
 
-**The registry file is data hot-read by the gateway on every request.** A project's CD
-pipeline rewrites its own entry on deploy; the shell is never rebuilt or restarted when a
-project is added or updated.
+**The registry file is data hot-read by the gateway on every request.** In a real deployment
+a project's pipeline would rewrite its own entry on release; today the production registry
+home is deferred and the repo file is the dev/sample registry. The shell is never rebuilt or
+restarted when a project is added or updated.
 
 `platform/shell/config/remote-registry.json` in the repo is the dev/sample registry.
 

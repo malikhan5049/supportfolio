@@ -4,20 +4,36 @@ Binding rules for coding agents. User instruction in-session wins — say out lo
 
 ## Repo map
 
-- **Spring platform** (JDK 17, Gradle): `platform/identity`, `platform/shell` (Cloud Gateway), `platform/shared-spring-starter`; convention plugins in `build-logic/`.
-- **Angular 22 micro-frontends** (Nx): `shell-host`, `identity-card`, `shared-ui-lib`; module federation; Playwright e2e in `platform/shell/host-e2e`.
+- **Spring platform** (JDK 17, Gradle): `platform/shell` (gateway + Angular host), `platform/identity`, `platform/shared-spring-starter`; convention plugins in `build-logic/`.
+- **Angular 22 micro-frontends** (Nx): `shell-host`, `tinyurl-microfrontend`, `shared-ui-lib`; module federation; Playwright e2e in `platform/shell/host-e2e`.
+- **TinyURL project slice**: `projects/tinyurl/{service,microfrontend}`.
 - **Governance** — `tools/`: plain Node/Jest TS, **not** on the Nx graph.
-- Specs/plans/retros: `docs/superpowers/{specs,plans,retrospectives.md}`. Read-only records.
+- Specs/plans/retros/roadmap: `docs/superpowers/{specs,plans,retrospectives.md,ROADMAP.md}`. Read-only records (amended only with dated notes when explicitly approved).
 
 ## CI gates (source of truth — reuse exactly)
 
 ```bash
 npm ci
 ./gradlew build && ./gradlew -p build-logic test
-npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,identity-card
-npx nx build shell-host && npx nx build identity-card
+npx nx run-many -t lint test --projects=shared-ui-lib,shell-host,tinyurl-microfrontend
+npx nx build shell-host && npx nx build tinyurl-microfrontend
 npx nx e2e shell-host-e2e
 npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"
+```
+
+`tinyurl-ci.yml` adds: `tinyurl-backend`, `tinyurl-frontend`, `tinyurl-image`, `demo-stack`.
+
+## Demo commands
+
+```powershell
+# Start the demo stack (core + Cloudflare Quick Tunnel)
+.\scripts\demo.ps1
+
+# Core stack only on http://localhost:18080
+.\scripts\demo.ps1 -NoTunnel
+
+# Reset (destroys the database volume)
+docker compose -f docker-compose.demo.yml --profile tunnel down -v
 ```
 
 ## Branching (GitHub repo rules enforced)

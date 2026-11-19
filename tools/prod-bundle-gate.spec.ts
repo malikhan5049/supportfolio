@@ -54,13 +54,13 @@ describe('prod-bundle-gate', () => {
       rmSync(dirB, { recursive: true });
     });
 
-    it('accepts clean bundles in multiple directories', () => {
+    it('accepts clean shell-host and tinyurl-microfrontend bundles', () => {
       writeFileSync(path.join(dirA, 'shell.js'), 'const u="";');
       writeFileSync(path.join(dirB, 'tinyurl.js'), 'const u="";');
       expect(() => assertNoDevIdentityUrls([dirA, dirB])).not.toThrow();
     });
 
-    it('rejects when any directory contains the dev identity url', () => {
+    it('rejects when the tinyurl-microfrontend bundle leaks the dev identity url', () => {
       writeFileSync(path.join(dirB, 'leaked.js'), 'const u="http://localhost:8081";');
       expect(() => assertNoDevIdentityUrls([dirA, dirB])).toThrow(/localhost:8081/);
       expect(() => assertNoDevIdentityUrls([dirA, dirB])).toThrow(/leaked\.js/);

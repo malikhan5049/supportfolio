@@ -35,9 +35,11 @@ export function assertNoDevIdentityUrls(dirs: string[]): void {
       offenders.push(path.join(dir, file));
     }
   }
+  const subject = dirs.length > 1 ? 'bundles' : 'bundle';
+  const verb = dirs.length > 1 ? 'contain' : 'contains';
   assert.ok(
     offenders.length === 0,
-    `The production bundle contains the dev Identity URL "localhost:8081" in: ${offenders.join(', ')}`,
+    `The production ${subject} ${verb} the dev Identity URL "localhost:8081" in: ${offenders.join(', ')}`,
   );
 }
 
