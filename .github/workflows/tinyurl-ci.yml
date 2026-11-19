@@ -83,6 +83,13 @@ jobs:
           docker build -f platform/identity/Dockerfile -t supportfolio/identity:demo .
           docker build -f platform/shell/Dockerfile -t supportfolio/shell:demo .
 
+      # CI has no gitignored JWT key (platform/identity/.gitignore ignores *.pem), so Docker
+      # would otherwise create an empty directory at the bind-mount path and identity would
+      # fail with "could not be read / Is a directory". Mirror what scripts/demo.ps1 does.
+      - name: Generate ephemeral demo JWT key
+        run: |
+          openssl genpkey -algorithm RSA -out platform/identity/dev-key.pem -pkeyopt rsa_keygen_bits:2048
+
       - name: Start the demo stack
         run: docker compose -f docker-compose.demo.yml up -d --build --wait
 
