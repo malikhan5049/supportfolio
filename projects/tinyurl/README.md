@@ -63,6 +63,13 @@ Cloudflare quick tunnel.
 .\scripts\demo.ps1 -NoTunnel
 ```
 
+Smoke-test the localhost endpoints from PowerShell 5.1:
+
+```powershell
+curl.exe -f http://localhost:18080/api/remote-registry
+curl.exe -f http://localhost:18080/apps/tinyurl/
+```
+
 Reset command (destroys the database volume):
 
 ```powershell

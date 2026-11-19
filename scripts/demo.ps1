@@ -33,16 +33,36 @@ try {
     Write-Host "Generated $keyPath" -ForegroundColor Green
   }
 
-  # Build TinyURL service + microfrontend artifacts consumed by its Dockerfile.
+  # Build all backend artifacts.
+  Write-Host 'Building Identity service jar...' -ForegroundColor Cyan
+  .\gradlew.bat :platform:identity:bootJar --quiet
+
+  Write-Host 'Building Shell gateway jar...' -ForegroundColor Cyan
+  .\gradlew.bat :platform:shell:bootJar --quiet
+
   Write-Host 'Building TinyURL service jar...' -ForegroundColor Cyan
   .\gradlew.bat :projects:tinyurl:service:bootJar --quiet
 
+  # Build all frontend artifacts.
   Write-Host 'Building TinyURL microfrontend...' -ForegroundColor Cyan
   npx nx build tinyurl-microfrontend
 
+  Write-Host 'Building shell host...' -ForegroundColor Cyan
+  npx nx build shell-host
+
+  # Build all three demo images from the repo root so the script is self-sufficient.
+  Write-Host 'Building Identity demo image...' -ForegroundColor Cyan
+  docker build -f platform/identity/Dockerfile -t supportfolio/identity:demo .
+
+  Write-Host 'Building Shell demo image...' -ForegroundColor Cyan
+  docker build -f platform/shell/Dockerfile -t supportfolio/shell:demo .
+
+  Write-Host 'Building TinyURL demo image...' -ForegroundColor Cyan
+  docker build -f projects/tinyurl/Dockerfile -t supportfolio/tinyurl:demo .
+
   # Bring up the core stack and wait for health.
   Write-Host 'Starting core demo stack...' -ForegroundColor Cyan
-  docker compose -f docker-compose.demo.yml up -d --build --wait
+  docker compose -f docker-compose.demo.yml up -d --wait
 
   if ($NoTunnel) {
     Write-Host 'Core stack is healthy (tunnel skipped).' -ForegroundColor Green
@@ -72,8 +92,7 @@ try {
       Write-Host "TinyURL app: $publicUrl/apps/tinyurl/"
     }
     else {
-      Write-Warning "Could not find a trycloudflare.com URL in the tunnel logs within 60 seconds."
-      Write-Host "Run 'docker compose -f docker-compose.demo.yml logs tunnel' to inspect."
+      throw "Could not find a trycloudflare.com URL in the tunnel logs within 60 seconds. Run 'docker compose -f docker-compose.demo.yml logs tunnel' to inspect."
     }
   }
 

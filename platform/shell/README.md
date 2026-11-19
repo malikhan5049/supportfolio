@@ -68,11 +68,11 @@ The shell is the public entry point for the demo stack. Start it with everything
 .\scripts\demo.ps1 -NoTunnel
 ```
 
-Verify locally:
+Verify locally from PowerShell 5.1:
 
 ```powershell
-curl -f http://localhost:18080/api/remote-registry
-curl -f http://localhost:18080/apps/tinyurl/
+curl.exe -f http://localhost:18080/api/remote-registry
+curl.exe -f http://localhost:18080/apps/tinyurl/
 ```
 
 Reset command (destroys the database volume):

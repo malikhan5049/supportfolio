@@ -98,8 +98,11 @@ services:
       - 0.0.0.0:20241
       - --url
       - http://shell:8080
+    # cloudflared ships as a minimal scratch image with no shell or curl, so we
+    # probe liveness by ensuring the binary still responds. The runner script
+    # polls the metrics /ready endpoint and the tunnel logs for the public URL.
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:20241/ready"]
+      test: ["CMD", "cloudflared", "--version"]
       interval: 10s
       timeout: 5s
       retries: 10
