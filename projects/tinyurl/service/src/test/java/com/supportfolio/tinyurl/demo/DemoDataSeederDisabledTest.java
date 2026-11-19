@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.supportfolio.tinyurl.PostgresIntegrationTest;
 import com.supportfolio.tinyurl.link.LinkRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +28,5 @@ class DemoDataSeederDisabledTest extends PostgresIntegrationTest {
   @Test
   void doesNotSeedWhenPropertyIsAbsent() {
     assertThat(links.count()).isEqualTo(0);
-  }
-
-  @AfterEach
-  void tearDown() {
-    links.deleteAll();
   }
 }
