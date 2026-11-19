@@ -5,7 +5,7 @@ Binding rules for coding agents. User instruction in-session wins — say out lo
 ## Repo map
 
 - **Spring platform** (JDK 17, Gradle): `platform/shell` (gateway + Angular host), `platform/identity`, `platform/shared-spring-starter`; convention plugins in `build-logic/`.
-- **Angular 22 micro-frontends** (Nx): `shell-host`, `tinyurl-microfrontend`, `shared-ui-lib`; module federation; Playwright e2e in `platform/shell/host-e2e`.
+- **Angular 22 micro-frontends** (Nx, under `platform/`): `shell-host`, `tinyurl-microfrontend`, `shared-ui-lib` (`platform/shared-ui-lib`); module federation; Playwright e2e in `platform/shell/host-e2e`.
 - **TinyURL project slice**: `projects/tinyurl/{service,microfrontend}`.
 - **Governance** — `tools/`: plain Node/Jest TS, **not** on the Nx graph.
 - Specs/plans/retros/roadmap: `docs/superpowers/{specs,plans,retrospectives.md,ROADMAP.md}`. Read-only records (amended only with dated notes when explicitly approved).

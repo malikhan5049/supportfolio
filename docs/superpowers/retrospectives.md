@@ -12,11 +12,6 @@
 
 ---
 
-## 2026-11-18 · Ruling (task: showcase deployment)
-
-- `Ruling:` Amended two specs marked "read-only records" in place (Oracle/k3s → Cloudflare Quick Tunnel) at the human's explicit request; changes are dated and link the new design.
-- `Ruling:` Edited `platform/shell/config/remote-registry.json` (listed under "Do not touch") to root-relative URLs, required for hostname independence; the file remains hot-read and uncached.
-
 ## 2026-11-20 · Model router cost rebalance
 
 ### What went well?
@@ -33,6 +28,11 @@
 
 - Stop writing router rules that assume `@fast` can run shell/web commands or fetch URLs; those tasks belong to the orchestrator or `@medium`.
 - Stop leaving `costRatio` values that exceed the configured `costCeiling` ladder (1+8+10=19 required raising the ceiling to 20); check the sum whenever a ratio changes.
+
+## 2026-11-18 · Ruling (task: showcase deployment)
+
+- `Ruling:` Amended two specs marked "read-only records" in place (Oracle/k3s → Cloudflare Quick Tunnel) at the human's explicit request; changes are dated and link the new design.
+- `Ruling:` Edited `platform/shell/config/remote-registry.json` (listed under "Do not touch") to root-relative URLs, required for hostname independence; the file remains hot-read and uncached.
 
 ---
 

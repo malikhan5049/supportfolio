@@ -158,14 +158,13 @@ the builder does not need to ask.
   verify-before-pin applies), not silent `ddl-auto`.
 - **(ruling)** Flyway runs at app boot, so a fresh database — including the prod
   one below — converges to the current schema on first start.
-- **(ruling)** The prod datastore ships with the project: `projects/tinyurl/deploy/`
-  includes TinyURL's own Postgres workload — a StatefulSet + a small PVC (1Gi
-  default) + a secret *template* (credentials env-only, never committed). The
-  successor cluster plan really only creates the cluster, wires DNS/TLS, and
-  flips CD on — it must not have to invent the database. Resilience expectation:
-  the service must still answer `/actuator/health` liveness sensibly while the DB
-  is briefly unreachable (liveness vs readiness split; the exact probing is the
-  builder's — see Left to the Builder).
+- **(ruling)** The prod datastore ships with the project: the demo compose stack
+  includes TinyURL's own PostgreSQL container (with a dedicated volume and env-only
+  credentials, never committed). The future real-hosting plan really only has to
+  provide the host, domain, and TLS — it must not have to invent the database.
+  Resilience expectation: the service must still answer `/actuator/health` liveness
+  sensibly while the DB is briefly unreachable (liveness vs readiness split; the
+  exact probing is the builder's — see Left to the Builder).
 
 ### Microfrontend, card, and the fixture swap
 
@@ -296,7 +295,7 @@ the builder does not need to ask.
   `tools/branch-protection.ts` and the manual CLI re-apply (ACTIVATION.md step 3 — PUT against the
   existing ruleset id, never POST).
 
-### Versions### Versions
+### Versions
 
 - **(human)** Same pins as the current workspace — do not bump Angular or Spring
   inside this plan: Java 17, Spring Boot 4.1.1 (`gradle/libs.versions.toml`), Angular
@@ -308,10 +307,10 @@ the builder does not need to ask.
 
 One line each; the full decision lives in the sections above:
 
-1. Prod database ships with the project (Postgres StatefulSet + PVC 1Gi + secret template in `deploy/`; Flyway at boot; liveness survives brief DB outages — readiness is the DB-aware probe).
+1. Prod database ships with the project: a PostgreSQL container defined in the demo compose stack (the local dev DB also lives in `projects/tinyurl/docker-compose.yml`); Flyway at boot; liveness survives brief DB outages — readiness is the DB-aware probe).
 2. Prod auth config is in scope (`identityLoginBaseUrl: ''` override via standard file-replacement); the shell's identical latent gap is a recorded deferral, not this plan's work.
 3. Image is built for `linux/amd64` for the local demo stack; the Dockerfile does no compilation — CI builds natively on the amd64 runner and the image only packages artifacts.
-4. This plan's deploy workflow does NOT write the shell's remote-registry entry — the registry's production home is deferred with shell packaging.
+4. The registry entry is not written by any deploy workflow in this model; the future hosting plan owns production registry placement.
 5. The card module must NOT duplicate the shell wrapper's `remote-card-tinyurl` testid — the E2E asserts the wrapper id plus a real-card content signal.
 6. The single image's anonymous path list is explicit, and the API docs are public (public repo: the contract discloses nothing not already in source — showcase value).
 7. A non-blocking vulnerability scan runs now; build provenance attestation, blocking promote-gates (CVE threshold, SBOM policy), and GHCR publishing land with a future CD-enabling hosting plan.
@@ -423,8 +422,8 @@ Deliberately undecided; reasonable defaults stated, flag any deviation:
   anything the fallback `CardComponent` never renders works).
 - The copyable short-link display origin (env-provided public base; dev default
   `http://localhost:8082`).
-- k8s manifest details beyond the named workloads (replica count 1, modest
-  resource limits).
+- Compose stack details beyond the named services (replica count 1, modest
+  container resource limits).
 
 ## Acceptance Criteria
 
@@ -475,9 +474,9 @@ Phrased as what a reasonable person gets; each is verifiable:
 13. The demo login flow works end-to-end through the gateway proxy without GitHub (using the
     demo Identity container), and a merged PR leaves the local image build, compose stack, and
     proof jobs reviewed — nothing executed against a real cluster, nothing deployed to prod.
-14. The running service serves its own OpenAPI spec and docs UI anonymously (the
-    public-repo rationale above); `./gradlew build` (incl. Spotless), the
-    frontend lint/test/build, and the shell E2E all pass.
+14. The running service serves its own OpenAPI spec and docs UI anonymously;
+    `./gradlew build` (incl. Spotless), the frontend lint/test/build, and the shell
+    E2E all pass.
 15. The production frontend build consumes the `identityLoginBaseUrl: ''`
     override via standard file-replacement, so login resolves same-origin through
     the tinyurl-service proxy in the image; the dev default stays
