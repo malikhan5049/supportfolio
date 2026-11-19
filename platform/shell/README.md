@@ -55,3 +55,31 @@ top-level navigation, so no CORS is involved), while the one-time-code exchange 
 through the gateway same-origin (`/api/token` is proxied). In production the gateway
 serves the SPA and proxies all Identity browser endpoints, so everything is same-origin.
 No `Access-Control-Allow-*` header is intentionally configured anywhere.
+
+## Demo
+
+The shell is the public entry point for the demo stack. Start it with everything else:
+
+```powershell
+# Core stack + Cloudflare quick tunnel
+.\scripts\demo.ps1
+
+# Core stack only on http://localhost:18080
+.\scripts\demo.ps1 -NoTunnel
+```
+
+Verify locally:
+
+```powershell
+curl -f http://localhost:18080/api/remote-registry
+curl -f http://localhost:18080/apps/tinyurl/
+```
+
+Reset command (destroys the database volume):
+
+```powershell
+docker compose -f docker-compose.demo.yml --profile tunnel down -v
+```
+
+Keep the laptop awake during the demo. If `*.trycloudflare.com` is blocked, use
+`ngrok http 18080` as a drop-in fallback — the stack does not depend on cloudflared.

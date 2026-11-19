@@ -49,3 +49,26 @@ npx playwright test --config=projects/tinyurl/ci/playwright.prod.config.ts   # p
 ```
 
 Deploy manifests live in `deploy/` with their own README; nothing here touches a real cluster.
+
+## Demo
+
+The demo stack runs everything in Docker with a single PowerShell runner and an optional
+Cloudflare quick tunnel.
+
+```powershell
+# Start Postgres + Identity + TinyURL + Shell, then open a public tunnel
+.\scripts\demo.ps1
+
+# Core stack only (localhost:18080, useful for CI/local validation)
+.\scripts\demo.ps1 -NoTunnel
+```
+
+Reset command (destroys the database volume):
+
+```powershell
+docker compose -f docker-compose.demo.yml --profile tunnel down -v
+```
+
+Keep the laptop awake while the demo is in use — the tunnel drops when the container stops.
+If `*.trycloudflare.com` is blocked on the interview network, `ngrok http 18080` is a
+drop-in fallback; the stack itself has no dependency on cloudflared specifics.
