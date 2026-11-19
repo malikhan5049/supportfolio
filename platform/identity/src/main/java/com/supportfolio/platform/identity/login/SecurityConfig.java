@@ -35,7 +35,13 @@ public class SecurityConfig {
             authorize ->
                 authorize
                     .requestMatchers(
-                        "/oauth2/jwks", "/api/token", "/api/demo-login", "/login/**", "/auth/login")
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/oauth2/jwks",
+                        "/api/token",
+                        "/api/demo-login",
+                        "/login/**",
+                        "/auth/login")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
