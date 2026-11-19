@@ -119,8 +119,7 @@ class GatewayRoutingTest {
   @Test
   void forwardsGoRedirectToTinyurl() throws Exception {
     mockTinyurl.enqueue(new MockResponse().setResponseCode(200).setBody("/target"));
-    ResponseEntity<String> response =
-        rest().get().uri("/go/abc").retrieve().toEntity(String.class);
+    ResponseEntity<String> response = rest().get().uri("/go/abc").retrieve().toEntity(String.class);
     assertEquals(200, response.getStatusCode().value());
     assertEquals("/go/abc", mockTinyurl.takeRequest().getPath());
   }

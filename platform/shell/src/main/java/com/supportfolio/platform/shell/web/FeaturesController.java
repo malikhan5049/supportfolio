@@ -10,8 +10,7 @@ class FeaturesController {
 
   private final boolean demoLogin;
 
-  FeaturesController(
-      @Value("${supportfolio.shell.demo-login-enabled:false}") boolean demoLogin) {
+  FeaturesController(@Value("${supportfolio.shell.demo-login-enabled:false}") boolean demoLogin) {
     this.demoLogin = demoLogin;
   }
 
