@@ -18,7 +18,8 @@ class RoleResolverTest {
           null,
           "https://api.github.com",
           60,
-          3600);
+          3600,
+          null);
   private final RoleResolver resolver = new RoleResolver(props);
 
   @Test
@@ -52,7 +53,8 @@ class RoleResolverTest {
             null,
             "https://api.github.com",
             60,
-            3600);
+            3600,
+            null);
     assertEquals(Optional.of(IdentityRole.ADMIN), new RoleResolver(props).resolve("owner-login"));
   }
 
@@ -72,7 +74,8 @@ class RoleResolverTest {
             null,
             "https://api.github.com",
             60,
-            3600);
+            3600,
+            null);
     IdentityProperties blankAdmin =
         new IdentityProperties(
             "http://localhost:8081",
@@ -82,7 +85,8 @@ class RoleResolverTest {
             null,
             "https://api.github.com",
             60,
-            3600);
+            3600,
+            null);
     assertThrows(IllegalStateException.class, () -> new RoleResolver(noAdmin));
     assertThrows(IllegalStateException.class, () -> new RoleResolver(blankAdmin));
   }

@@ -77,6 +77,7 @@ class OneTimeCodeStoreTest {
         /* jwtPrivateKeyPem= */ null,
         "https://api.github.com",
         codeTtlSeconds,
-        3600);
+        3600,
+        null);
   }
 }

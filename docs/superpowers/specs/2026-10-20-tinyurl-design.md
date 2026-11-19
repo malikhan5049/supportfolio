@@ -9,6 +9,8 @@ Parent spec: [2026-10-16-portfolio-platform-design.md](2026-10-16-portfolio-plat
 Consumes directly: [Plan 3 (shell/gateway)](../plans/2026-10-20-shell-gateway.md) — the shell,
 the shared auth library, the remote registry, and the identity-card fixture this plan replaces.
 
+> Amended 2026-11-18: the Oracle/k3s/arm64/GHCR deployment surface and CD wiring are superseded by the local Docker Compose + Cloudflare Quick Tunnel showcase model. See `2026-11-18-showcase-deployment-design.md`. Long-term hosting remains an open question.
+
 ## Intent and Why
 
 TinyURL is the platform's first real project: the recruiter-facing proof that the whole
@@ -24,13 +26,7 @@ Two things get proven for the first time:
 
 1. The complete "add a project" path — registry entry, trusted origin, card module,
    manifest, CI entry — exercised by a real product rather than a test double.
-2. **Deploy-ready by construction**: the Docker image build, GHCR push, reusable
-   deploy workflow, k3s manifests, and GitHub environment-protection wiring are
-   all committed and reviewed *before the real cluster exists* — and the
-   load-bearing pieces (the arm64 image, the k3s manifests, the prod login
-   flow) are CI-proven at merge time rather than claimed — so the successor
-   cluster/infra plan only has to create the cluster, wire DNS/TLS, and flip CD
-   on.
+2. **Demo-ready by construction**: the local Docker image build, the `docker-compose.demo.yml` stack, `/apps/tinyurl/` routing, absolute short URLs, and the demo login flow are committed, reviewed, and CI-proven at merge time — so the showcase works locally without a real cluster, and a future hosting plan only has to replace the local tunnel with real DNS/TLS/hosting.
 
 ## Goals
 
@@ -45,17 +41,13 @@ Two things get proven for the first time:
   so richer analytics can grow later without a schema rewrite.
 - An owned API contract: OpenAPI published from the running service
   (platform spec's scalability principle; CODING_STANDARDS.md).
-- Deploy-ready-by-construction pipeline artifacts (image build, GHCR push, deploy
-  workflow, k3s manifests, environment-protection wiring) — committed, reviewed,
-  and CI-proven at merge time; nothing executes against the real cluster.
+- Demo-ready stack artifacts (local Docker image build, `docker-compose.demo.yml`, `/apps/tinyurl/` routing, absolute short URL, demo login flow) — committed, reviewed, and CI-proven at merge time; nothing executes against a real cluster.
 - The identity-card fixture and every touchpoint that references it are removed
   cleanly, with all existing CI checks staying green.
 
 ## Non-Goals
 
-- The Oracle Cloud VM, the k3s cluster, the domain, DNS/TLS wiring, executing CD, and
-  Grafana Cloud telemetry shipping — all deferred to the successor cluster/infra plan
-  ("first deploy to prod").
+- The Oracle Cloud VM, the k3s cluster, the domain, DNS/TLS wiring, executing CD, and Grafana Cloud telemetry shipping — all deferred to a future real-hosting plan.
 - The scaffold-template work: evolving `tools/plugins/project-scaffold` by extracting
   this plan's lessons (e.g. the Module Federation rulings) — a later plan does that.
 - The admin-triage app (telemetry/triage views) — its own later plan.
@@ -132,9 +124,7 @@ the builder does not need to ask.
   - tinyurl-service: **8082**
   - tinyurl-microfrontend dev server: **4201**
   - dev PostgreSQL: **5432** (localhost only)
-- **(my call)** Extra project files: `projects/tinyurl/docker-compose.yml` (dev DB
-  only), `projects/tinyurl/deploy/` (k3s manifests), Dockerfile(s) under
-  `projects/tinyurl/` as the builder sees fit.
+- **(my call)** Extra project files: `projects/tinyurl/docker-compose.yml` (dev DB only), `projects/tinyurl/Dockerfile` (local image), and `docker-compose.demo.yml` for the showcase stack, as the builder sees fit.
 
 ### API surface (my call on exact shapes; refinable by the builder)
 
@@ -168,14 +158,13 @@ the builder does not need to ask.
   verify-before-pin applies), not silent `ddl-auto`.
 - **(ruling)** Flyway runs at app boot, so a fresh database — including the prod
   one below — converges to the current schema on first start.
-- **(ruling)** The prod datastore ships with the project: `projects/tinyurl/deploy/`
-  includes TinyURL's own Postgres workload — a StatefulSet + a small PVC (1Gi
-  default) + a secret *template* (credentials env-only, never committed). The
-  successor cluster plan really only creates the cluster, wires DNS/TLS, and
-  flips CD on — it must not have to invent the database. Resilience expectation:
-  the service must still answer `/actuator/health` liveness sensibly while the DB
-  is briefly unreachable (liveness vs readiness split; the exact probing is the
-  builder's — see Left to the Builder).
+- **(ruling)** The prod datastore ships with the project: the demo compose stack
+  includes TinyURL's own PostgreSQL container (with a dedicated volume and env-only
+  credentials, never committed). The future real-hosting plan really only has to
+  provide the host, domain, and TLS — it must not have to invent the database.
+  Resilience expectation: the service must still answer `/actuator/health` liveness
+  sensibly while the DB is briefly unreachable (liveness vs readiness split; the
+  exact probing is the builder's — see Left to the Builder).
 
 ### Microfrontend, card, and the fixture swap
 
@@ -278,78 +267,33 @@ the builder does not need to ask.
   bearer-authenticated endpoint). JWK-set/issuer URIs are env-overridable
   configuration.
 
-### Pipeline: deploy-ready by construction (human)
+### Pipeline: demo-ready by construction (human)
 
-- Committed and **run** (no cluster needed): a `tinyurl-ci.yml` entry calling the
-  harness reusable workflows — `backend-ci.yml` (`project-path:
-  projects/tinyurl/service`) and `frontend-ci.yml` (`project-name:
-  tinyurl-microfrontend`) — plus a Docker image build step and GHCR push
-  (`ghcr.io/<owner>/tinyurl`, owner from `platform/harness/config/owner.json`),
-  images tagged with the immutable commit SHA. Note: the root `platform-build` job
-  already builds the Gradle module once registered; overlap is acceptable.
-- **(ruling)** Image platform — "deploy-ready by construction" means the pushed
-  image runs on the target ARM VM: CI builds the jar and the frontends natively
-  on the amd64 runner, the Dockerfile does NO compilation (it only copies the
-  built artifacts into an arm64 JRE base image), and the image is built with
-  `docker buildx --platform linux/arm64` — so buildx needs no meaningful
-  emulated execution. The arm64 JRE base image tag follows verify-before-pin.
-- **(builder-check follow-up)** The ARM claim is proven by execution, not
-  inspection: after buildx pushes the attested image to GHCR, CI runs that
-  pushed image on a free GitHub-hosted ARM64 ubuntu runner (free for public
-  repos; the exact runner label is verified before pin), waits for readiness,
-  and hits `/actuator/health` plus a basic API assertion — the pushed artifact
-  itself executing on ARM.
-- **(ruling)** Release guardrails now: build provenance attestation is enabled on
-  the GHCR push (free with buildx/build-push-action; GOVERNANCE.md's "toward
-  SLSA Build L2"), and a non-blocking vulnerability scan (e.g. Trivy) runs in CI
-  immediately — findings are visible, not gating. The blocking promote-gates (CVE
-  threshold, SBOM policy) land with the CD-enabling cluster plan, where promotion
-  first becomes real.
-- **(builder-check follow-up)** The k3s manifests are executed at merge time —
-  linting them is NOT sufficient: a CI job spins up a real k3s on a
-  GitHub-hosted ubuntu runner (free on public repos; exact k3s version and
-  bring-up tooling verified before pin), `kubectl apply`s everything in
-  `projects/tinyurl/deploy/`, and asserts the Deployments become Ready, the PVC
-  binds, Postgres accepts a connection, and the tinyurl service boots and serves
-  `/actuator/health` against it. The secret template is substituted with CI
-  dummy values — no real credential ever exists in CI.
-- **(builder-check follow-up)** The prod login flow is CI-proven, not merely
-  built: CI runs the production image alongside a stub Identity container (an
-  impostor that publishes a valid JWKS — no GitHub involved) and drives the
-  complete login flow through the image's own proxy — anonymous browse works,
-  shortening redirects to login, the token exchange succeeds, and a shortened
-  link works end to end. A static build gate fails the build if the production
-  bundle contains `localhost:8081` — the dev default must never ship in the
-  prod configuration.
-- Committed and reviewed but **not executed against a real cluster**: the
-  reusable deploy workflow under `platform/harness/workflows/` (applies the k3s
-  manifests to the real test/prod cluster, takes an environment input) and the
-  `environment: test` / `environment: prod` references whose GitHub protection
-  rules (required reviewer = owner) are a documented manual activation step. The
-  `projects/tinyurl/deploy/` manifests (namespace; TinyURL's own Postgres
-  StatefulSet + PVC + secret template; the app Deployment; Service; Ingress
-  with a placeholder hostname — the real domain is the successor plan's) run in
-  CI (above); what stays dark is only deployment to the real cluster. No deploy
-  job is a required merge check; CD stays off until the successor plan flips it
-  on. Only manifest-declared resources appear in the manifests (GOVERNANCE
-  spend cap).
-- **(my call)** One image per project: `tinyurl-service`'s image serves the built SPA
-  + `remoteEntry.js` + the API same-origin (anonymous surface: see Auth), and
-  proxies the same four Identity browser endpoint groups the shell proxies
-  (`/api/token`, `/auth/login`, `/oauth2/**`, `/login/**`) to Identity.
-  Rationale: mirrors Plan 3's prod model exactly, keeps everything same-origin
-  (no CORS anywhere), and matches "independently deployable/extractable".
-- **(ruling)** This plan's deploy workflow does NOT write the shell's
-  remote-registry entry: the registry file has no production home until the shell
-  itself is packaged (deferred with the shell's own packaging). Said plainly —
-  after the first prod deploy, making the card appear on the *production* shell
-  grid is completed by the cluster/infra plan (or shell packaging), which must
-  also add TinyURL's prod origin to the shell's trusted-origins at that time. The
-  dev swap story above is unchanged: the dev registry is the committed sample
-  file.
+> Amended 2026-11-18: the Oracle/k3s/arm64/GHCR deployment surface and CD wiring are superseded by the local Docker Compose + Cloudflare Quick Tunnel showcase model. See `2026-11-18-showcase-deployment-design.md`. Long-term hosting remains an open question.
+
+- Committed and **run** (no cluster needed): a `tinyurl-ci.yml` entry calling the harness
+  reusable workflows — `backend-ci.yml` (`project-path: projects/tinyurl/service`) and
+  `frontend-ci.yml` (`project-name: tinyurl-microfrontend`) — plus a local Docker image build
+  step. The image is built for `linux/amd64` only; the Dockerfile does NO compilation (it only
+  copies built artifacts), and `npx tsx tools/prod-bundle-gate.ts` runs against the production
+  bundle to ensure `localhost:8081` never ships.
+- **(builder-check follow-up)** The demo stack is exercised at merge time: the `demo-stack` job
+  builds the platform and TinyURL images, starts `docker-compose.demo.yml`, and runs the
+  Playwright demo login E2E against `http://localhost:18080`. The secret template is substituted
+  with CI dummy values — no real credential ever exists in CI.
+- **(builder-check follow-up)** The prod login flow is CI-proven, not merely built: the local
+  demo image runs alongside the demo Identity container (no GitHub involved) and drives the
+  complete login flow through the gateway proxy — anonymous browse works, shortening redirects
+  to login, the demo token exchange succeeds, and a shortened link works end to end. A static
+  build gate fails the build if the production bundle contains `localhost:8081`.
+- **(ruling)** This plan does NOT write the shell's remote-registry entry: the registry file has
+  no production home until the shell itself is packaged (deferred with the shell's own packaging).
+  After a future real deploy, making the card appear on the *production* shell grid is completed by
+  the hosting plan, which must also add TinyURL's prod origin to the shell's trusted-origins at
+  that time. The dev swap story above is unchanged: the dev registry is the committed sample file.
 - Required-check list changes — including the proof jobs above — go through
-  `tools/branch-protection.ts` and the manual CLI re-apply (ACTIVATION.md step 3
-  — PUT against the existing ruleset id, never POST).
+  `tools/branch-protection.ts` and the manual CLI re-apply (ACTIVATION.md step 3 — PUT against the
+  existing ruleset id, never POST).
 
 ### Versions
 
@@ -357,26 +301,22 @@ the builder does not need to ask.
   inside this plan: Java 17, Spring Boot 4.1.1 (`gradle/libs.versions.toml`), Angular
   `~22.2.3`, Nx 23.3.x, `@angular-architects/module-federation` `^22.0.0`, webpack
   pinned 5.111.0, Playwright `^1.64.1`.
-- **(human)** Anything new (PostgreSQL driver, Flyway, springdoc/OpenAPI,
-  Testcontainers, the arm64 JRE base image tag, the Postgres image tag, the
-  buildx/build-push-action and Trivy action versions) follows **verify before
-  pin**: read the official release page first, record the verified version in the
-  commit message.
+- **(human)** Anything new (PostgreSQL driver, Flyway, springdoc/OpenAPI, Testcontainers, the Postgres image tag, and Playwright action versions) follows **verify before pin**: read the official release page first, record the verified version in the commit message.
 
 ### Rulings absorbed from builder check (traceability)
 
 One line each; the full decision lives in the sections above:
 
-1. Prod database ships with the project (Postgres StatefulSet + PVC 1Gi + secret template in `deploy/`; Flyway at boot; liveness survives brief DB outages — readiness is the DB-aware probe).
+1. Prod database ships with the project: a PostgreSQL container defined in the demo compose stack (the local dev DB also lives in `projects/tinyurl/docker-compose.yml`); Flyway at boot; liveness survives brief DB outages — readiness is the DB-aware probe).
 2. Prod auth config is in scope (`identityLoginBaseUrl: ''` override via standard file-replacement); the shell's identical latent gap is a recorded deferral, not this plan's work.
-3. Image is built for `linux/arm64` via buildx; the Dockerfile does no compilation — CI builds natively on the amd64 runner and the image only packages artifacts.
-4. This plan's deploy workflow does NOT write the shell's remote-registry entry — the registry's production home is deferred with shell packaging.
+3. Image is built for `linux/amd64` for the local demo stack; the Dockerfile does no compilation — CI builds natively on the amd64 runner and the image only packages artifacts.
+4. The registry entry is not written by any deploy workflow in this model; the future hosting plan owns production registry placement.
 5. The card module must NOT duplicate the shell wrapper's `remote-card-tinyurl` testid — the E2E asserts the wrapper id plus a real-card content signal.
 6. The single image's anonymous path list is explicit, and the API docs are public (public repo: the contract discloses nothing not already in source — showcase value).
-7. Provenance attestation on the GHCR push + a non-blocking vulnerability scan now; blocking promote-gates (CVE threshold, SBOM policy) land with the CD-enabling cluster plan.
+7. A non-blocking vulnerability scan runs now; build provenance attestation, blocking promote-gates (CVE threshold, SBOM policy), and GHCR publishing land with a future CD-enabling hosting plan.
 8. Flagged call (earlier report): after the fixture swap, the dev grid shows exactly one project card (TinyURL) until project #2 lands.
-9. Flagged call (earlier report): the k3s manifests use a placeholder hostname — the real domain is the cluster/infra plan's.
-10. Builder-check follow-up (2026-10-21): "deploy-ready by construction" is CI-proven, not claimed — k3s-in-CI manifest execution, ARM-runner image smoke test, prod-image login E2E with a stub Identity (+ `localhost:8081` bundle gate), and the anonymous-surface matrix test.
+9. Flagged call (earlier report): the demo stack uses `*.trycloudflare.com` or localhost; the real domain is a future hosting plan's.
+10. Builder-check follow-up (2026-10-21): "demo-ready by construction" is CI-proven, not claimed — local compose demo-stack execution, prod-image login E2E with the demo Identity (+ `localhost:8081` bundle gate), and the anonymous-surface matrix test.
 
 ## Integration Contracts
 
@@ -457,7 +397,7 @@ project, not just TinyURL).
 
 - TinyURL's API contract (shapes above) + OpenAPI from the running service.
 - The `card@1.0.0` module + registry entry + manifest.
-- The GHCR image and the deploy workflow/manifests (deploy-ready, unexecuted).
+- The local Docker image and the `demo-stack` CI job (demo-ready, unexecuted against a real cluster).
 
 ## Left to the Builder
 
@@ -477,17 +417,13 @@ Deliberately undecided; reasonable defaults stated, flag any deviation:
 - Liveness vs readiness probing detail: the service must answer liveness while
   the DB is briefly unreachable (ruling 1 sets the expectation; the exact
   actuator group/endpoint split and DB-dependency wiring are the builder's).
-- CI verification-infrastructure specifics: the k3s bring-up tooling/version,
-  the ARM64 runner label, the stub Identity container's implementation, and how
-  each proof job (k3s-in-CI, ARM smoke, prod login E2E, matrix test) is wired —
-  all verify-before-pin; the outcomes they must prove are the acceptance
-  criteria, which stay fixed.
+- CI verification-infrastructure specifics: the local compose bring-up, the demo Identity container's implementation, and how each proof job (demo-stack E2E, prod login E2E, matrix test) is wired — all verify-before-pin; the outcomes they must prove are the acceptance criteria, which stay fixed.
 - The card's real-card content-marker id for the swap E2E (builder names it;
   anything the fallback `CardComponent` never renders works).
 - The copyable short-link display origin (env-provided public base; dev default
   `http://localhost:8082`).
-- k8s manifest details beyond the named workloads (replica count 1, modest
-  resource limits).
+- Compose stack details beyond the named services (replica count 1, modest
+  container resource limits).
 
 ## Acceptance Criteria
 
@@ -530,21 +466,17 @@ Phrased as what a reasonable person gets; each is verifiable:
     image's own proxy — anonymous browse, shorten-redirects-to-login, token
     exchange, and a shortened link end to end — and the build fails if the
     production bundle contains `localhost:8081`.
-11. The pushed artifact is proven to execute on ARM: CI runs the attested
-    `linux/arm64` GHCR image on a free GitHub-hosted ARM64 runner, waits for
-    readiness, and gets `/actuator/health` plus a basic API assertion.
-12. The k3s manifests are executed at merge time, not just linted: a CI job spins
-    up a real k3s, `kubectl apply`s everything in `projects/tinyurl/deploy/`, and
-    the Deployments go Ready, the PVC binds, Postgres accepts a connection, and
-    the tinyurl service boots and serves `/actuator/health` against it — with CI
-    dummy values substituted for every secret.
-13. A merged PR leaves a `linux/arm64` TinyURL image (build-provenance attested)
-    in GHCR; the deploy workflow and environment-protection wiring exist in-repo
-    and were reviewed — and nothing executed against the real cluster, nothing
-    deployed to prod.
-14. The running service serves its own OpenAPI spec and docs UI anonymously (the
-    public-repo rationale above); `./gradlew build` (incl. Spotless), the
-    frontend lint/test/build, and the shell E2E all pass.
+11. The demo stack starts from `docker-compose.demo.yml` via `scripts/demo.ps1` (core stack
+    and tunnel profile) and passes the demo login E2E on every PR.
+12. TinyURL is reachable through the shell gateway at `/apps/tinyurl/` and short links resolve
+    to absolute URLs on the demo host (`http://localhost:18080/go/{slug}` through the tunnel),
+    incrementing the click count on each redirect.
+13. The demo login flow works end-to-end through the gateway proxy without GitHub (using the
+    demo Identity container), and a merged PR leaves the local image build, compose stack, and
+    proof jobs reviewed — nothing executed against a real cluster, nothing deployed to prod.
+14. The running service serves its own OpenAPI spec and docs UI anonymously;
+    `./gradlew build` (incl. Spotless), the frontend lint/test/build, and the shell
+    E2E all pass.
 15. The production frontend build consumes the `identityLoginBaseUrl: ''`
     override via standard file-replacement, so login resolves same-origin through
     the tinyurl-service proxy in the image; the dev default stays
@@ -565,20 +497,15 @@ Phrased as what a reasonable person gets; each is verifiable:
   PR carries an OWASP checklist item priced as: URL validation on shorten,
   open-redirect/slug-enumeration handling on `/go/{slug}` (target fixed at
   creation, unguessable slugs), rate limiting, and public-field exposure. These
-  tests are mandatory, not aspirational. Release guardrails per ruling 7:
-  provenance attestation on the GHCR push and a non-blocking vulnerability scan
-  land now; the blocking promote-gates (CVE threshold, SBOM policy) land with the
-  CD-enabling cluster plan.
+  tests are mandatory, not aspirational. Release guardrails per ruling 7: a non-blocking vulnerability scan lands now; build provenance attestation, GHCR publishing, and blocking promote-gates (CVE threshold, SBOM policy) land with a future CD-enabling hosting plan.
 - **Retrospective standing items folded in (Plan 3 entry):** run the production
   build on UI work before closing the task ("tests green" ≠ done); keep one
   real-browser E2E for genuinely new runtime behavior (the fixture→real-card swap
   is this plan's); deep review is mandatory for this High-shape,
   security-sensitive plan; write `Ruling:` ledger lines at the moment of any
   deviation; invoke systematic-debugging as soon as an integration problem
-  survives one failed hypothesis; write multi-block config (MF webpack, gateway
-  yaml, k3s manifests) in smallest-verifiable increments, never one large pass.
-- **Budget:** free-tier only (platform spec); the only new recurring surface is a
-  GHCR package — free on a public repo.
+  survives one failed hypothesis; write multi-block config (MF webpack, gateway yaml, compose files) in smallest-verifiable increments, never one large pass.
+- **Budget:** free-tier only (platform spec); there is no new recurring surface for the showcase (all images are built locally).
 
 ## Scope Boundary
 
@@ -587,11 +514,12 @@ DNS/TLS, flipping CD on, shipping Grafana telemetry, extracting the scaffold
 template, the admin-triage app, a second project, and every deferred product
 feature listed in Non-Goals.
 
-Successor: the **cluster/infra plan** (Plan 5 in Plan 3's numbering) picks up every
-deferred infrastructure item — Oracle VM, k3s, DNS/TLS, CD execution, Grafana
-Cloud telemetry, the shell's own packaging (including the shell's prod
-auth-config gap and the registry's production home, i.e. wiring TinyURL's prod
-registry entry + trusted origin), and the blocking promote-gates (CVE threshold,
-SBOM policy) — and its headline deliverable is the **first deploy to prod**.
-TinyURL ships deploy-ready by construction precisely so that plan flips it on
-instead of reworking it.
+> Amended 2026-11-18: the Oracle/k3s/arm64/GHCR deployment surface and CD wiring are superseded by the local Docker Compose + Cloudflare Quick Tunnel showcase model. See `2026-11-18-showcase-deployment-design.md`. Long-term hosting remains an open question.
+
+Successor: a **future real-hosting plan** picks up every deferred infrastructure
+item — domain, TLS, VPS/cloud, CD execution, Grafana Cloud telemetry, the shell's
+own packaging (including the shell's prod auth-config gap and the registry's
+production home, i.e. wiring TinyURL's prod registry entry + trusted origin), and
+the blocking promote-gates (CVE threshold, SBOM policy) — and its headline
+deliverable is the **first deploy to prod**. TinyURL ships demo-ready by
+construction precisely so that plan flips it on instead of reworking it.

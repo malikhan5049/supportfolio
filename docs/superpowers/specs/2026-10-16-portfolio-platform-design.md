@@ -239,23 +239,17 @@ carry real production load one day:
 
 ### Environments and infrastructure (free-tier)
 
-- **dev**: your local machine, Docker Compose.
-- **test** and **prod**: namespaces on a k3s (lightweight Kubernetes)
-  cluster running on an Oracle Cloud **Always Free** Arm VM (4 OCPU /
-  24GB RAM, no 12-month expiry, unlike Azure/AWS free tiers).
-- Repo is **public** on GitHub (fits a recruiter-facing showcase and is
-  the only way to get GitHub Actions environment protection rules —
-  required reviewers, wait timers — for free; private repos need a
-  paid plan for that).
-- GitHub Actions: unlimited minutes on public repos. A **self-hosted
-  runner on your own machine** handles anything that needs superpowers
-  (plan/implement/scaffold); standard lint/test/build/deploy steps can
-  run on GitHub-hosted or self-hosted runners.
-- Promotion test → prod is gated by a GitHub Actions environment
-  protection rule requiring your approval.
-- Telemetry: Spring Boot Actuator/Micrometer per service, shipped to
-  Grafana Cloud's free tier (hosted, so it doesn't consume the small
-  Oracle VM's resources) and surfaced in the admin-triage telemetry view.
+> Amended 2026-11-18: the Oracle/k3s deployment is replaced by the local Docker Compose + Cloudflare Quick Tunnel showcase model. See `2026-11-18-showcase-deployment-design.md`. Long-term hosting remains an open question.
+
+- **dev/demo**: your local machine, Docker Compose (`docker-compose.demo.yml`). The stack runs
+  Identity, Shell gateway, TinyURL service, Postgres, and an optional Cloudflare Quick Tunnel.
+- **CI**: the `demo-stack` job in `tinyurl-ci.yml` builds images, starts the compose stack, and
+  runs the demo login E2E on every PR.
+- Promotion to a real hosted environment (test/prod, DNS/TLS, cloud/VPS, CD) is deferred to a
+  future plan; no cluster, GHCR images, arm64 builds, or GitHub environment-protection wiring are
+  required for the showcase.
+- Telemetry: Spring Boot Actuator/Micrometer per service, shipped to Grafana Cloud's free tier
+  (hosted) and surfaced in the admin-triage telemetry view.
 
 ### Harness: triage-triggered automation
 
@@ -298,18 +292,15 @@ carry real production load one day:
   own JWT (resource-server pattern), structured to swap in Keycloak
   later without touching shell/project code (see Auth above).
 - Backlog/PM: GitHub Issues + GitHub Projects (v2).
-- CI/CD: GitHub Actions (hosted runners for standard steps,
-  self-hosted runner on your machine for superpowers-driven steps),
-  reusable workflows in `/platform/harness/workflows`.
-- Infra: Docker Compose (dev), k3s on Oracle Cloud Always Free (test,
-  prod), GitHub Container Registry for images.
+- CI/CD: GitHub Actions (hosted runners), reusable workflows in `/platform/harness/workflows` (including the local `demo-stack` E2E job).
+- Infra: Docker Compose (local dev and demo), Cloudflare Quick Tunnel for public sharing; no Kubernetes, GHCR, or arm64 build required for the showcase.
 - Observability: Spring Boot Actuator/Micrometer → Grafana Cloud free
   tier.
 - Datastore: one database per project (exact engine decided per
   project — TinyURL's is left to the builder below).
 
 **Versions**: use the current latest stable/LTS release of every tool
-(Java, Spring Boot, Angular, Node.js, PostgreSQL, k3s, etc.) at the time
+(Java, Spring Boot, Angular, Node.js, PostgreSQL, Docker Compose, etc.) at the time
 each piece is actually scaffolded — verified against each project's
 official release page at that time, rather than pinned here, since a
 version pinned today in a design doc is likely to already be stale by

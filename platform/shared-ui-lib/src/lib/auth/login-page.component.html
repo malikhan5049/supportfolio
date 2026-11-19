@@ -2,4 +2,9 @@
 @if (service.lastError() === 'denied') {
   <p data-testid="login-denied">Sign-in was denied for this account.</p>
 }
-<button data-testid="sign-in" (click)="service.login()">Sign in with GitHub</button>
+@if (!demoAvailable()) {
+  <button data-testid="sign-in" (click)="service.login()">Sign in with GitHub</button>
+}
+@if (demoAvailable()) {
+  <button data-testid="demo-sign-in" (click)="demoLogin()">Sign in with demo account</button>
+}

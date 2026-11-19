@@ -23,6 +23,7 @@ export function provideAuth(
   const full: AuthConfig = {
     apiBaseUrl: '',
     callbackPath: '/auth/callback',
+    apiUrlPrefixes: ['/api/'],
     ...config,
   };
   return makeEnvironmentProviders([

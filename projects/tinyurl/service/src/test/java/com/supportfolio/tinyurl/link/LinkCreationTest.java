@@ -1,5 +1,7 @@
 package com.supportfolio.tinyurl.link;
 
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -45,6 +47,8 @@ class LinkCreationTest extends PostgresIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.slug").value(org.hamcrest.Matchers.matchesPattern("[0-9A-Za-z]{8}")))
         .andExpect(jsonPath("$.targetUrl").value("https://example.com/a"))
+        .andExpect(jsonPath("$.shortUrl", startsWith("http://localhost")))
+        .andExpect(jsonPath("$.shortUrl", matchesPattern("http://localhost/go/[0-9A-Za-z]{8}")))
         .andExpect(jsonPath("$.clickCount").value(0))
         .andExpect(jsonPath("$.createdAt").exists())
         .andExpect(jsonPath("$.createdBy").doesNotExist());

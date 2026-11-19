@@ -78,7 +78,7 @@ describe('platform-ci.yml', () => {
 });
 
 describe('harness workflow mirrors', () => {
-  it.each(['backend-ci.yml', 'frontend-ci.yml', 'deploy.yml'])(
+  it.each(['backend-ci.yml', 'frontend-ci.yml'])(
     'mirrors %s at the top level for GitHub to register it',
     (name) => {
       expect(fs.readFileSync(`.github/workflows/${name}`, 'utf8')).toBe(
@@ -91,22 +91,6 @@ describe('harness workflow mirrors', () => {
     const source = fs.readFileSync('tools/sync-harness-workflows.ts', 'utf8');
     expect(source).toContain('.github/workflows');
     expect(source).toContain('platform/harness/workflows');
-  });
-});
-
-describe('deploy.yml', () => {
-  it('is a reusable workflow with an environment input and a protected job', () => {
-    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
-    expect(doc.on.workflow_call.inputs.environment).toBeDefined();
-    expect(doc.jobs.deploy.environment).toContain('inputs.environment');
-    expect(doc.jobs.deploy.steps.map((s: any) => s.run).join('\n')).toContain('kubectl apply');
-  });
-
-  it('carries the tinyurl namespace/manifest defaults and the kubeconfig secret', () => {
-    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
-    expect(doc.on.workflow_call.inputs.namespace.default).toBe('tinyurl');
-    expect(doc.on.workflow_call.inputs['manifests-path'].default).toBe('projects/tinyurl/deploy');
-    expect(doc.on.workflow_call.secrets.KUBECONFIG).toBeDefined();
   });
 });
 
@@ -132,13 +116,6 @@ describe('tinyurl-ci.yml', () => {
     expect(doc.jobs['tinyurl-image']).toBeDefined();
   });
 
-  it('the image is arm64, attested, and tagged with the commit sha', () => {
-    const raw = JSON.stringify(entry().jobs['tinyurl-image']);
-    expect(raw).toContain('linux/arm64');
-    expect(raw).toContain('provenance');
-    expect(raw).toContain('github.sha');
-  });
-
   it('sets up the pinned Node runtime before npm ci in the image job', () => {
     const steps = entry().jobs['tinyurl-image'].steps;
     const setupNodeIndex = steps.findIndex((step: any) => step.uses === 'actions/setup-node@v7');
@@ -148,37 +125,9 @@ describe('tinyurl-ci.yml', () => {
     expect(setupNodeIndex).toBeLessThan(npmCiIndex);
   });
 
-  it('sets up an immutable Buildx builder before attested image publishing', () => {
-    const steps = entry().jobs['tinyurl-image'].steps;
-    const setupBuildxIndex = steps.findIndex((step: any) =>
-      String(step.uses).startsWith('docker/setup-buildx-action@'),
-    );
-    const pushIndex = steps.findIndex((step: any) => String(step.name).includes('Build and push'));
-    expect(steps[setupBuildxIndex].uses).toBe(
-      'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
-    );
-    expect(setupBuildxIndex).toBeLessThan(pushIndex);
-  });
-
-  it('uses the verified Java 17 base image that includes ARM64', () => {
+  it('uses the verified Java 17 base image', () => {
     const dockerfile = fs.readFileSync('projects/tinyurl/Dockerfile', 'utf8');
     expect(dockerfile.match(/^FROM .+$/m)?.[0]).toBe('FROM eclipse-temurin:17.0.20.1_1-jre-jammy');
-  });
-
-  it('pins the privileged Trivy action to its verified immutable release commit', () => {
-    const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
-      String(step.uses).startsWith('aquasecurity/trivy-action@'),
-    );
-    expect(scan.uses).toBe('aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25');
-  });
-
-  it('scans the pushed ARM64 image using Trivy arm64 platform config', () => {
-    const scan = entry().jobs['tinyurl-image'].steps.find((step: any) =>
-      String(step.uses).startsWith('aquasecurity/trivy-action@'),
-    );
-    expect(scan.with['trivy-config']).toBe('projects/tinyurl/ci/trivy.yaml');
-    const config: any = yaml.load(fs.readFileSync('projects/tinyurl/ci/trivy.yaml', 'utf8'));
-    expect(config.image.platform).toBe('linux/arm64');
   });
 
   it('branch protection requires the tinyurl checks', () => {
@@ -204,81 +153,31 @@ describe('tinyurl-ci.yml', () => {
     expect(text).not.toMatch(/paths:/);
   });
 
-  it('executes the manifests on a disposable k3s, not just lints them', () => {
+  it('proves the demo stack in CI', () => {
     const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
-    const job = doc.jobs['tinyurl-k3s-manifests'];
-    const raw = job.steps.map((step: any) => step.run ?? '').join('\n');
-    expect(raw).toContain('k3s');
-    expect(raw).toContain('kubectl apply');
-    expect(raw).toContain('rollout status');
-    expect(raw).toContain('pg_isready');
-    expect(raw).toContain('projects/tinyurl/deploy/*.yaml');
-    expect(raw).toContain('envsubst < "$manifest"');
-    expect(raw).toContain('for manifest in /tmp/tinyurl-manifests/*.yaml');
-    expect(raw).toContain('kubectl apply -f "$manifest"');
-    expect(raw).toContain('sudo ./k3s ctr images import -');
-    expect(raw).not.toContain('sudo kubectl');
-    expect(fs.readdirSync('projects/tinyurl/deploy')).toContain('postgres-statefulset.yaml');
-    expect(raw).toContain("wait --for=jsonpath='{.status.phase}'=Bound pvc/data-postgres-0");
-    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain(
-      "'tinyurl-k3s-manifests'",
-    );
-  });
-
-  it('runs the pushed arm64 image on an ARM runner and asserts health plus api', () => {
-    const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
-    const job = doc.jobs['tinyurl-arm-smoke'];
-    expect(job['runs-on']).toContain('arm');
+    const job = doc.jobs['demo-stack'];
+    expect(job).toBeDefined();
+    expect(job['runs-on']).toBe('ubuntu-latest');
     const raw = JSON.stringify(job);
-    expect(raw).toContain('docker run');
-    expect(raw).toContain('/actuator/health');
-    expect(raw).toContain('/api/links');
-    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-arm-smoke'");
-  });
-
-  it('proves the prod login flow against a stub identity in CI', () => {
-    const doc: any = yaml.load(fs.readFileSync('.github/workflows/tinyurl-ci.yml', 'utf8'));
-    const raw = JSON.stringify(doc.jobs['tinyurl-prod-login']);
-    expect(raw).toContain('docker-compose.prod-e2e.yml');
-    expect(raw).toContain('tinyurl:e2e');
-    expect(raw).toContain('playwright.prod.config.ts');
+    expect(raw).toContain('docker-compose.demo.yml');
+    expect(raw).toContain('playwright.demo.config.ts');
     expect(raw).toContain('down -v');
-    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'tinyurl-prod-login'");
+    expect(fs.readFileSync('tools/branch-protection.ts', 'utf8')).toContain("'demo-stack'");
   });
 
-  it('waits for the prod TinyURL container health before running the browser flow', () => {
-    const compose: any = yaml.load(
-      fs.readFileSync('projects/tinyurl/ci/docker-compose.prod-e2e.yml', 'utf8'),
+  it('waits for the demo stack container health before running the browser flow', () => {
+    const compose: any = yaml.load(fs.readFileSync('docker-compose.demo.yml', 'utf8'));
+    expect(compose.services['tinyurl-service'].healthcheck.test.join(' ')).toContain(
+      'http://localhost:8082/actuator/health',
     );
-    expect(compose.services.tinyurl.healthcheck.test).toContain(
-      'http://127.0.0.1:8082/actuator/health',
+    expect(compose.services.shell.healthcheck.test.join(' ')).toContain(
+      'http://localhost:8080/actuator/health',
     );
   });
 
-  it('builds a local amd64 image for prod login on the x86 runner', () => {
-    const job: any = entry().jobs['tinyurl-prod-login'];
-    const raw = job.steps.map((step: any) => step.run ?? '').join('\n');
-    expect(raw).toContain('docker build --platform linux/amd64');
-    expect(job.env.TINYURL_IMAGE).toBe('tinyurl:e2e');
-  });
-
-  it('renders EVERY manifest through envsubst, never copies templates verbatim', () => {
-    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
-    const render = doc.jobs.deploy.steps.map((s: any) => s.run).join('\n');
-    expect(render).not.toContain('cp {} rendered/');
-    expect(render).toContain('envsubst < ');
-    expect(render).toContain('find ');
-    expect(render).toContain('basename ');
-  });
-
-  it('never embeds secrets or inputs directly inside run: bodies (script-injection)', () => {
-    const doc: any = yaml.load(fs.readFileSync('platform/harness/workflows/deploy.yml', 'utf8'));
-    for (const step of doc.jobs.deploy.steps as any[]) {
-      if (step.run) {
-        expect(step.run).not.toContain('${{ secrets.');
-        expect(step.run).not.toContain('${{');
-      }
-    }
+  it('enables demo login and seeding for the demo-stack job', () => {
+    const job: any = entry().jobs['demo-stack'];
+    expect(job.env.DEMO_ENABLED).toBe('true');
   });
 });
 

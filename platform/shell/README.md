@@ -35,9 +35,10 @@ Override with `SUPPORTFOLIO_SHELL_IDENTITY_URI`, `SUPPORTFOLIO_SHELL_REMOTE_REGI
 openUrl, exposedModules:[{name, version, remoteEntry}]}]}`. An unreadable registry answers
 `503 {"error":"registry_unavailable"}` (no path or validation detail leaked).
 
-**The registry file is data hot-read by the gateway on every request.** A project's CD
-pipeline rewrites its own entry on deploy; the shell is never rebuilt or restarted when a
-project is added or updated.
+**The registry file is data hot-read by the gateway on every request.** In a real deployment
+a project's pipeline would rewrite its own entry on release; today the production registry
+home is deferred and the repo file is the dev/sample registry. The shell is never rebuilt or
+restarted when a project is added or updated.
 
 `platform/shell/config/remote-registry.json` in the repo is the dev/sample registry.
 
@@ -55,3 +56,36 @@ top-level navigation, so no CORS is involved), while the one-time-code exchange 
 through the gateway same-origin (`/api/token` is proxied). In production the gateway
 serves the SPA and proxies all Identity browser endpoints, so everything is same-origin.
 No `Access-Control-Allow-*` header is intentionally configured anywhere.
+
+## Demo
+
+The shell is the public entry point for the demo stack. Start it with everything else:
+
+```powershell
+# Core stack + Cloudflare quick tunnel
+.\scripts\demo.ps1
+
+# Core stack only on http://localhost:18080
+.\scripts\demo.ps1 -NoTunnel
+
+# Inert-flag check: demo login and demo seeding off
+.\scripts\demo.ps1 -NoTunnel -NoDemo
+```
+
+The runner sets `DEMO_ENABLED=true`, so the demo login entry point is available without GitHub.
+
+Verify locally from PowerShell 5.1:
+
+```powershell
+curl.exe -f http://localhost:18080/api/remote-registry
+curl.exe -f http://localhost:18080/apps/tinyurl/
+```
+
+Reset command (destroys the database volume):
+
+```powershell
+docker compose -f docker-compose.demo.yml --profile tunnel down -v
+```
+
+Keep the laptop awake during the demo. If `*.trycloudflare.com` is blocked, use
+`ngrok http 18080` as a drop-in fallback — the stack does not depend on cloudflared.

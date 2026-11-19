@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthTokenStore } from 'shared-ui-lib';
-import { SHORT_LINK_BASE_URL } from '../links/short-link-base-url';
+import { LINK_API_BASE_URL } from '../links/link-api-base-url';
 import { LinkApiService } from '../links/link-api.service';
 import type { Link } from '../links/link.types';
 import { ShortenFormComponent } from './shorten-form.component';
@@ -12,6 +12,7 @@ function link(): Link {
   return {
     slug: 'abc12345',
     targetUrl: 'https://example.com/a',
+    shortUrl: 'https://tiny.example.com/go/abc12345',
     clickCount: 0,
     createdAt: '2026-10-21T12:00:00Z',
   };
@@ -20,7 +21,6 @@ function link(): Link {
 describe('ShortenFormComponent', () => {
   let http: HttpTestingController;
   let store: AuthTokenStore;
-  let shortLinkBaseUrl: string;
 
   const signIn = () => {
     store.set({
@@ -40,7 +40,6 @@ describe('ShortenFormComponent', () => {
   };
 
   beforeEach(() => {
-    shortLinkBaseUrl = 'http://localhost:8082';
     TestBed.configureTestingModule({
       imports: [ShortenFormComponent],
       providers: [
@@ -49,7 +48,7 @@ describe('ShortenFormComponent', () => {
         provideRouter([]),
         AuthTokenStore,
         LinkApiService,
-        { provide: SHORT_LINK_BASE_URL, useFactory: () => shortLinkBaseUrl },
+        { provide: LINK_API_BASE_URL, useValue: '' },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -67,7 +66,7 @@ describe('ShortenFormComponent', () => {
     expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeTruthy();
   });
 
-  it('shortens when signed in and renders a copyable short link', async () => {
+  it('shortens when signed in and renders a copyable short link from the server', async () => {
     signIn();
     const fixture = await renderForm();
     const el = fixture.nativeElement as HTMLElement;
@@ -83,7 +82,7 @@ describe('ShortenFormComponent', () => {
     await drain();
     fixture.detectChanges();
     const anchor = el.querySelector('[data-testid="short-link"]') as HTMLAnchorElement;
-    expect(anchor.href).toBe('http://localhost:8082/go/abc12345');
+    expect(anchor.href).toBe('https://tiny.example.com/go/abc12345');
     expect(el.querySelector('[data-testid="copy-link"]')).toBeTruthy();
   });
 
@@ -145,33 +144,7 @@ describe('ShortenFormComponent', () => {
     expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeTruthy();
   });
 
-  it('shows and copies an absolute same-origin link when the production base is relative', async () => {
-    signIn();
-    shortLinkBaseUrl = '';
-    const writeText = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const fixture = await renderForm();
-    const el = fixture.nativeElement as HTMLElement;
-    (el.querySelector('[data-testid="target-url"]') as HTMLInputElement).value =
-      'https://example.com/a';
-    (el.querySelector('[data-testid="target-url"]') as HTMLInputElement).dispatchEvent(
-      new Event('input'),
-    );
-    (el.querySelector('[data-testid="shorten-submit"]') as HTMLButtonElement).click();
-    http.expectOne('/api/links').flush(link(), { status: 201, statusText: 'Created' });
-    await drain();
-    fixture.detectChanges();
-
-    const anchor = el.querySelector('[data-testid="short-link"]') as HTMLAnchorElement;
-    const shareableUrl = 'http://localhost/go/abc12345';
-    expect(anchor.textContent).toBe(shareableUrl);
-    expect(anchor.href).toBe(shareableUrl);
-    (el.querySelector('[data-testid="copy-link"]') as HTMLButtonElement).click();
-    await Promise.resolve();
-    expect(writeText).toHaveBeenCalledWith(shareableUrl);
-  });
-
-  it('copies the short link', async () => {
+  it('copies the server-provided short link', async () => {
     signIn();
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -188,6 +161,6 @@ describe('ShortenFormComponent', () => {
     fixture.detectChanges();
     (el.querySelector('[data-testid="copy-link"]') as HTMLButtonElement).click();
     await Promise.resolve();
-    expect(writeText).toHaveBeenCalledWith('http://localhost:8082/go/abc12345');
+    expect(writeText).toHaveBeenCalledWith('https://tiny.example.com/go/abc12345');
   });
 });

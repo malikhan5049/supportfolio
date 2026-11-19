@@ -1,31 +1,18 @@
 import * as fs from 'fs';
 
-describe('tinyurl activation and deploy-readiness docs', () => {
+describe('tinyurl activation docs', () => {
   it('documents the tinyurl required checks and the manual environment activation', () => {
     const activation = fs.readFileSync('platform/harness/ACTIVATION.md', 'utf8');
-    for (const check of [
-      'tinyurl-backend',
-      'tinyurl-frontend',
-      'tinyurl-image',
-      'tinyurl-k3s-manifests',
-      'tinyurl-arm-smoke',
-      'tinyurl-prod-login',
-    ])
+    for (const check of ['tinyurl-backend', 'tinyurl-frontend', 'tinyurl-image', 'demo-stack'])
       expect(activation).toContain(check);
-    expect(activation).toMatch(/environment protection/i);
-    expect(activation).toContain('CD_ENABLED');
+    // `tinyurl-prod-login` is gone from tools/branch-protection.ts, so the docs must not list it.
+    expect(activation).not.toContain('tinyurl-prod-login');
+    // The CD switch is retired: pin the negation so a re-added requirement fails this gate.
+    expect(activation).toContain('`CD_ENABLED` variable no longer exists');
   });
 
-  it('states that the deploy manifests are reviewed but not deployed here', () => {
-    const readme = fs.readFileSync('projects/tinyurl/deploy/README.md', 'utf8');
-    expect(readme).toMatch(/not deployed|no real cluster|successor/i);
-    expect(readme).toContain('postgres-secret.yaml.template');
-  });
-
-  it('documents the successor registry/origin work now that the fixture is gone', () => {
+  it('documents the demo stack path that replaced the old orchestration deployment surface', () => {
     const readme = fs.readFileSync('projects/tinyurl/README.md', 'utf8');
-    expect(readme).toContain('4201');
-    const activation = fs.readFileSync('platform/harness/ACTIVATION.md', 'utf8');
-    expect(activation).toMatch(/GHCR|package visibility/i);
+    expect(readme).toContain('/apps/tinyurl');
   });
 });

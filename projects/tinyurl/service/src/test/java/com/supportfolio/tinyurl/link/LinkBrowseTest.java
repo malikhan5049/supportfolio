@@ -1,5 +1,7 @@
 package com.supportfolio.tinyurl.link;
 
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +33,8 @@ class LinkBrowseTest extends PostgresIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.links[0].slug").exists())
         .andExpect(jsonPath("$.links[0].targetUrl").exists())
+        .andExpect(jsonPath("$.links[0].shortUrl", startsWith("http://localhost")))
+        .andExpect(jsonPath("$.links[0].shortUrl", endsWith("/go/aaaa0001")))
         .andExpect(jsonPath("$.links[0].clickCount").exists())
         .andExpect(jsonPath("$.links[0].createdAt").exists())
         .andExpect(jsonPath("$.links[0].createdBy").doesNotExist());
@@ -60,6 +64,18 @@ class LinkBrowseTest extends PostgresIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.links").isArray())
         .andExpect(jsonPath("$.links").isEmpty());
+  }
+
+  @Test
+  void buildsAbsoluteShortUrlFromForwardedHeaders() throws Exception {
+    seed("fwdd0001", "https://example.com/fwd", Instant.parse("2026-01-01T00:00:00Z"));
+    mockMvc
+        .perform(
+            get("/api/links")
+                .header("X-Forwarded-Proto", "https")
+                .header("X-Forwarded-Host", "demo.example"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.links[0].shortUrl", startsWith("https://demo.example/go/")));
   }
 
   private UUID seed(String slug, String target, Instant createdAt) {

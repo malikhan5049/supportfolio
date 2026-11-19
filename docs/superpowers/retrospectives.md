@@ -12,6 +12,51 @@
 
 ---
 
+## 2026-11-20 · Plan complete — Showcase deployment via Cloudflare Quick Tunnel (Tasks 1–14, whole-branch review, fix wave)
+
+### What went well?
+
+- Recon-before-design killed two wrong assumptions before any code existed (no `/auth` prefix needed — identity namespaces don't collide; demo login is a flag-gated controller, not a second `IdentityProvider` adapter), and the same recon produced exact signatures that made 14 TDD tasks dispatchable without ambiguity.
+- Per-task TDD with scoped reviews caught the failures that mattered exactly once each: the JWKS file-variant bypass (`JwksController`), the forwarded-host loss (`PreserveHostHeader`), the inert-flag tautology in the seeder test — none reached the branch review.
+- The whole-branch review was pointed at demo-facing failure modes ("what breaks first for the public demo") and found five real ones — the runner leaving demo flags off, a shared rate-limit bucket, a dead GitHub button, a vacuous test, a stale required check — all fixed in one wave.
+
+### What would we like to continue doing?
+
+- Prove deployments against the artifact that will actually run (compose smoke in CI), and keep flag-gated demo surfaces inert by default with tests that can fail (bean-absence assertions, not just count checks).
+- Controllers finishing mechanical verification (formatter runs, container probes) when implementers hit step caps keeps capped sessions from stalling the plan.
+
+### What would we like to stop doing?
+
+- Tasks touching only yaml/scripts still skipped the full `gradlew build` gate locally — Spotless slipped through four times and was caught only in final verification. Run the gate in-task.
+- Markdown is ungated by prettier; a spec heading got mangled (`### Versions### Versions`) and only the reviewer caught it. Consider a heading-sanity check in `tools/`.
+- Long Docker-heavy tasks (compose, CI smoke) exhausted their step caps three times and needed resumes; give such tasks explicit larger budgets or split them.
+
+---
+
+## 2026-11-20 · Model router cost rebalance
+
+### What went well?
+
+- The pre-change review caught three real cost traps before any edit: `@fast` is hard read-only (shell/web/websearch denied), the default 4× `costCeiling` would abort the ladder at 1+8 before heavy, and kimi-k2.7-code medium costs more per token than deepseek-v4-pro heavy.
+- Small config batches (enforcement+rules, coverage, descriptions/fallback, review batching) each followed by a JSONC parse check kept every increment verifiable; the timestamped backup gave a clean rollback path for an out-of-repo config.
+
+### What would we like to continue doing?
+
+- Parse-check the override after every batch and re-read the changed block, even for comment-only edits — a stale comment is still wrong documentation.
+- Gate A/B experiments on a nominated real task at plan start; when none exists, record `deferred — no real task`, keep the incumbent, and finish the plan instead of inventing a synthetic task.
+
+### What would we like to stop doing?
+
+- Stop writing router rules that assume `@fast` can run shell/web commands or fetch URLs; those tasks belong to the orchestrator or `@medium`.
+- Stop leaving `costRatio` values that exceed the configured `costCeiling` ladder (1+8+10=19 required raising the ceiling to 20); check the sum whenever a ratio changes.
+
+## 2026-11-18 · Ruling (task: showcase deployment)
+
+- `Ruling:` Amended two specs marked "read-only records" in place (Oracle/k3s → Cloudflare Quick Tunnel) at the human's explicit request; changes are dated and link the new design.
+- `Ruling:` Edited `platform/shell/config/remote-registry.json` (listed under "Do not touch") to root-relative URLs, required for hostname independence; the file remains hot-read and uncached.
+
+---
+
 ## 2026-11-13 · Task complete — branch/worktree cleanup and archival
 
 ### What went well?

@@ -12,7 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(appRoutes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    provideAuth({ identityLoginBaseUrl: 'http://localhost:8081' }),
+    provideAuth({ identityLoginBaseUrl: '' }),
     provideRemoteRegistry(environment.registryUrl),
     CatalogService,
   ],

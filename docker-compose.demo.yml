@@ -1,0 +1,116 @@
+# Demo stack: Postgres + Identity + TinyURL + Shell + optional Cloudflare tunnel.
+# Run: .\scripts\demo.ps1
+# Reset: docker compose -f docker-compose.demo.yml --profile tunnel down -v
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tinyurl
+      POSTGRES_USER: tinyurl
+      POSTGRES_PASSWORD: tinyurl
+    volumes:
+      - tinyurl-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tinyurl -d tinyurl"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  identity:
+    image: supportfolio/identity:demo
+    environment:
+      GITHUB_CLIENT_ID: demo
+      GITHUB_CLIENT_SECRET: demo
+      SUPPORTFOLIO_IDENTITY_ISSUER: http://identity:8081
+      SUPPORTFOLIO_IDENTITY_DEMO_ENABLED: ${DEMO_ENABLED:-false}
+      SUPPORTFOLIO_IDENTITY_ADMIN_LOGIN: demo
+      SUPPORTFOLIO_IDENTITY_ALLOWLIST: demo
+      SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS: http://localhost:18080
+      SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_FILE: /keys/dev-key.pem
+    volumes:
+      - ./platform/identity/dev-key.pem:/keys/dev-key.pem:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  tinyurl-service:
+    build:
+      context: .
+      dockerfile: projects/tinyurl/Dockerfile
+    image: supportfolio/tinyurl:demo
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tinyurl
+      SUPPORTFOLIO_TINYURL_DB_USER: tinyurl
+      SUPPORTFOLIO_TINYURL_DB_PASSWORD: tinyurl
+      SUPPORTFOLIO_TINYURL_JWK_SET_URI: http://identity:8081/oauth2/jwks
+      SUPPORTFOLIO_TINYURL_ISSUER_URI: http://identity:8081
+      SUPPORTFOLIO_TINYURL_IDENTITY_URI: http://identity:8081
+      SUPPORTFOLIO_TINYURL_DEMO_SEED_ENABLED: ${DEMO_ENABLED:-false}
+      # public demo: shared bucket; per-visitor ids are a future refinement
+      SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR: '200'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+
+  shell:
+    image: supportfolio/shell:demo
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      SUPPORTFOLIO_SHELL_IDENTITY_URI: http://identity:8081
+      SUPPORTFOLIO_SHELL_TINYURL_URI: http://tinyurl-service:8082
+      SUPPORTFOLIO_SHELL_JWK_SET_URI: http://identity:8081/oauth2/jwks
+      SUPPORTFOLIO_SHELL_ISSUER_URI: http://identity:8081
+      SUPPORTFOLIO_SHELL_DEMO_LOGIN_ENABLED: ${DEMO_ENABLED:-false}
+      SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS: ""
+      SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE: /config/remote-registry.json
+    volumes:
+      - ./platform/shell/config/remote-registry.json:/config/remote-registry.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      identity:
+        condition: service_healthy
+      tinyurl-service:
+        condition: service_healthy
+
+  tunnel:
+    profiles:
+      - tunnel
+    image: cloudflare/cloudflared
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --metrics
+      - 0.0.0.0:20241
+      - --url
+      - http://shell:8080
+    # cloudflared ships as a minimal scratch image with no shell or curl, so we
+    # probe liveness by ensuring the binary still responds. The runner script
+    # polls the metrics /ready endpoint and the tunnel logs for the public URL.
+    healthcheck:
+      test: ["CMD", "cloudflared", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      shell:
+        condition: service_healthy
+
+volumes:
+  tinyurl-pgdata:

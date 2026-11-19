@@ -2,6 +2,8 @@
 export interface Link {
   slug: string;
   targetUrl: string;
+  /** Absolute short link built by the server. */
+  shortUrl: string;
   clickCount: number;
   createdAt: string;
 }

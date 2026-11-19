@@ -13,4 +13,5 @@ public record IdentityProperties(
     String jwtPrivateKeyPem,
     @DefaultValue("https://api.github.com") String githubApiBaseUrl,
     @DefaultValue("60") long codeTtlSeconds,
-    @DefaultValue("3600") long accessTokenTtlSeconds) {}
+    @DefaultValue("3600") long accessTokenTtlSeconds,
+    String jwtPrivateKeyFile) {}

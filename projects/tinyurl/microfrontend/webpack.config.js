@@ -1,4 +1,7 @@
-const { shareAll, withModuleFederationPlugin } = require('@angular-architects/module-federation/webpack');
+const {
+  shareAll,
+  withModuleFederationPlugin,
+} = require('@angular-architects/module-federation/webpack');
 
 const mfConfig = withModuleFederationPlugin({
   // Classic container: the shell's runtime loads remote entries via a <script> tag, which expects
@@ -16,5 +19,8 @@ const mfConfig = withModuleFederationPlugin({
 // Angular's webpack builder unconditionally sets output.scriptType: 'module'; a classic script
 // tag cannot parse that runtime (see the identity fixture's comments before it was removed).
 mfConfig.output.scriptType = false;
+
+// Serve under /apps/tinyurl; the runtime resolves chunks relative to the remote entry URL.
+mfConfig.output.publicPath = 'auto';
 
 module.exports = mfConfig;

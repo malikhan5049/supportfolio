@@ -4,22 +4,42 @@ server:
 supportfolio:
   shell:
     identity-uri: ${SUPPORTFOLIO_SHELL_IDENTITY_URI:http://localhost:8081}
+    tinyurl-uri: ${SUPPORTFOLIO_SHELL_TINYURL_URI:http://localhost:8082}
     remote-registry-file: ${SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE:platform/shell/config/remote-registry.json}
     trusted-remote-origins: ${SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS:http://localhost:4201}
+    demo-login-enabled: ${SUPPORTFOLIO_SHELL_DEMO_LOGIN_ENABLED:false}
   security:
     resource-server:
       enabled: true
     jwk-set-uri: ${SUPPORTFOLIO_SHELL_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
     issuer-uri: ${SUPPORTFOLIO_SHELL_ISSUER_URI:http://localhost:8081}
-    permit-paths: /,/index.html,/signin,/auth/callback,/api/remote-registry,/api/token,/auth/login,/oauth2/**,/login/**,/assets/**,/*.js,/*.css,/*.ico
-    csrf-ignore-paths: /api/token
+    permit-paths: /,/index.html,/signin,/auth/callback,/api/remote-registry,/api/token,/api/features,/api/demo-login,/auth/login,/oauth2/**,/login/**,/go/**,/assets/**,/*.js,/*.css,/*.ico,/apps/**,/robots.txt,/actuator/health,/actuator/health/**
+    csrf-ignore-paths: /api/token,/api/demo-login,/apps/*/api/**
 
 spring:
+  web:
+    resources:
+      static-locations: classpath:/static/,file:/app/static/
   cloud:
     gateway:
       server:
         webmvc:
           routes:
+            - id: app-api
+              uri: ${supportfolio.shell.tinyurl-uri}
+              predicates:
+                - Path=/apps/*/api/**
+              filters:
+                - StripPrefix=2
+                - PreserveHostHeader
+            - id: tinyurl-redirect
+              uri: ${supportfolio.shell.tinyurl-uri}
+              predicates:
+                - Path=/go/**
+            - id: identity-demo-login
+              uri: ${supportfolio.shell.identity-uri}
+              predicates:
+                - Path=/api/demo-login
             - id: identity-token
               uri: ${supportfolio.shell.identity-uri}
               predicates:

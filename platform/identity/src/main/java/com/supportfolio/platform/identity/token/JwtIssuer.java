@@ -8,6 +8,9 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.supportfolio.platform.identity.IdentityProperties;
 import com.supportfolio.platform.identity.principal.InternalPrincipal;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -37,11 +40,28 @@ public class JwtIssuer {
     if (properties.issuer() == null || properties.issuer().isBlank()) {
       throw new IllegalStateException("supportfolio.identity.issuer is not configured");
     }
-    RSAPrivateKey privateKey = parsePrivateKeyPem(properties.jwtPrivateKeyPem());
+    RSAPrivateKey privateKey = parsePrivateKeyPem(resolvePrivateKeyPem(properties));
     this.issuer = properties.issuer();
     this.accessTokenTtlSeconds = properties.accessTokenTtlSeconds();
     this.keyId = keyIdOf(publicKeyOf(privateKey));
     this.signer = new RSASSASigner(privateKey);
+  }
+
+  static String resolvePrivateKeyPem(IdentityProperties properties) {
+    String pem = properties.jwtPrivateKeyPem();
+    if (pem != null && !pem.isBlank()) {
+      return pem;
+    }
+    String file = properties.jwtPrivateKeyFile();
+    if (file != null && !file.isBlank()) {
+      try {
+        return Files.readString(Path.of(file));
+      } catch (IOException e) {
+        throw new IllegalStateException(
+            "supportfolio.identity.jwt-private-key-file could not be read", e);
+      }
+    }
+    return pem;
   }
 
   public String issue(InternalPrincipal principal) {

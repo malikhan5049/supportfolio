@@ -11,3 +11,11 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")
 }
+
+tasks.bootJar {
+    archiveFileName = "identity.jar"
+}
+
+tasks.jar {
+    enabled = false
+}

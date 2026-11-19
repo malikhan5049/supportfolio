@@ -75,9 +75,8 @@ class SecurityConfigTest {
   }
 
   @Test
-  void anonymousRequestToADeepProtectedPathIsUnauthorizedInsteadOfTheOauthRedirect()
-      throws Exception {
-    mockMvc.perform(get("/actuator/health")).andExpect(status().isUnauthorized());
+  void actuatorHealthEndpointStaysPublic() throws Exception {
+    mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
   }
 
   @Test

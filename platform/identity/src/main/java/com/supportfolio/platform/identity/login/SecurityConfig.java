@@ -34,7 +34,14 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
             authorize ->
                 authorize
-                    .requestMatchers("/oauth2/jwks", "/api/token", "/login/**", "/auth/login")
+                    .requestMatchers(
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/oauth2/jwks",
+                        "/api/token",
+                        "/api/demo-login",
+                        "/login/**",
+                        "/auth/login")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
@@ -44,7 +51,7 @@ public class SecurityConfig {
                     .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                     .successHandler(loginSuccessHandler)
                     .failureHandler(loginFailureHandler))
-        .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token"))
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/api/token", "/api/demo-login"))
         // A stranger's deep link gets Unauthorized, not a surprise OAuth dance initiated outside
         // the
         // designed /auth/login entry (which 302s to GitHub itself); the fixed 400-after-GitHub flow
