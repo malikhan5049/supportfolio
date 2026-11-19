@@ -48,7 +48,7 @@ npx nx e2e shell-host-e2e                                # shell renders the rea
 npx playwright test --config=projects/tinyurl/ci/playwright.prod.config.ts   # prod login flow (Docker)
 ```
 
-Deploy manifests live in `deploy/` with their own README; nothing here touches a real cluster.
+The demo stack is the current deployment surface; see `docker-compose.demo.yml` and `scripts/demo.ps1`.
 
 ## Demo
 

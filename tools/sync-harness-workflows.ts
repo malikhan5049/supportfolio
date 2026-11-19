@@ -12,7 +12,7 @@ import * as path from 'node:path';
 const CANONICAL = 'platform/harness/workflows';
 const MIRROR = '.github/workflows';
 
-const files = ['backend-ci.yml', 'frontend-ci.yml', 'deploy.yml'];
+const files = ['backend-ci.yml', 'frontend-ci.yml'];
 
 fs.mkdirSync(MIRROR, { recursive: true });
 
