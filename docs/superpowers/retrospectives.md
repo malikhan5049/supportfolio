@@ -12,6 +12,27 @@
 
 ---
 
+## 2026-11-20 · Plan complete — Showcase deployment via Cloudflare Quick Tunnel (Tasks 1–14, whole-branch review, fix wave)
+
+### What went well?
+
+- Recon-before-design killed two wrong assumptions before any code existed (no `/auth` prefix needed — identity namespaces don't collide; demo login is a flag-gated controller, not a second `IdentityProvider` adapter), and the same recon produced exact signatures that made 14 TDD tasks dispatchable without ambiguity.
+- Per-task TDD with scoped reviews caught the failures that mattered exactly once each: the JWKS file-variant bypass (`JwksController`), the forwarded-host loss (`PreserveHostHeader`), the inert-flag tautology in the seeder test — none reached the branch review.
+- The whole-branch review was pointed at demo-facing failure modes ("what breaks first for the public demo") and found five real ones — the runner leaving demo flags off, a shared rate-limit bucket, a dead GitHub button, a vacuous test, a stale required check — all fixed in one wave.
+
+### What would we like to continue doing?
+
+- Prove deployments against the artifact that will actually run (compose smoke in CI), and keep flag-gated demo surfaces inert by default with tests that can fail (bean-absence assertions, not just count checks).
+- Controllers finishing mechanical verification (formatter runs, container probes) when implementers hit step caps keeps capped sessions from stalling the plan.
+
+### What would we like to stop doing?
+
+- Tasks touching only yaml/scripts still skipped the full `gradlew build` gate locally — Spotless slipped through four times and was caught only in final verification. Run the gate in-task.
+- Markdown is ungated by prettier; a spec heading got mangled (`### Versions### Versions`) and only the reviewer caught it. Consider a heading-sanity check in `tools/`.
+- Long Docker-heavy tasks (compose, CI smoke) exhausted their step caps three times and needed resumes; give such tasks explicit larger budgets or split them.
+
+---
+
 ## 2026-11-20 · Model router cost rebalance
 
 ### What went well?
