@@ -15,7 +15,8 @@ public class JwksController {
 
   public JwksController(IdentityProperties properties) {
     RSAPublicKey publicKey =
-        JwtIssuer.publicKeyOf(JwtIssuer.parsePrivateKeyPem(properties.jwtPrivateKeyPem()));
+        JwtIssuer.publicKeyOf(
+            JwtIssuer.parsePrivateKeyPem(JwtIssuer.resolvePrivateKeyPem(properties)));
     RSAKey rsaKey = new RSAKey.Builder(publicKey).keyID(JwtIssuer.keyIdOf(publicKey)).build();
     this.jwks = new JWKSet(rsaKey).toJSONObject(true);
   }

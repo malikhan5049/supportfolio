@@ -47,7 +47,7 @@ public class JwtIssuer {
     this.signer = new RSASSASigner(privateKey);
   }
 
-  private static String resolvePrivateKeyPem(IdentityProperties properties) {
+  static String resolvePrivateKeyPem(IdentityProperties properties) {
     String pem = properties.jwtPrivateKeyPem();
     if (pem != null && !pem.isBlank()) {
       return pem;

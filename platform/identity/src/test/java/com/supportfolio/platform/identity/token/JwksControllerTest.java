@@ -15,11 +15,15 @@ import com.supportfolio.platform.identity.IdentityProperties;
 import com.supportfolio.platform.identity.principal.IdentityRole;
 import com.supportfolio.platform.identity.principal.InternalPrincipal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -65,6 +69,41 @@ class JwksControllerTest {
 
     assertNotNull(firstKid);
     assertEquals(firstKid, secondKid);
+  }
+
+  @Test
+  void constructsFromPrivateKeyFileWhenPemIsBlank() throws Exception {
+    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+    generator.initialize(2048);
+    KeyPair keyPair = generator.generateKeyPair();
+    RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+    String pem = pem(keyPair.getPrivate());
+
+    Path keyFile = Files.createTempFile("jwt-key", ".pem");
+    try {
+      Files.writeString(keyFile, pem);
+      IdentityProperties fileProperties =
+          new IdentityProperties(
+              "http://localhost:8081",
+              "owner-login",
+              List.of("friend-login"),
+              List.of("http://localhost:4200"),
+              "",
+              "https://api.github.com",
+              60,
+              ACCESS_TOKEN_TTL_SECONDS,
+              keyFile.toAbsolutePath().toString());
+
+      JwksController controller = new JwksController(fileProperties);
+      Map<String, Object> jwks = controller.jwks();
+
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> keys = (List<Map<String, Object>>) jwks.get("keys");
+      assertEquals(1, keys.size());
+      assertEquals(JwtIssuer.keyIdOf(publicKey), keys.get(0).get("kid"));
+    } finally {
+      Files.deleteIfExists(keyFile);
+    }
   }
 
   private JWKSet publishedKeys() throws Exception {
