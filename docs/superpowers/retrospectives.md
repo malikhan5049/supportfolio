@@ -12,6 +12,23 @@
 
 ---
 
+## 2026-11-19 -- Plan complete -- showcase-deployment demo stack and tunnel
+
+### What went well?
+
+- Building the TinyURL service jar and microfrontend inside `demo.ps1` keeps the Dockerfile inputs fresh and lets a single command bring the whole stack up.
+- Using `docker compose up -d --build --wait` for the core services meant the script did not need its own health polling logic.
+- Catching the Windows PowerShell 5.1 incompatibility with multi-argument `Join-Path` early (via a minimal repro) avoided a subtle runtime failure on the interviewer's default shell.
+
+### What would we like to continue doing?
+
+- Keep smoke tests against the actual public tunnel URL before declaring the task done; it verifies end-to-end reachability, not just local health.
+- Document reset commands and fallback options (ngrok) directly in the READMEs so the interviewer is not blocked by network-specific issues.
+
+### What would we like to stop doing?
+
+- Writing PowerShell snippets that assume PowerShell 7+ features without testing on Windows PowerShell 5.1; the repo's local default is still 5.1.
+
 ## 2026-11-13 · Task complete — branch/worktree cleanup and archival
 
 ### What went well?
