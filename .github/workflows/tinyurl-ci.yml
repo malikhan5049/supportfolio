@@ -138,6 +138,11 @@ jobs:
         run: |
           openssl genpkey -algorithm RSA -out platform/identity/dev-key.pem -pkeyopt rsa_keygen_bits:2048
 
+      - name: Build demo images
+        run: |
+          docker build -f platform/identity/Dockerfile -t supportfolio/identity:demo .
+          docker build -f platform/shell/Dockerfile -t supportfolio/shell:demo .
+
       - name: Boot observability profile
         run: docker compose -f docker-compose.demo.yml --profile observability up -d --build --wait
 
