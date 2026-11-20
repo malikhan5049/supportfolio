@@ -7,6 +7,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.security:spring-security-oauth2-jose")
+    // Prometheus-format metrics for the management endpoint; version-managed by the Boot BOM.
+    implementation("io.micrometer:micrometer-registry-prometheus")
 
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")

@@ -9,6 +9,7 @@ export const REQUIRED_STATUS_CHECKS = [
   'tinyurl-frontend',
   'tinyurl-image',
   'demo-stack',
+  'observability',
 ];
 
 export interface RepositoryRuleset {

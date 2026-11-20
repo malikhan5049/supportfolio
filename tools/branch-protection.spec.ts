@@ -42,6 +42,7 @@ describe('buildMainBranchRuleset', () => {
         'tinyurl-frontend',
         'tinyurl-image',
         'demo-stack',
+        'observability',
       ]),
     );
   });

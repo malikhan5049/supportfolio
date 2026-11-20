@@ -27,10 +27,12 @@ services:
       SUPPORTFOLIO_IDENTITY_ALLOWLIST: demo
       SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS: http://localhost:18080
       SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_FILE: /keys/dev-key.pem
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT: "9092"
     volumes:
       - ./platform/identity/dev-key.pem:/keys/dev-key.pem:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT:-9092}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -53,8 +55,10 @@ services:
       SUPPORTFOLIO_TINYURL_DEMO_SEED_ENABLED: ${DEMO_ENABLED:-false}
       # public demo: shared bucket; per-visitor ids are a future refinement
       SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR: '200'
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT: "9093"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT:-9093}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -76,10 +80,12 @@ services:
       SUPPORTFOLIO_SHELL_DEMO_LOGIN_ENABLED: ${DEMO_ENABLED:-false}
       SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS: ""
       SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE: /config/remote-registry.json
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_SHELL_MANAGEMENT_PORT: "9091"
     volumes:
       - ./platform/shell/config/remote-registry.json:/config/remote-registry.json:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_SHELL_MANAGEMENT_PORT:-9091}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -112,5 +118,53 @@ services:
       shell:
         condition: service_healthy
 
+  prometheus:
+    profiles:
+      - observability
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.listen-address=0.0.0.0:9090
+    ports:
+      - "127.0.0.1:19090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      # Prometheus ships busybox wget; /-/ready is the documented readiness probe.
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      shell:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+      tinyurl-service:
+        condition: service_healthy
+
+  grafana:
+    profiles:
+      - observability
+    image: grafana/grafana:latest
+    ports:
+      - "127.0.0.1:13000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/supportfolio-services.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
 volumes:
   tinyurl-pgdata:
+  prometheus-data:

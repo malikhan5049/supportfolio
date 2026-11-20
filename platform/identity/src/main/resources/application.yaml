@@ -27,3 +27,27 @@ spring:
         provider:
           github:
             user-info-uri: ${SUPPORTFOLIO_IDENTITY_GITHUB_API_BASE_URL:https://github.com}/user # base overridden in tests
+
+# Actuator lives on a dedicated management port (all endpoints, health included).
+# The management context is intentionally UNAUTHENTICATED by design: the browser chain excludes
+# it via securityMatcher(...), not via permits; the port is never published by docker-compose and
+# never proxied by the shell or the Cloudflare tunnel.
+management:
+  server:
+    port: ${SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT:9092}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
+  metrics:
+    tags:
+      application: identity

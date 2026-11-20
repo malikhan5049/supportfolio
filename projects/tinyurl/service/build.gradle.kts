@@ -20,6 +20,8 @@ dependencies {
     // while the workspace pins 4.1.1 — the shell boots in this combination, so TinyURL reuses it.
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    // Prometheus-format metrics for the management endpoint; version-managed by the Boot BOM.
+    implementation("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
