@@ -2,12 +2,14 @@ package com.supportfolio.platform.sharedstarter.security;
 
 import java.util.Collections;
 import java.util.Locale;
+import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -38,17 +40,24 @@ public class IdentityResourceServerAutoConfiguration {
   /**
    * The single security chain for a service's main HTTP surface.
    *
-   * <p>Actuator endpoints are deliberately outside this chain: they are served on the dedicated,
-   * non-published management port and are unauthenticated by design. Boot 4 applies filter beans —
-   * this chain included — inside the management child context, so the chain must not match
-   * management-endpoint requests at all rather than carrying dead {@code /actuator/**} permits.
+   * <p>When — and only when — a separate management server is configured, actuator endpoint
+   * requests are deliberately outside this chain: Boot 4 applies filter beans (this chain included)
+   * inside the management child context, so the chain must not match them rather than carrying dead
+   * {@code /actuator/**} permits. The rule that follows for adopters: any endpoint request is
+   * outside the chain, therefore every exposed endpoint must live on a management port that is
+   * never published, proxied or tunneled. An endpoint exposed while the management server still
+   * runs on the main port stays inside the chain and needs an explicit permit, exactly as before.
    */
   @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http, SharedSecurityProperties props)
-      throws Exception {
+  SecurityFilterChain securityFilterChain(
+      HttpSecurity http, SharedSecurityProperties props, Environment environment) throws Exception {
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(props.jwkSetUri()).build();
     decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuerUri()));
-    return http.securityMatcher(request -> !EndpointRequest.toAnyEndpoint().matches(request))
+    boolean separateManagementServer =
+        ManagementPortType.get(environment) == ManagementPortType.DIFFERENT;
+    return http.securityMatcher(
+            request ->
+                !separateManagementServer || !EndpointRequest.toAnyEndpoint().matches(request))
         .authorizeHttpRequests(
             authorize -> {
               if (!props.permitGetPaths().isEmpty()) {
