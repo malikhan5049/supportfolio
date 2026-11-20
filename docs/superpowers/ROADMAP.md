@@ -7,7 +7,7 @@
 | 3 — shell/gateway | hot-read registry, CSP, Angular host, shared card | done (PR #17) |
 | 4 — TinyURL | full project slice, deploy-ready artifacts | done (PR #20) |
 | 5 — showcase deployment | local compose + Cloudflare Quick Tunnel, `/apps/<id>/` hosting, demo login | done (PR #47) |
-| 6 — admin-triage | telemetry + triage dashboard, "Add new app" flow | next (not started) |
+| 6 — telemetry | per-service actuator/Prometheus metrics on management ports + observability compose profile; triage dashboard & add-new-app dropped | in progress |
 | future — real hosting | domain, TLS, VPS/cloud, CD | not planned |
 
 Plan documents live in `docs/superpowers/plans/`; designs in `docs/superpowers/specs/`; learnings in `retrospectives.md`. Update this table when a plan merges.
