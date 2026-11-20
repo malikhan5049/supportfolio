@@ -12,7 +12,28 @@
 
 ---
 
-## 2026-11-20 · Plan complete — Showcase deployment via Cloudflare Quick Tunnel (Tasks 1–14, whole-branch review, fix wave)
+## 2026-11-20 · Plan complete — Plan 6 telemetry (Tasks 1–8, whole-branch review, fix wave)
+
+### What went well?
+
+- Recon-before-design plus a builder check caught the plan's one real contradiction (a management port also moves health, breaking every `--wait` probe) before any task existed, and the narrowed scope (human dropped triage + add-new-app) kept the plan small.
+- Per-task TDD with fresh implementers surfaced the real Boot 4.1 behaviour the plan text got wrong (the security chain runs inside the management child context) through measured RED evidence, and the fix loop converged in one round.
+- The final whole-branch review — the one fresh context over the whole diff — caught the single Critical the per-task reviews could not see: the PR-blocking CI job never built the identity/shell images.
+
+### What would we like to continue doing?
+
+- Controller-side plan corrections before dispatch (CI action versions, `npm ci`, ephemeral JWT key) so transcriber implementers never inherit known gaps.
+- Folding cross-task review findings into the next task's dispatch as explicit MUSTs with exact line references, so ownership never dangles.
+- Running the `gradlew build` gate in-task for every yaml-touching change (stood up retro item, kept).
+
+### What would we like to stop doing?
+
+- Stop drafting plan snippets (script param blocks, compose steps, CI job YAML) without reading the actual files first — Task 6's `-WhatIf` premise, its line numbers, and Task 7's missing image-build step were all unverified drafts that cost a final-review Critical.
+- Stop assuming bash-based superpowers scripts run on this Windows host — check for bash at setup time and pick the manual fallback immediately.
+- Stop leaving compose/CI verification claims ambiguous about which surface proved them (image-level vs compose-level healthchecks).
+
+---
+
 
 ### What went well?
 
