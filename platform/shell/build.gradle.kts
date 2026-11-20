@@ -13,6 +13,8 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    // Prometheus-format metrics for the management endpoint; version-managed by the Boot BOM.
+    implementation("io.micrometer:micrometer-registry-prometheus")
 
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
