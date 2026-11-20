@@ -8,6 +8,9 @@ COPY dist/projects/tinyurl/microfrontend/ /app/static/
 
 ENV SPRING_WEB_RESOURCES_STATIC_LOCATIONS=file:/app/static/
 
-EXPOSE 8082
+EXPOSE 8082 9093
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -fsS http://localhost:${SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT:-9093}/actuator/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

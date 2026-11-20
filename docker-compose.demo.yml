@@ -27,10 +27,12 @@ services:
       SUPPORTFOLIO_IDENTITY_ALLOWLIST: demo
       SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS: http://localhost:18080
       SUPPORTFOLIO_IDENTITY_JWT_PRIVATE_KEY_FILE: /keys/dev-key.pem
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT: "9092"
     volumes:
       - ./platform/identity/dev-key.pem:/keys/dev-key.pem:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT:-9092}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -53,8 +55,10 @@ services:
       SUPPORTFOLIO_TINYURL_DEMO_SEED_ENABLED: ${DEMO_ENABLED:-false}
       # public demo: shared bucket; per-visitor ids are a future refinement
       SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR: '200'
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT: "9093"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT:-9093}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -76,10 +80,12 @@ services:
       SUPPORTFOLIO_SHELL_DEMO_LOGIN_ENABLED: ${DEMO_ENABLED:-false}
       SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS: ""
       SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE: /config/remote-registry.json
+      # actuator/management port is container-internal — never published to the host
+      SUPPORTFOLIO_SHELL_MANAGEMENT_PORT: "9091"
     volumes:
       - ./platform/shell/config/remote-registry.json:/config/remote-registry.json:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${SUPPORTFOLIO_SHELL_MANAGEMENT_PORT:-9091}/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
