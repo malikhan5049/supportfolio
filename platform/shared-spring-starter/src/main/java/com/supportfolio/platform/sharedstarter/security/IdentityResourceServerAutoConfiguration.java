@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,12 +35,21 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class IdentityResourceServerAutoConfiguration {
 
+  /**
+   * The single security chain for a service's main HTTP surface.
+   *
+   * <p>Actuator endpoints are deliberately outside this chain: they are served on the dedicated,
+   * non-published management port and are unauthenticated by design. Boot 4 applies filter beans —
+   * this chain included — inside the management child context, so the chain must not match
+   * management-endpoint requests at all rather than carrying dead {@code /actuator/**} permits.
+   */
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http, SharedSecurityProperties props)
       throws Exception {
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(props.jwkSetUri()).build();
     decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuerUri()));
-    return http.authorizeHttpRequests(
+    return http.securityMatcher(request -> !EndpointRequest.toAnyEndpoint().matches(request))
+        .authorizeHttpRequests(
             authorize -> {
               if (!props.permitGetPaths().isEmpty()) {
                 authorize

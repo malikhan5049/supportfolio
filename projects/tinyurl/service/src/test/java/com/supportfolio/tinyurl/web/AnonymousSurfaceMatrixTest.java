@@ -41,9 +41,6 @@ class AnonymousSurfaceMatrixTest extends PostgresIntegrationTest {
         arguments(HttpMethod.GET, "/remoteEntry.js", 200),
         arguments(HttpMethod.GET, "/api/links", 200),
         arguments(HttpMethod.GET, "/go/" + SEEDED_SLUG, 302),
-        arguments(HttpMethod.GET, "/actuator/health", 200),
-        arguments(HttpMethod.GET, "/actuator/health/liveness", 200),
-        arguments(HttpMethod.GET, "/actuator/health/readiness", 200),
         arguments(HttpMethod.GET, "/v3/api-docs", 200),
         arguments(HttpMethod.GET, "/swagger-ui/index.html", 200));
   }
