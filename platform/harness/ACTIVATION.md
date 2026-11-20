@@ -17,7 +17,7 @@ One-time steps for the repo owner to activate this harness.
 
 Deploy-ready means **demonstrated locally, not executed against a real cluster** — the old container-orchestration deployment path was removed in favour of a local Docker Compose demo stack.
 
-9. TinyURL's required checks are listed in `tools/branch-protection.ts`: `tinyurl-backend`, `tinyurl-frontend`, `tinyurl-image`, `demo-stack`. They become required when step 3's PUT re-applies the ruleset (ruleset id confirmed by the first PR run; confirm the check-run names per step 5).
-10. The demo-stack job exercises the compose file, images, and shell routing on every PR. No registry credentials or package visibility are required.
+9. TinyURL's required checks are listed in `tools/branch-protection.ts`: `tinyurl-backend`, `tinyurl-frontend`, `tinyurl-image`, `demo-stack`, `observability`. They become required when step 3's PUT re-applies the ruleset (ruleset id confirmed by the first PR run; confirm the check-run names per step 5).
+10. The demo-stack job exercises the compose file, images, and shell routing on every PR. No registry credentials or package visibility are required. The separate `observability` job boots the `observability` compose profile and asserts the three Prometheus scrape targets report `up` plus a serving Grafana dashboard.
 11. Environment protection for `test`/`prod` is not used: the `deploy-test`/`deploy-prod` jobs were deleted from `.github/workflows/tinyurl-ci.yml` and the `CD_ENABLED` variable no longer exists. Do not create `test`/`prod` environments for this plan; the only deployment surface is the local compose stack exercised by `demo-stack`.
 12. CI always runs the local demo-stack job (`demo-stack`) on the amd64 runner with locally built images and dummy DB values.

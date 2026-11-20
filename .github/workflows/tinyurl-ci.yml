@@ -105,3 +105,68 @@ jobs:
       - name: Tear the demo stack down
         if: always()
         run: docker compose -f docker-compose.demo.yml down -v --remove-orphans
+
+  observability:
+    name: observability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Build application jars and frontends
+        run: |
+          npm ci
+          ./gradlew :platform:identity:bootJar :platform:shell:bootJar :projects:tinyurl:service:bootJar
+          npx nx build shell-host
+          npx nx build tinyurl-microfrontend
+
+      # Same reason as demo-stack: CI has no gitignored JWT key, so Docker would create an
+      # empty directory at the bind-mount path and identity would fail to boot.
+      - name: Generate ephemeral demo JWT key
+        run: |
+          openssl genpkey -algorithm RSA -out platform/identity/dev-key.pem -pkeyopt rsa_keygen_bits:2048
+
+      - name: Boot observability profile
+        run: docker compose -f docker-compose.demo.yml --profile observability up -d --build --wait
+
+      - name: Assert all scrape targets are up
+        run: |
+          for i in $(seq 1 30); do
+            targets=$(curl -fsS http://127.0.0.1:19090/api/v1/targets || true)
+            healthy=$(echo "$targets" | jq -r '[.data.activeTargets[] | select(.labels.job | startswith("supportfolio-")) | .health] | unique | join(",")')
+            count=$(echo "$targets" | jq -r '[.data.activeTargets[] | select(.labels.job | startswith("supportfolio-"))] | length')
+            if [ "$healthy" = "up" ] && [ "$count" = "3" ]; then
+              echo "all three targets up"
+              exit 0
+            fi
+            echo "attempt $i: health=$healthy count=$count"
+            sleep 5
+          done
+          echo "::error::Prometheus scrape targets did not converge to 3x up"
+          docker compose -f docker-compose.demo.yml logs --tail=200
+          exit 1
+
+      - name: Assert grafana is serving the dashboard
+        run: |
+          curl -fsS http://127.0.0.1:13000/api/health
+          curl -fsS "http://127.0.0.1:13000/api/search?query=Supportfolio" | grep -q supportfolio-services
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.demo.yml logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.demo.yml --profile observability down -v --remove-orphans

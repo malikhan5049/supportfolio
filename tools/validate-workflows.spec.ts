@@ -168,16 +168,31 @@ describe('tinyurl-ci.yml', () => {
   it('waits for the demo stack container health before running the browser flow', () => {
     const compose: any = yaml.load(fs.readFileSync('docker-compose.demo.yml', 'utf8'));
     expect(compose.services['tinyurl-service'].healthcheck.test.join(' ')).toContain(
-      'http://localhost:8082/actuator/health',
+      'SUPPORTFOLIO_TINYURL_MANAGEMENT_PORT:-9093',
     );
     expect(compose.services.shell.healthcheck.test.join(' ')).toContain(
-      'http://localhost:8080/actuator/health',
+      'SUPPORTFOLIO_SHELL_MANAGEMENT_PORT:-9091',
+    );
+    expect(compose.services.identity.healthcheck.test.join(' ')).toContain(
+      'SUPPORTFOLIO_IDENTITY_MANAGEMENT_PORT:-9092',
     );
   });
 
   it('enables demo login and seeding for the demo-stack job', () => {
     const job: any = entry().jobs['demo-stack'];
     expect(job.env.DEMO_ENABLED).toBe('true');
+  });
+
+  it('proves the observability profile in its own short, PR-blocking job', () => {
+    const job: any = entry().jobs['observability'];
+    expect(job).toBeDefined();
+    expect(job['runs-on']).toBe('ubuntu-latest');
+    expect(job['timeout-minutes']).toBe(10);
+    const raw = JSON.stringify(job);
+    expect(raw).toContain('--profile observability');
+    expect(raw).toContain('http://127.0.0.1:19090/api/v1/targets');
+    expect(raw).toContain('http://127.0.0.1:13000/api/search?query=Supportfolio');
+    expect(raw).toContain('down -v --remove-orphans');
   });
 });
 
