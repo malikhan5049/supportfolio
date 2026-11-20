@@ -36,6 +36,9 @@ public class SecurityConfig {
       LoginSuccessHandler loginSuccessHandler,
       LoginFailureHandler loginFailureHandler)
       throws Exception {
+    // Identity always binds a separate management port in production (9092 by default), so this
+    // exclusion is unconditional. The shared starter's conditional ManagementPortType.DIFFERENT
+    // guard is the pattern for services that may co-host actuator on the main port.
     http.securityMatcher(request -> !EndpointRequest.toAnyEndpoint().matches(request))
         .authorizeHttpRequests(
             authorize ->
