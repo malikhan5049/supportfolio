@@ -118,5 +118,53 @@ services:
       shell:
         condition: service_healthy
 
+  prometheus:
+    profiles:
+      - observability
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.listen-address=0.0.0.0:9090
+    ports:
+      - "127.0.0.1:19090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      # Prometheus ships busybox wget; /-/ready is the documented readiness probe.
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      shell:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+      tinyurl-service:
+        condition: service_healthy
+
+  grafana:
+    profiles:
+      - observability
+    image: grafana/grafana:latest
+    ports:
+      - "127.0.0.1:13000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/supportfolio-services.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
 volumes:
   tinyurl-pgdata:
+  prometheus-data:

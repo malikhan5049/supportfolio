@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: supportfolio-shell
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["shell:9091"]
+
+  - job_name: supportfolio-identity
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["identity:9092"]
+
+  - job_name: supportfolio-tinyurl
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["tinyurl-service:9093"]

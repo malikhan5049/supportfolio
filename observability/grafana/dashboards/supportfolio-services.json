@@ -1,0 +1,72 @@
+{
+  "uid": "supportfolio-services",
+  "title": "Supportfolio services",
+  "tags": ["supportfolio"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "Application",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "supportfolio-prometheus" },
+        "query": "label_values(jvm_memory_used_bytes, application)",
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Scrape target up",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "supportfolio-prometheus" },
+      "targets": [
+        { "expr": "up{job=~\"supportfolio-.*\"}", "legendFormat": "{{job}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM heap used bytes",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "supportfolio-prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (application) (jvm_memory_used_bytes{area=\"heap\",application=~\"$app\"})",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP requests / second",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "supportfolio-prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{application=~\"$app\"}[5m]))",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP mean latency (s)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "supportfolio-prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (application) (rate(http_server_requests_seconds_sum{application=~\"$app\"}[5m])) / sum by (application) (rate(http_server_requests_seconds_count{application=~\"$app\"}[5m]))",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
