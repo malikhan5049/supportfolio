@@ -75,11 +75,6 @@ class SecurityConfigTest {
   }
 
   @Test
-  void actuatorHealthEndpointStaysPublic() throws Exception {
-    mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
-  }
-
-  @Test
   void nonAllowlistedRedirectIsRejectedBeforeTheGithubDanceStarts() throws Exception {
     mockMvc
         .perform(get("/auth/login").param("redirect", "https://evil.example.com/hook"))

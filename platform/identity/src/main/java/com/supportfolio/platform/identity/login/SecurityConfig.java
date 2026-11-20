@@ -7,6 +7,7 @@ import com.supportfolio.platform.identity.token.JwtIssuer;
 import com.supportfolio.platform.identity.token.OneTimeCodeStore;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +19,10 @@ import org.springframework.web.client.RestClient;
  * The single security configuration for the browser-facing GitHub OAuth2 login flow. Public surface
  * is exactly the login contract: the JWKS endpoint, the token exchange, the login pages, and the
  * redirect-gated login entry point; everything else requires an authenticated session.
+ *
+ * <p>Actuator endpoints are deliberately outside this chain: they are served on the dedicated,
+ * non-published management port and are unauthenticated by design. This chain therefore does not
+ * match management-endpoint requests at all rather than carrying dead {@code /actuator/**} permits.
  */
 @Configuration
 @EnableWebSecurity
@@ -31,17 +36,12 @@ public class SecurityConfig {
       LoginSuccessHandler loginSuccessHandler,
       LoginFailureHandler loginFailureHandler)
       throws Exception {
-    http.authorizeHttpRequests(
+    http.securityMatcher(request -> !EndpointRequest.toAnyEndpoint().matches(request))
+        .authorizeHttpRequests(
             authorize ->
                 authorize
                     .requestMatchers(
-                        "/actuator/health",
-                        "/actuator/health/**",
-                        "/oauth2/jwks",
-                        "/api/token",
-                        "/api/demo-login",
-                        "/login/**",
-                        "/auth/login")
+                        "/oauth2/jwks", "/api/token", "/api/demo-login", "/login/**", "/auth/login")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
