@@ -9,6 +9,10 @@
   Start the stack with demo login and demo seeding disabled (DEMO_ENABLED=false).
   Use this to reproduce the inert-flag check on demand.
 
+.PARAMETER Observability
+  Also start the observability profile (Prometheus + Grafana). Metrics ports are never
+  published publicly; Grafana is on http://localhost:13000.
+
 .EXAMPLE
   .\scripts\demo.ps1
 
@@ -21,7 +25,8 @@
 [CmdletBinding()]
 param(
   [switch]$NoTunnel,
-  [switch]$NoDemo
+  [switch]$NoDemo,
+  [switch]$Observability
 )
 
 Set-StrictMode -Version Latest
@@ -84,6 +89,13 @@ try {
   Write-Host 'Starting core demo stack...' -ForegroundColor Cyan
   docker compose -f docker-compose.demo.yml up -d --wait
 
+  if ($Observability) {
+    Write-Host 'Starting observability profile (Prometheus + Grafana)...' -ForegroundColor Cyan
+    docker compose -f docker-compose.demo.yml --profile observability up -d --wait
+    Write-Host 'Prometheus: http://localhost:19090' -ForegroundColor Green
+    Write-Host 'Grafana:    http://localhost:13000 (anonymous viewer)' -ForegroundColor Green
+  }
+
   if ($NoTunnel) {
     Write-Host 'Core stack is healthy (tunnel skipped).' -ForegroundColor Green
     Write-Host "Shell is available at http://localhost:18080"
@@ -116,12 +128,20 @@ try {
     }
   }
 
+  # The reset note must list every profile that may be running: the observability
+  # profile is only mentioned when the runner actually started it, so the default
+  # output stays identical to the pre-switch script.
+  $resetProfiles = '--profile tunnel'
+  if ($Observability) {
+    $resetProfiles = '--profile observability --profile tunnel'
+  }
+
   $note = @"
 
 Keep this laptop awake while the demo is in use.
 
 Reset command (destroys the database volume):
-  docker compose -f docker-compose.demo.yml --profile tunnel down -v
+  docker compose -f docker-compose.demo.yml $resetProfiles down -v
 "@
   Write-Host $note -ForegroundColor Yellow
 }
