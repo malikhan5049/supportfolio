@@ -254,9 +254,10 @@ Brief run: 2026-11-22 (`npx tsx tools/retro-brief.ts`)
 4. `retro-validate.ts` computes the required set from the register (opened on or before the
    plan date, and not closed before it) and fails on a missing ID or an empty reason.
 5. The gate applies to plans dated **after** 2026-11-22, the adoption date. The plan date is
-   the filename prefix (`YYYY-MM-DD-*.md`), falling back to a `**Date:**` header. CI checks
-   only plans added or modified in the pull request; `--all` scans every in-scope plan. The
-   build plan for this system is the bootstrap plan and is exempt.
+   the filename prefix (`YYYY-MM-DD-*.md`), falling back to a `**Date:**` header. CI runs
+   `--all`, scanning every in-scope plan — a superset of the changed-in-PR set, and cheap
+   because the date cutoff bounds it. The build plan for this system is the bootstrap plan
+   and is exempt.
 
 ### 8.7 ROADMAP join
 
