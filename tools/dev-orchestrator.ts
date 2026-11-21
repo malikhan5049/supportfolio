@@ -8,18 +8,28 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 
+import { resolveOrder } from './dev-orchestrator/closure';
 import {
   loadPlatformManifest,
   loadProjectManifests,
   shellAppFromManifest,
+  type PlatformManifest,
+  type ProjectManifest,
 } from './dev-orchestrator/manifests';
 import { buildProcessPlan, type PlanMode, type ResolvedPlan } from './dev-orchestrator/plan';
-import { checkPortsFree } from './dev-orchestrator/ports';
+import {
+  checkPortsFree,
+  collectPlannedPorts,
+  findPortConflicts,
+  type PortConflict,
+} from './dev-orchestrator/ports';
 import { generateDevRegistry } from './dev-orchestrator/registry';
 
 const USAGE = 'usage: tsx tools/dev-orchestrator.ts <plan|watch> <app> [--build-watch]';
 const BUILD_WATCH_FLAG = '--build-watch';
 const DEFAULT_APP_ID = 'shell';
+/** Host app: its local section lives in the platform manifest's `surface.local`, not in a project. */
+const SURFACE_APP_ID = 'shell';
 const PLATFORM_MANIFEST = ['platform', 'project.manifest.yaml'];
 const DEV_KEY_FILE = ['platform', 'identity', 'dev-key.pem'];
 const ENV_FILE = '.env';
@@ -48,6 +58,18 @@ export interface MainOptions {
   env?: Record<string, string>;
 }
 
+/** The manifests the plan was resolved from: the only source of truth for the planned ports. */
+export interface PlanContext {
+  appId: string;
+  manifests: ProjectManifest[];
+  platform: PlatformManifest;
+}
+
+interface ResolvedDevPlan {
+  plan: ResolvedPlan;
+  context: PlanContext;
+}
+
 export function parseArgs(argv: string[]): DevArgs {
   const [command, ...rest] = argv;
   if (command !== 'plan' && command !== 'watch') {
@@ -71,9 +93,13 @@ export function parseArgs(argv: string[]): DevArgs {
 
 /**
  * Fails in a fixed order so the first message is always the next thing to fix:
- * missing `.env` → missing identity dev key → busy planned port. Generates nothing.
+ * missing `.env` → missing identity dev key → duplicated or busy planned port. Generates nothing.
  */
-export async function runPreflight(plan: ResolvedPlan, env: Record<string, string>): Promise<void> {
+export async function runPreflight(
+  plan: ResolvedPlan,
+  env: Record<string, string>,
+  context?: PlanContext,
+): Promise<void> {
   const repoRoot = repoRootOf(plan.registryPath);
 
   const envFile = env[ENV_FILE_OVERRIDE] ?? path.join(repoRoot, ENV_FILE);
@@ -88,13 +114,19 @@ export async function runPreflight(plan: ResolvedPlan, env: Record<string, strin
     );
   }
 
-  const planned = plannedPorts(plan);
-  const busy = await checkPortsFree(planned.map((entry) => entry.port));
-  for (const { port } of busy) {
-    const owner = planned.find((entry) => entry.port === port)?.owner ?? 'unknown';
-    throw new Error(
-      `port ${port} is in use (owner: ${owner}) \u2014 find it with: netstat -ano | findstr :${port}`,
-    );
+  // Without the manifests there are no planned ports to derive; the CLI always passes them.
+  if (!context) {
+    return;
+  }
+
+  const planned = plannedPorts(context);
+  const [duplicate] = findPortConflicts(planned, context.platform);
+  if (duplicate) {
+    throw new Error(busyPortMessage(duplicate));
+  }
+
+  for (const { port } of await checkPortsFree(planned)) {
+    throw new Error(busyPortMessage({ port, owner: ownerOf(port, context.platform) }));
   }
 }
 
@@ -102,14 +134,14 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
   const repoRoot = options.repoRoot ?? process.cwd();
   try {
     const { command, app, buildWatch } = parseArgs(argv);
-    const plan = buildPlan(app, repoRoot, buildWatch);
+    const { plan, context } = buildPlan(app, repoRoot, buildWatch);
 
     if (command === 'plan') {
       console.log(JSON.stringify(plan, null, 2));
       return 0;
     }
 
-    await runPreflight(plan, options.env ?? {});
+    await runPreflight(plan, options.env ?? {}, context);
 
     // The registry mirrors what dev actually runs: project manifests only.
     mkdirSync(path.dirname(plan.registryPath), { recursive: true });
@@ -118,7 +150,7 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
     // `concurrently` is an ESM-only dependency installed with the devDependencies task; the
     // specifier stays indirect so this module type-checks before the package exists on disk.
     const { concurrently } = (await import(CONCURRENTLY_MODULE)) as ConcurrentlyModule;
-    await concurrently(
+    const results = await concurrently(
       plan.processes.map((process) => ({
         command: process.command,
         name: process.name,
@@ -126,14 +158,39 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
       })),
       { killOthersOn: ['failure'], prefix: 'name' },
     );
-    return 0;
+    return anyChildFailed(results) ? 1 : 0;
   } catch (error) {
     console.error(getMessage(error));
     return 1;
   }
 }
 
-function buildPlan(app: string | undefined, repoRoot: string, buildWatch: boolean): ResolvedPlan {
+/** Every port the plan binds, in dependency order — read from the manifests, never scraped. */
+export function plannedPorts(context: PlanContext): number[] {
+  const order = resolveOrder(context.appId, context.manifests, context.platform);
+  return collectPlannedPorts(order, manifestsWithSurface(context), context.platform);
+}
+
+/**
+ * The host app's local section (its frontend port) lives in the platform manifest's
+ * `surface.local`, so the port collector only sees it through a synthetic app entry — the same
+ * trick `buildProcessPlan` plays for the trusted origins.
+ */
+function manifestsWithSurface(context: PlanContext): ProjectManifest[] {
+  if (!context.platform.surface?.local) {
+    return context.manifests;
+  }
+  if (context.manifests.some((manifest) => manifest.id === SURFACE_APP_ID)) {
+    return context.manifests;
+  }
+  return [...context.manifests, shellAppFromManifest(context.platform)];
+}
+
+function buildPlan(
+  app: string | undefined,
+  repoRoot: string,
+  buildWatch: boolean,
+): ResolvedDevPlan {
   const appId = app ?? DEFAULT_APP_ID;
   const manifests = loadProjectManifests(repoRoot);
   const platform = loadPlatformManifest(path.join(repoRoot, ...PLATFORM_MANIFEST));
@@ -148,7 +205,10 @@ function buildPlan(app: string | undefined, repoRoot: string, buildWatch: boolea
   }
 
   const mode: PlanMode = buildWatch ? 'build-watch' : 'serve';
-  return buildProcessPlan(mode, manifest, manifests, platform, repoRoot);
+  return {
+    plan: buildProcessPlan(mode, manifest, manifests, platform, repoRoot),
+    context: { appId: manifest.id, manifests, platform },
+  };
 }
 
 /** `<root>/platform/shell/config/remote-registry.dev.json` → `<root>`. */
@@ -156,23 +216,31 @@ function repoRootOf(registryPath: string): string {
   return path.resolve(registryPath, '..', '..', '..', '..');
 }
 
+/** The port's owner is the reserved-port entry, so the message names a service, not a process. */
+function ownerOf(port: number, platform: PlatformManifest): string {
+  return platform.reservedPorts.find((entry) => entry.port === port)?.owner ?? 'unknown';
+}
+
+function busyPortMessage({ port, owner }: PortConflict): string {
+  return `port ${port} is in use (owner: ${owner}) \u2014 find it with: netstat -ano | findstr :${port}`;
+}
+
 /**
- * Ports the resolved plan actually binds: `--port <p>`, `localhost:<p>`, `127.0.0.1:<p>`.
- * The first process naming a port owns it for the failure message.
+ * `killOthersOn: ['failure']` stops the siblings but still resolves, so the exit codes are the
+ * only signal that a child crashed: `watch` must not report success over a dead stack.
  */
-function plannedPorts(plan: ResolvedPlan): { port: number; owner: string }[] {
-  const seen = new Map<number, string>();
-  for (const process of plan.processes) {
-    for (const match of process.command.matchAll(
-      /--port[= ](\d+)|localhost:(\d+)|127\.0\.0\.1:(\d+)/g,
-    )) {
-      const port = Number(match[1] ?? match[2] ?? match[3]);
-      if (!seen.has(port)) {
-        seen.set(port, process.name);
-      }
-    }
+function anyChildFailed(results: unknown): boolean {
+  if (!Array.isArray(results)) {
+    return false;
   }
-  return [...seen].map(([port, owner]) => ({ port, owner }));
+
+  return results.some((result: unknown) => {
+    if (typeof result !== 'object' || result === null) {
+      return false;
+    }
+    const exitCode = (result as { exitCode?: unknown }).exitCode;
+    return typeof exitCode === 'number' && exitCode !== 0;
+  });
 }
 
 function getMessage(error: unknown): string {

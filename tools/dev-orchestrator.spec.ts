@@ -11,7 +11,9 @@ import * as path from 'node:path';
 jest.mock('concurrently', () => ({ concurrently: jest.fn(async () => []) }), { virtual: true });
 
 import type { ResolvedPlan } from './dev-orchestrator/plan';
-import { main, parseArgs, runPreflight } from './dev-orchestrator';
+import { main, parseArgs, plannedPorts, runPreflight, type PlanContext } from './dev-orchestrator';
+import { loadPlatformManifest, loadProjectManifests } from './dev-orchestrator/manifests';
+import { checkPortsFree } from './dev-orchestrator/ports';
 
 type ConcurrentlyModule = { concurrently: jest.Mock };
 
@@ -19,6 +21,8 @@ const concurrently = jest.requireMock<ConcurrentlyModule>('concurrently').concur
 
 const repoRoot = path.join(__dirname, '..');
 const USAGE = 'usage: tsx tools/dev-orchestrator.ts <plan|watch> <app> [--build-watch]';
+/** Every port the real `shell` plan binds — the host surface's 4200 included. */
+const SHELL_PLANNED_PORTS = [4200, 4201, 5432, 8080, 8081, 8082, 9091, 9092, 9093];
 
 function tempRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'dev-orchestrator-'));
@@ -28,8 +32,39 @@ function registryPathIn(root: string): string {
   return path.join(root, 'platform', 'shell', 'config', 'remote-registry.dev.json');
 }
 
-/** A plan shaped like `buildProcessPlan` output, with commands under test control. */
-function fakePlan(root: string, commands: string[]): ResolvedPlan {
+/** Real manifests and platform, so the planned ports are the ones a developer would really get. */
+function realContext(): PlanContext {
+  return {
+    appId: 'shell',
+    manifests: loadProjectManifests(repoRoot),
+    platform: loadPlatformManifest(path.join(repoRoot, 'platform', 'project.manifest.yaml')),
+  };
+}
+
+async function portsAreFree(): Promise<boolean> {
+  return (await checkPortsFree(plannedPorts(realContext()))).length === 0;
+}
+
+/**
+ * Binds one of the plan's real ports. A locally running stack may already own it — the port is
+ * busy either way, which is exactly what preflight must refuse.
+ */
+async function occupyPlannedPort(port: number): Promise<() => Promise<void>> {
+  const server = net.createServer();
+  const bound = await new Promise<boolean>((resolve) => {
+    // Bind every interface, like ports.spec.ts: `localhost` may resolve to ::1 first.
+    server.once('error', () => resolve(false));
+    server.listen(port, () => resolve(true));
+  });
+
+  if (!bound) {
+    return async () => undefined;
+  }
+  return () => new Promise<void>((resolve) => server.close(() => resolve()));
+}
+
+/** A plan shaped like `buildProcessPlan` output, with only the registry path under test control. */
+function fakePlan(root: string, commands: string[] = []): ResolvedPlan {
   return {
     processes: commands.map((command, index) => ({
       name: `proc-${index}`,
@@ -58,27 +93,26 @@ function writeDevKey(root: string): string {
   return keyFile;
 }
 
-async function bindBusyPort(): Promise<{ port: number; close: () => Promise<void> }> {
-  const server = net.createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    // Bind every interface, like ports.spec.ts: `localhost` may resolve to ::1 first.
-    server.listen(0, () => resolve());
-  });
-  const address = server.address();
-  if (address === null || typeof address === 'string') {
-    throw new Error('expected a TCP address from the busy-port fixture');
-  }
+/** Preflight env overrides pointing at a temp `.env` and dev key. */
+function watchEnv(root: string): Record<string, string> {
   return {
-    port: address.port,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    SUPPORTFOLIO_DEV_ENV_FILE: writeEnvFile(root),
+    SUPPORTFOLIO_DEV_KEY_FILE: writeDevKey(root),
   };
 }
 
-async function freePortNumber(): Promise<number> {
-  const { port, close } = await bindBusyPort();
-  await close();
-  return port;
+/** The committed registry lives under the repo root: snapshot it and put it back afterwards. */
+function preserveRegistry(): () => void {
+  const registryPath = registryPathIn(repoRoot);
+  const previous = fs.existsSync(registryPath) ? fs.readFileSync(registryPath, 'utf8') : undefined;
+
+  return () => {
+    if (previous === undefined) {
+      fs.rmSync(registryPath, { force: true });
+    } else {
+      fs.writeFileSync(registryPath, previous, 'utf8');
+    }
+  };
 }
 
 function planIds(registryText: string): string[] {
@@ -110,6 +144,12 @@ describe('parseArgs', () => {
   });
 });
 
+describe('plannedPorts', () => {
+  it('derives every port the real shell plan binds, host surface included', () => {
+    expect(plannedPorts(realContext()).sort((a, b) => a - b)).toEqual(SHELL_PLANNED_PORTS);
+  });
+});
+
 describe('runPreflight', () => {
   it('fails first on a missing .env, naming scripts/dev-secrets.ps1', async () => {
     const root = tempRoot();
@@ -128,32 +168,43 @@ describe('runPreflight', () => {
     );
   });
 
-  it('reports every busy planned port only after both files exist', async () => {
+  it('refuses to start when a planned port is taken, naming the manifest owner', async () => {
     const root = tempRoot();
     writeEnvFile(root);
     writeDevKey(root);
-    const busy = await bindBusyPort();
+
+    const context = realContext();
+    const release = await occupyPlannedPort(4200);
 
     try {
-      await expect(
-        runPreflight(fakePlan(root, [`npx nx serve shell-host --port ${busy.port}`]), {}),
-      ).rejects.toThrow(
-        `port ${busy.port} is in use (owner: proc-0) \u2014 find it with: netstat -ano | findstr :${busy.port}`,
+      const busy = await checkPortsFree(plannedPorts(context));
+      expect(busy.length).toBeGreaterThan(0);
+
+      const [first] = busy;
+      const owner =
+        context.platform.reservedPorts.find((entry) => entry.port === first.port)?.owner ??
+        'unknown';
+
+      await expect(runPreflight(fakePlan(root), {}, context)).rejects.toThrow(
+        `port ${first.port} is in use (owner: ${owner}) \u2014 find it with: netstat -ano | findstr :${first.port}`,
       );
     } finally {
-      await busy.close();
+      await release();
     }
   });
 
-  it('resolves when the files exist and the planned ports are free', async () => {
+  it('resolves when the files exist and every planned port is free', async () => {
     const root = tempRoot();
     writeEnvFile(root);
     writeDevKey(root);
-    const free = await freePortNumber();
 
-    await expect(
-      runPreflight(fakePlan(root, [`npx nx serve shell-host --port ${free}`]), {}),
-    ).resolves.toBeUndefined();
+    if (!(await portsAreFree())) {
+      // A stack already running locally owns the ports this plan needs; the occupied-port case
+      // above covers that branch, and resolution can only be shown on a machine with them free.
+      return;
+    }
+
+    await expect(runPreflight(fakePlan(root), {}, realContext())).resolves.toBeUndefined();
   });
 });
 
@@ -201,21 +252,18 @@ describe('main', () => {
   });
 
   it('writes a project-only registry and spawns the plan under concurrently', async () => {
+    if (!(await portsAreFree())) {
+      // Preflight legitimately refuses while a local stack owns the planned ports.
+      return;
+    }
+
     await main(['plan', 'shell'], { repoRoot });
     const plan = printedPlan();
     const registryPath = plan.registryPath;
-    const previousRegistry = fs.existsSync(registryPath)
-      ? fs.readFileSync(registryPath, 'utf8')
-      : undefined;
-    const root = tempRoot();
-    const envFile = writeEnvFile(root);
-    const devKey = writeDevKey(root);
+    const restoreRegistry = preserveRegistry();
 
     try {
-      const code = await main(['watch', 'shell'], {
-        repoRoot,
-        env: { SUPPORTFOLIO_DEV_ENV_FILE: envFile, SUPPORTFOLIO_DEV_KEY_FILE: devKey },
-      });
+      const code = await main(['watch', 'shell'], { repoRoot, env: watchEnv(tempRoot()) });
 
       expect(code).toBe(0);
       // Registry scope: project manifests only — the shell surface is never an app entry.
@@ -236,11 +284,29 @@ describe('main', () => {
       );
       expect(options).toEqual({ killOthersOn: ['failure'], prefix: 'name' });
     } finally {
-      if (previousRegistry === undefined) {
-        fs.rmSync(registryPath, { force: true });
-      } else {
-        fs.writeFileSync(registryPath, previousRegistry, 'utf8');
-      }
+      restoreRegistry();
+    }
+  });
+
+  it('exits 1 when a child crashes, even though concurrently resolves', async () => {
+    if (!(await portsAreFree())) {
+      return;
+    }
+
+    concurrently.mockResolvedValueOnce([
+      { name: 'identity', exitCode: 0 },
+      { name: 'shell', exitCode: 1 },
+    ]);
+    const restoreRegistry = preserveRegistry();
+
+    try {
+      const code = await main(['watch', 'shell'], { repoRoot, env: watchEnv(tempRoot()) });
+
+      // `killOthersOn: ['failure']` stops the siblings but resolves: the exit code must not lie.
+      expect(concurrently).toHaveBeenCalledTimes(1);
+      expect(code).toBe(1);
+    } finally {
+      restoreRegistry();
     }
   });
 
