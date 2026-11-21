@@ -44,18 +44,14 @@ type RegisterRow = {
 };
 
 /**
- * Validates one entry file (rules 1, 2, 3 and 5). `opts.all` marks a full-history record, whose
- * length is not capped and which therefore is not checked against the hot cap.
+ * Validates one entry file (rules 1, 2, 3 and 5). The hot cap is unconditional: no option or
+ * caller can widen an entry file past {@link MAX_HOT_ENTRIES}.
  */
-export function validateEntries(
-  path: string,
-  text: string,
-  opts: { all?: boolean } = {},
-): string[] {
+export function validateEntries(path: string, text: string): string[] {
   const violations: string[] = [];
   const blocks = splitEntryBlocks(text);
 
-  if (!opts.all && blocks.length > MAX_HOT_ENTRIES) {
+  if (blocks.length > MAX_HOT_ENTRIES) {
     violations.push(
       violation(
         path,
@@ -203,10 +199,13 @@ export function validateRegister(path: string, text: string): string[] {
 
 /**
  * Validates the given files, or the two records by default. Returns the process exit code: 0 when
- * nothing was reported, 1 otherwise. Every cited ID is checked against the register only when one
- * of the given files is a register.
+ * nothing was reported, 1 otherwise. Every cited ID is checked against the register; validating
+ * entry files without one is itself a violation, so a missing register can never pass silently.
+ *
+ * `_opts.all` is reserved for a wider scan scope and is deliberately unread here: no option
+ * changes a rule, and the hot cap in particular applies to every entry file.
  */
-export function main(paths: string[] = DEFAULT_TARGETS, opts: { all?: boolean } = {}): number {
+export function main(paths: string[] = DEFAULT_TARGETS, _opts: { all?: boolean } = {}): number {
   const violations: string[] = [];
   const entries: Array<{ path: string; text: string }> = [];
   const registerIds = new Set<string>();
@@ -239,7 +238,7 @@ export function main(paths: string[] = DEFAULT_TARGETS, opts: { all?: boolean } 
       default: {
         entries.push({ path, text });
         entryCount += splitEntryBlocks(text).length;
-        violations.push(...validateEntries(path, text, opts));
+        violations.push(...validateEntries(path, text));
       }
     }
   }
@@ -248,6 +247,10 @@ export function main(paths: string[] = DEFAULT_TARGETS, opts: { all?: boolean } 
     for (const entry of entries) {
       violations.push(...checkReferences(entry.path, entry.text, registerIds));
     }
+  } else if (entries.length > 0) {
+    violations.push(
+      violation(entries[0].path, 1, 'no register supplied; cross-file ID checks were skipped'),
+    );
   }
 
   if (violations.length > 0) {

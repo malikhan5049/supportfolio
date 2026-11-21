@@ -1,5 +1,6 @@
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { main } from './retro-validate';
+import { main, validateEntries } from './retro-validate';
 
 const fixture = (n: string) => resolve(__dirname, 'fixtures', 'retro', n);
 
@@ -48,5 +49,32 @@ describe('retro-validate: entries, dispositions, register', () => {
 
   it('rejects a row with a fourth carry', () => {
     expect(run('valid-hot.md', 'bad-register.md').out).toMatch(/RA-014: Carried is 4; max is 3/);
+  });
+});
+
+describe('retro-validate: references are never skipped and the cap never lifts', () => {
+  it('exits 1 when entry files are validated without a register', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main([fixture('valid-hot.md')]);
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(code).toBe(1);
+    expect(out).toMatch(/valid-hot\.md:1: no register supplied; cross-file ID checks were skipped/);
+  });
+
+  it('applies the hot cap even when main is asked for all entries', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main([fixture('over-cap.md'), fixture('valid-register.md')], { all: true });
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(code).toBe(1);
+    expect(out).toMatch(/4 entries in the hot record; cap is 3/);
+  });
+
+  it('keeps the cap in the two-argument validateEntries form', () => {
+    const path = fixture('over-cap.md');
+    expect(validateEntries(path, readFileSync(path, 'utf8'))).toEqual([
+      expect.stringMatching(/4 entries in the hot record; cap is 3/),
+    ]);
   });
 });
