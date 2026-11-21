@@ -10,7 +10,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from 'fs';
-import { basename, join } from 'path';
+import { basename } from 'path';
 
 import {
   ADOPTION_DATE,
@@ -35,6 +35,12 @@ export const MAX_CARRIED = 3;
 
 const DEFAULT_TARGETS = ['docs/superpowers/retrospectives.md', 'docs/superpowers/retro-actions.md'];
 
+const ROADMAP_PATH = 'docs/superpowers/ROADMAP.md';
+const RULINGS_PATH = 'docs/superpowers/rulings.md';
+const INDEX_PATH = 'docs/superpowers/retro/archive/INDEX.md';
+const PLANS_DIR = 'docs/superpowers/plans';
+const ARCHIVE_DIR = 'docs/superpowers/retro/archive';
+
 const HEADING_RE =
   /^## (\d{4}-\d{2}-\d{2})\s*·\s*(Plan \d+|Ad-hoc)\s*·\s*([a-z0-9-]+)(?:\s*·\s*PR #(\d+))?$/;
 
@@ -55,11 +61,11 @@ const RULING_HEADING_RE = /^## \d{4}-\d{2}-\d{2}\s*·\s*Ruling\s*·\s*.+$/;
 
 const EXEMPT_PREFIXES = ['retro: exempt —', 'retro: exempt -'];
 
-const DATE_COLUMN: Record<string, string> = {
-  'Open actions': 'opened',
-  'Active practices': 'since',
-  'Closed and dropped actions': 'date',
-  'Retired practices': 'retired',
+const DATE_COLUMNS: Record<string, { column: string; label: string }> = {
+  'Open actions': { column: 'opened', label: 'Opened' },
+  'Active practices': { column: 'since', label: 'Since' },
+  'Closed and dropped actions': { column: 'date', label: 'Date' },
+  'Retired practices': { column: 'retired', label: 'Retired' },
 };
 
 /** Which validator owns a file; `main` dispatches on this and nothing else. */
@@ -245,30 +251,37 @@ export function validateArchivePair(hot: string, archive: string, index: string)
     }
   }
 
-  const rows = parseIndex(index);
+  const indexLines = normalize(index).split('\n');
+  const rows = parseIndex(index).map((row) => ({
+    key: `${row.date}/${row.planKey}`,
+    display: `${row.date} · ${row.planKey}`,
+    line: (indexLines[row.line - 1] ?? '').trim(),
+  }));
+
   if (rows.length !== archived.length) {
     violations.push(`INDEX has ${rows.length} rows for ${archived.length} archived entries`);
   }
 
-  const indexLines = normalize(index).split('\n');
-  const expected = new Map(archived.map((entry) => [entryKey(entry), formatIndexRow(entry)]));
+  const expected = new Map(
+    archived.map((entry) => [
+      entryKey(entry),
+      { entry, display: `${entry.date} · ${entry.planKey}` },
+    ]),
+  );
 
-  for (const entry of archived) {
-    const key = entryKey(entry);
-    const row = rows.find((candidate) => `${candidate.date} · ${candidate.planKey}` === key);
+  for (const [key, item] of expected) {
+    const row = rows.find((candidate) => candidate.key === key);
     if (row === undefined) {
-      violations.push(`INDEX is missing a row for ${key}`);
+      violations.push(`INDEX is missing a row for ${item.display}`);
       continue;
     }
-    const line = (indexLines[row.line - 1] ?? '').trim();
-    if (line !== expected.get(key)) {
-      violations.push(`INDEX row ${key} does not match the archived entry`);
+    if (row.line !== formatIndexRow(item.entry)) {
+      violations.push(`INDEX row ${item.display} does not match the archived entry`);
     }
   }
 
   for (const row of rows) {
-    const key = `${row.date} · ${row.planKey}`;
-    if (!expected.has(key)) violations.push(`INDEX row ${key} has no archived entry`);
+    if (!expected.has(row.key)) violations.push(`INDEX row ${row.display} has no archived entry`);
   }
 
   return violations;
@@ -403,30 +416,33 @@ export function validateRulings(path: string, text: string): string[] {
 /**
  * Validates the given files, or the two records by default. Returns the process exit code: 0 when
  * nothing was reported, 1 otherwise. Every cited ID is checked against the register; validating
- * entry files without one is itself a violation, so a missing register can never pass silently.
+ * entry files or plans without one is itself a violation, so a missing register can never pass
+ * silently.
  *
- * `opts.all` widens the scan scope only (the two records, every plan, the archive, INDEX,
- * ROADMAP and the rulings); no rule changes, and the hot cap in particular applies to every
- * entry file. Explicit paths always win over the wider default scope.
+ * `opts.all` widens the scan scope only (the two records, INDEX, every plan, the archive, ROADMAP
+ * and the rulings); no rule changes, and the hot cap in particular applies to every entry file.
+ * Explicit paths always win over the wider default scope. Under `--all` the records, INDEX,
+ * ROADMAP and rulings are required (their absence is a violation) while individual plans and
+ * archive files are optional.
  */
 export function main(paths?: string[], opts: { all?: boolean } = {}): number {
-  const explicit = paths !== undefined;
-  const targets = paths ?? (opts.all === true ? allTargets() : DEFAULT_TARGETS);
+  const targets =
+    paths === undefined ? scanTargets(opts) : paths.map((path) => ({ path, optional: false }));
   const violations: string[] = [];
   const files: Array<{ path: string; text: string; kind: Kind }> = [];
 
-  for (const path of targets) {
+  for (const target of targets) {
     let text: string;
     try {
-      text = readFileSync(path, 'utf8');
+      text = readFileSync(target.path, 'utf8');
     } catch (error) {
-      // An implicit --all target that does not exist yet is not a violation.
-      if (explicit || opts.all !== true) {
-        violations.push(violation(path, 1, `cannot read file: ${(error as Error).message}`));
+      // An optional --all extra that does not exist is not a violation; a missing record is.
+      if (!target.optional) {
+        violations.push(violation(target.path, 1, `cannot read file: ${(error as Error).message}`));
       }
       continue;
     }
-    files.push({ path, text, kind: classify(path, text) });
+    files.push({ path: target.path, text, kind: classify(target.path, text) });
   }
 
   const registerFiles = files.filter((file) => file.kind === 'register');
@@ -434,6 +450,7 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
   let registerRowCount = 0;
   for (const file of registerFiles) {
     violations.push(...validateRegister(file.path, file.text));
+    violations.push(...validateRegisterDateColumns(file.path, file.text));
     const rows = readRegisterRows(file.text);
     registerRowCount += rows.length;
     for (const row of rows) registerIds.add(row.id);
@@ -458,6 +475,7 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
     );
   }
 
+  const planFiles = files.filter((file) => file.kind === 'plan');
   const openIdsAt = openIdsAtFromRegister(registerFiles.map((file) => file.text).join('\n'));
   for (const file of files) {
     if (file.kind === 'plan') violations.push(...validatePlan(file.path, file.text, openIdsAt));
@@ -466,14 +484,33 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
     if (file.kind === 'rulings') violations.push(...validateRulings(file.path, file.text));
   }
 
+  if (registerFiles.length === 0) {
+    const gated = planFiles.filter((file) => isGatedPlan(file.path, file.text));
+    if (gated.length > 0) {
+      violations.push(
+        violation(
+          gated[0].path,
+          1,
+          'no register supplied; the plan gate cannot compute the open set',
+        ),
+      );
+    }
+  }
+
   const hot = files.filter((file) => file.kind === 'entry');
   const archives = files.filter((file) => file.kind === 'archive');
   const index = files.find((file) => file.kind === 'index');
-  if (index !== undefined && archives.length > 0) {
-    const hotText = hot.map((file) => file.text).join('\n\n---\n\n');
-    for (const archive of archives) {
-      for (const message of validateArchivePair(hotText, archive.text, index.text)) {
-        violations.push(violation(archive.path, 1, message));
+  if (archives.length > 0) {
+    if (index === undefined) {
+      violations.push(
+        violation(archives[0].path, 1, 'no INDEX supplied; rule 6 cannot check the archive'),
+      );
+    } else {
+      // The INDEX is global: pair it with the whole archive once, never per archive file.
+      const hotText = hot.map((file) => file.text).join('\n\n---\n\n');
+      const archiveText = archives.map((file) => file.text).join('\n\n---\n\n');
+      for (const message of validateArchivePair(hotText, archiveText, index.text)) {
+        violations.push(violation(index.path, 1, message));
       }
     }
   }
@@ -521,24 +558,27 @@ function classify(path: string, text: string): Kind {
   return 'entry';
 }
 
-/** The wider `--all` scope: the default records plus every file that exists among the rest. */
-function allTargets(): string[] {
-  const targets = [...DEFAULT_TARGETS];
-  const plansDir = join('docs', 'superpowers', 'plans');
-  const archiveDir = join('docs', 'superpowers', 'retro', 'archive');
+/**
+ * The `--all` scope. The records, INDEX, ROADMAP and rulings are required; individual plans and
+ * archive files are optional so a repository that has not archived anything yet still validates.
+ */
+function scanTargets(opts: { all?: boolean }): Array<{ path: string; optional: boolean }> {
+  if (opts.all !== true) return DEFAULT_TARGETS.map((path) => ({ path, optional: false }));
 
-  for (const dir of [plansDir, archiveDir]) {
+  const targets = [...DEFAULT_TARGETS, INDEX_PATH, ROADMAP_PATH, RULINGS_PATH].map((path) => ({
+    path,
+    optional: false,
+  }));
+  const seen = new Set(targets.map((target) => target.path));
+
+  for (const dir of [PLANS_DIR, ARCHIVE_DIR]) {
     if (!existsSync(dir)) continue;
     for (const name of readdirSync(dir)) {
-      if (name.endsWith('.md')) targets.push(join(dir, name));
+      const path = `${dir}/${name}`;
+      if (!name.endsWith('.md') || seen.has(path)) continue;
+      seen.add(path);
+      targets.push({ path, optional: true });
     }
-  }
-
-  for (const extra of [
-    join('docs', 'superpowers', 'ROADMAP.md'),
-    join('docs', 'superpowers', 'rulings.md'),
-  ]) {
-    if (existsSync(extra)) targets.push(extra);
   }
 
   return targets;
@@ -560,8 +600,60 @@ function entryKey(entry: Entry): string {
 }
 
 /**
+ * Rule 8's plan gate applies only after the adoption date. A plan whose date cannot be read is
+ * left to `validatePlan` (which exempts it).
+ */
+function isGatedPlan(path: string, text: string): boolean {
+  const header = PLAN_DATE_HEADER_RE.exec(normalize(text));
+  const date = planDateFromFile(path) ?? (header === null ? null : header[1]);
+  return date !== null && date > ADOPTION_DATE;
+}
+
+/**
+ * The register's date columns are fixed by the design (§8.3). A table whose header omits the
+ * column `openIdsAt` needs would otherwise make the plan gate silently weaker, so it is a
+ * violation naming the table.
+ */
+function validateRegisterDateColumns(path: string, text: string): string[] {
+  const violations: string[] = [];
+  let section: string | null = null;
+  let headerSeen = false;
+
+  normalize(text)
+    .split('\n')
+    .forEach((raw, index) => {
+      const line = raw.trim();
+      if (line === '') return;
+
+      if (line.startsWith('## ')) {
+        section = line.slice(3).trim();
+        headerSeen = false;
+        return;
+      }
+      if (!line.startsWith('|') || headerSeen) return;
+
+      const cells = splitRow(line);
+      if (cells.length > 0 && cells.every((cell) => SEPARATOR_CELL_RE.test(cell))) return;
+
+      headerSeen = true;
+      if (section === null) return;
+      const expected = DATE_COLUMNS[section];
+      // An unexpected section is already reported by `parseRegister`.
+      if (expected === undefined) return;
+
+      const header = cells.map((cell) => cell.toLowerCase());
+      if (!header.includes(expected.column)) {
+        violations.push(violation(path, index + 1, `${section}: no "${expected.label}" column`));
+      }
+    });
+
+  return violations;
+}
+
+/**
  * Builds rule 8's `openIdsAt` from the register. An ID was open on `date` when it is still in an
  * open table that started on or before `date`, or already sits in a closed table dated after it.
+ * A table without its date column contributes nothing; `validateRegisterDateColumns` reports it.
  */
 function openIdsAtFromRegister(text: string): (date: string) => string[] {
   const rows = readRegisterRows(text);
@@ -569,9 +661,9 @@ function openIdsAtFromRegister(text: string): (date: string) => string[] {
   return (date) => {
     const ids: string[] = [];
     for (const row of rows) {
-      const column = DATE_COLUMN[row.section];
-      if (column === undefined) continue;
-      const at = row.header.indexOf(column);
+      const expected = DATE_COLUMNS[row.section];
+      if (expected === undefined) continue;
+      const at = row.header.indexOf(expected.column);
       const when = at === -1 ? '' : (row.cells[at] ?? '');
       if (when === '') continue;
 

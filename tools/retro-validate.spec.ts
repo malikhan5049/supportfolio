@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
   main,
+  validateArchivePair,
   validateEntries,
   validatePlan,
   validateRoadmap,
@@ -140,5 +141,65 @@ describe('retro-validate: plan, roadmap, rulings', () => {
     expect(validateRulings('rulings.md', read('rulings-bad.md')).join('\n')).toMatch(
       /heading does not match "## YYYY-MM-DD · Ruling · <task>"/,
     );
+  });
+});
+
+const archiveText = () => `${read('archive/2026.md')}\n---\n${read('archive/2025.md')}`;
+
+describe('retro-validate: the archive and its global INDEX', () => {
+  it('accepts the whole archive against a matching INDEX', () => {
+    expect(validateArchivePair('', archiveText(), read('archive/INDEX.md'))).toEqual([]);
+  });
+
+  it('rejects an INDEX row that does not match the archived entry', () => {
+    const index = read('archive/INDEX.md').replace('Archive entry four.', 'Archive entry for.');
+    expect(validateArchivePair('', archiveText(), index).join('\n')).toMatch(
+      /INDEX row 2026-11-10 · Plan 4 does not match the archived entry/,
+    );
+  });
+
+  it('pairs every archive file with the one global INDEX', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main([
+      fixture('valid-hot.md'),
+      fixture('valid-register.md'),
+      fixture('archive/2026.md'),
+      fixture('archive/2025.md'),
+      fixture('archive/INDEX.md'),
+    ]);
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(out).toBe('');
+    expect(code).toBe(0);
+  });
+
+  it('reports a missing INDEX when archives are in scope', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main([
+      fixture('valid-hot.md'),
+      fixture('valid-register.md'),
+      fixture('archive/2026.md'),
+    ]);
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(code).toBe(1);
+    expect(out).toMatch(/no INDEX supplied; rule 6 cannot check the archive/);
+  });
+
+  it('rejects a gated plan when no register is supplied', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main([fixture('plans/2026-12-01-brief-ui.md')]);
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(code).toBe(1);
+    expect(out).toMatch(/no register supplied; the plan gate cannot compute the open set/);
+  });
+
+  it('reports a register table without its date column', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    main([fixture('valid-hot.md'), fixture('bad-date-column.md')]);
+    const out = spy.mock.calls.flat().join('\n');
+    spy.mockRestore();
+    expect(out).toMatch(/Closed and dropped actions: no "Date" column/);
   });
 });
