@@ -166,7 +166,7 @@ describe('parseIndex and planDateFromFile', () => {
 });
 ```
 
-- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPattern retro-lib` → `Cannot find module './retro-lib'`.
+- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPatternsretro-lib` → `Cannot find module './retro-lib'`.
 - [ ] **Step 3: Implement `tools/retro-lib.ts`** — every function starts with `normalize()`. `parseEntry` walks the lines once collecting the heading, headline, `migrated` marker, sections in fixed order (`unexpected section` otherwise), review items, tagged bullets (tag stripped from `text`), and metrics; it returns *all* errors and never throws. `parseRegister` sections on `## `, validates cells and per-table statuses, and checks ID uniqueness and monotonic growth. `parseIndex` splits each non-blank, non-heading line on ` · ` into 5 parts (PR) or 4 (no PR), mapping `-`/`—` to `[]`. `parsePlanCompliance` reads `Brief run:` and the 4-column table. `formatIndexRow` emits `<date> · <planKey> · [PR #<n> · ]<headline> · <ids|->`, IDs deduped, sorted, `context-only` excluded.
 - [ ] **Step 4: Run it, expect PASS** — same command → PASS, 12 tests.
 - [ ] **Step 5: Prettier** — `npx prettier --check "tools/**/*.ts"` → `All matched files use Prettier code style!`
@@ -236,7 +236,7 @@ describe('retro-validate: entries, dispositions, register', () => {
 });
 ```
 
-- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPattern retro-validate` → `Cannot find module './retro-validate'`.
+- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPatternsretro-validate` → `Cannot find module './retro-validate'`.
 - [ ] **Step 3: Implement rules 1–5 and 7** — rule 1: heading grammar, newest-first order, duplicate plan key within a file. Rule 2: missing/duplicated `Headline:`, missing required sections in order, and (non-`migrated` only) a required `Previous actions reviewed` block plus at most 3 distinct new IDs. Rule 3: parser disposition errors re-emitted with the file name. Rule 4: every `disposition.id` and `reviewed[].id` must exist in the register (`<ID>: not in the register`). Rule 5: more than 3 blocks. Rule 7: duplicate or non-monotonic IDs, unknown statuses, closed/dropped row without date+evidence, retired practice without date+reason, `Carried` > 3. `main` reads files, merges messages, prints the summary, returns 0/1.
 - [ ] **Step 4: Run it, expect PASS** — same command → PASS, 7 tests.
 - [ ] **Step 5: Prettier** — `npx prettier --check "tools/**/*.ts"` → clean.
@@ -299,7 +299,7 @@ describe('retro-validate: plan, roadmap, rulings', () => {
 });
 ```
 
-- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPattern retro-validate` → `validatePlan is not a function`.
+- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPatternsretro-validate` → `validatePlan is not a function`.
 - [ ] **Step 3: Write the fixtures** — `plan-with-compliance.md`: `**Date:** 2026-12-01`, `Brief run: 2026-12-01 (npx tsx tools/retro-brief.ts)`, rows `| RP-004 | practice | applied | Task 5 |` and `| RA-013 | action | deferred — outside this plan's scope | — |`; `plan-missing-id.md` drops the RP-004 row; `plan-deferred-no-reason.md` has `| RA-013 | action | deferred | — |`. `roadmap-valid.md`:
 
 ```markdown
@@ -387,7 +387,7 @@ describe('searchTopic', () => {
 });
 ```
 
-- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPattern retro-brief` → `Cannot find module './retro-brief'`.
+- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPatternsretro-brief` → `Cannot find module './retro-brief'`.
 - [ ] **Step 3: Implement** — `buildBrief` emits `# Retrospective brief — <today>`, `## Active practices (obey)`, `## Open actions` (`carried N`), `## Last retro` (`<planKey> — <headline>`), `## Archive` (`<n> entries in retro/archive/<name>.` plus the `--topic` hint); empty lists print `- none`; trim sections rather than exceed 50 lines. `searchTopic` lowercases both sides, uses only `String.prototype.includes`, tracks the last `## ` heading per file, stops at 5 hits. `main` reads `docs/superpowers/retrospectives.md`, `docs/superpowers/retro-actions.md`, `docs/superpowers/retro/archive/2026.md` (missing = empty) and prints the brief or the hits. When `parseEntry` returns errors, fall back to the raw `## ` heading and `**Headline:**` line so the brief never crashes.
 - [ ] **Step 4: Run it, expect PASS** — same command → PASS, 4 tests.
 - [ ] **Step 5: Prettier** — `npx prettier --check "tools/**/*.ts"` → clean.
@@ -471,7 +471,7 @@ describe('rotate', () => {
 });
 ```
 
-- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPattern retro-rotate` → `Cannot find module './retro-rotate'`.
+- [ ] **Step 2: Run it, expect FAIL** — `npx jest --config tools/jest.config.ts --testPathPatternsretro-rotate` → `Cannot find module './retro-rotate'`.
 - [ ] **Step 3: Implement** — `rotate` parses every block, returns parse errors plus `<planKey>: <refuseReason>` for any undisposed bullet, and otherwise drops the last block, prepends it to `archive` (newest first, `---` separated, no trailing separator), and prepends `formatIndexRow` to `index` unless a row with the same date+planKey exists (idempotency). `main` reads `docs/superpowers/retrospectives.md`, `docs/superpowers/retro/archive/<year>.md`, `docs/superpowers/retro/archive/INDEX.md`, writes them back with `\n`, and moves `Closed and dropped actions` / `Retired practices` rows dated before this year into `docs/superpowers/retro/archive/register-<year>.md` (returned as `retiredRegister`). Exit 1 on error/refusal, else 0, printing `rotated <date> · <planKey> → <archive>` per rotation.
 - [ ] **Step 4: Run it, expect PASS** — same command → PASS, 4 tests.
 - [ ] **Step 5: Prettier** — `npx prettier --check "tools/**/*.ts"` → clean.
@@ -586,7 +586,7 @@ plus `## Tasks` (the `### Task N:` / `**Files:**` / `**Interfaces:**` / checkbox
 **Files:** Create `.github/workflows/validate-retrospectives.yml`.
 
 **Interfaces:**
-- Consumes: `npx tsx tools/retro-validate.ts --all`, `npx jest --config tools/jest.config.ts --testPathPattern retro`; action versions from `validate-manifests.yml` (`actions/checkout@v4`, `actions/setup-node@v4`).
+- Consumes: `npx tsx tools/retro-validate.ts --all`, `npx jest --config tools/jest.config.ts --testPathPatternsretro`; action versions from `validate-manifests.yml` (`actions/checkout@v4`, `actions/setup-node@v4`).
 - Produces: a path-filtered pull-request gate.
 
 - [ ] **Step 1: Write the workflow**
@@ -623,11 +623,11 @@ jobs:
         run: npx tsx tools/retro-validate.ts --all
 
       - name: Run retro tool specs
-        run: npx jest --config tools/jest.config.ts --testPathPattern retro
+        run: npx jest --config tools/jest.config.ts --testPathPatternsretro
 ```
 
 - [ ] **Step 2: Shape check** — `npx tsx -e "import {readFileSync} from 'fs'; const y = readFileSync('.github/workflows/validate-retrospectives.yml','utf8'); if (!/pull_request:/.test(y) || !/node-version: '24'/.test(y) || !/retro-validate\.ts --all/.test(y)) throw new Error('workflow shape wrong'); console.log('workflow OK');"` → `workflow OK`.
-- [ ] **Step 3: Run its commands** — `npx tsx tools/retro-validate.ts --all` → exit 0; `npx jest --config tools/jest.config.ts --testPathPattern retro` → all retro suites PASS.
+- [ ] **Step 3: Run its commands** — `npx tsx tools/retro-validate.ts --all` → exit 0; `npx jest --config tools/jest.config.ts --testPathPatternsretro` → all retro suites PASS.
 - [ ] **Step 4: Commit** — `git add .github/workflows/validate-retrospectives.yml && git commit -m "ci(retro): gate retrospective structure on pull requests"`
 
 ---
