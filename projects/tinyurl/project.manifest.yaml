@@ -19,3 +19,16 @@ environments:
   - dev
   - test
   - prod
+local:
+  service:
+    gradleModule: "projects:tinyurl:service"
+    port: 8082
+    managementPort: 9093
+    healthPath: "/actuator/health"
+  frontend:
+    nxProject: "tinyurl-microfrontend"
+    devPort: 4201
+    devRemoteEntry: "http://localhost:4201/remoteEntry.js"
+    standaloneBuild: "standalone"
+  dependsOn: ["identity"]
+  databases: ["postgres"]

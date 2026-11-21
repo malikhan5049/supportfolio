@@ -4,6 +4,7 @@
   "title": "Project Manifest",
   "description": "Schema for a Supportfolio project manifest (project.manifest.yaml).",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "id",
     "displayName",
@@ -73,6 +74,39 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "openUrl": { "type": "string" },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dependsOn"],
+      "properties": {
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gradleModule", "port"],
+          "properties": {
+            "gradleModule": { "type": "string" },
+            "port": { "type": "integer" },
+            "managementPort": { "type": "integer" },
+            "healthPath": { "type": "string" },
+            "envFile": { "type": "string" }
+          }
+        },
+        "frontend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nxProject", "devPort", "devRemoteEntry"],
+          "properties": {
+            "nxProject": { "type": "string" },
+            "devPort": { "type": "integer" },
+            "devRemoteEntry": { "type": "string" },
+            "standaloneBuild": { "type": "string" }
+          }
+        },
+        "dependsOn": { "type": "array", "items": { "type": "string" } },
+        "databases": { "type": "array", "items": { "type": "string" } }
       }
     }
   }

@@ -1,0 +1,45 @@
+id: platform
+displayName: Supportfolio platform
+platformServices:
+  - id: postgres
+    kind: compose
+    composeFile: projects/tinyurl/docker-compose.yml
+    serviceName: postgres
+    port: 5432
+  - id: identity
+    kind: gradle
+    gradleModule: platform:identity
+    port: 8081
+    managementPort: 9092
+    healthPath: /actuator/health
+  - id: shell
+    kind: gradle
+    gradleModule: platform:shell
+    port: 8080
+    managementPort: 9091
+    healthPath: /actuator/health
+  - id: telemetry
+    kind: compose-profile
+    profile: observability
+surface:
+  local:
+    frontend:
+      nxProject: shell-host
+      devPort: 4200
+      devRemoteEntry: http://localhost:4200/remoteEntry.js
+    dependsOn: [identity, tinyurl, telemetry]
+reservedPorts:
+  - { port: 4200, owner: shell-host }
+  - { port: 4201, owner: tinyurl-microfrontend }
+  - { port: 8080, owner: shell }
+  - { port: 8081, owner: identity }
+  - { port: 8082, owner: tinyurl-service }
+  - { port: 8083, owner: spare }
+  - { port: 5432, owner: postgres }
+  - { port: 9091, owner: shell-management }
+  - { port: 9092, owner: identity-management }
+  - { port: 9093, owner: tinyurl-service-management }
+  - { port: 18080, owner: shell-demo }
+  - { port: 18082, owner: tinyurl-standalone }
+  - { port: 19090, owner: prometheus }
+  - { port: 13000, owner: grafana }
