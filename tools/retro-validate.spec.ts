@@ -1,6 +1,12 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { main, validateEntries } from './retro-validate';
+import {
+  main,
+  validateEntries,
+  validatePlan,
+  validateRoadmap,
+  validateRulings,
+} from './retro-validate';
 
 const fixture = (n: string) => resolve(__dirname, 'fixtures', 'retro', n);
 
@@ -76,5 +82,63 @@ describe('retro-validate: references are never skipped and the cap never lifts',
     expect(validateEntries(path, readFileSync(path, 'utf8'))).toEqual([
       expect.stringMatching(/4 entries in the hot record; cap is 3/),
     ]);
+  });
+});
+
+const read = (n: string) => readFileSync(fixture(n), 'utf8');
+const openAt = (date: string) => (date >= '2026-11-22' ? ['RA-013', 'RP-004'] : []);
+
+describe('retro-validate: plan, roadmap, rulings', () => {
+  it('accepts a plan whose compliance covers the open set', () => {
+    expect(validatePlan('2026-12-01-brief-ui.md', read('plan-with-compliance.md'), openAt)).toEqual(
+      [],
+    );
+  });
+
+  it('rejects a plan that omits an open ID', () => {
+    expect(
+      validatePlan('2026-12-01-brief-ui.md', read('plan-missing-id.md'), openAt).join('\n'),
+    ).toMatch(/RP-004 missing from Retrospective compliance/);
+  });
+
+  it('rejects a deferral without a reason', () => {
+    expect(
+      validatePlan('2026-12-01-brief-ui.md', read('plan-deferred-no-reason.md'), openAt).join('\n'),
+    ).toMatch(/RA-013 deferred without a reason/);
+  });
+
+  it('rejects a plan whose Date header contradicts its filename', () => {
+    const text = '**Date:** 2026-11-01\n\n## Retrospective compliance\n';
+    expect(validatePlan('2026-12-01-brief-ui.md', text, openAt).join('\n')).toMatch(
+      /Date: 2026-11-01 contradicts filename date 2026-12-01/,
+    );
+  });
+
+  it('exempts plans dated on or before the adoption date', () => {
+    expect(validatePlan('2026-11-22-retrospective-system.md', '# plan\n', openAt)).toEqual([]);
+  });
+
+  it('accepts a roadmap whose done rows resolve', () => {
+    expect(
+      validateRoadmap('ROADMAP.md', read('roadmap-valid.md'), new Set(['2026-11-18/Plan 5'])),
+    ).toEqual([]);
+  });
+
+  it('rejects a done row with no entry and no exemption', () => {
+    const errors = validateRoadmap(
+      'ROADMAP.md',
+      read('roadmap-missing-retro.md'),
+      new Set(['2026-11-18/Plan 5']),
+    );
+    expect(errors.join('\n')).toMatch(
+      /2026-11-19\/Plan 6: no retrospective entry and no "retro: exempt"/,
+    );
+  });
+
+  it('enforces the rulings heading grammar', () => {
+    expect(validateRulings('rulings.md', read('rulings-valid.md'))).toEqual([]);
+    expect(validateRulings('rulings.md', read('rulings-bad.md')).join('\n')).toMatch(
+      /heading does not match "## YYYY-MM-DD · Ruling · <task>"/,
+    );
   });
 });
