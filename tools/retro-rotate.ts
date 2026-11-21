@@ -86,14 +86,19 @@ export function rotate(input: RotateInput): RotateResult | ParseError[] {
     };
   }
 
-  const parsed = entryBlocks.map((block) => parseEntry(block.text));
+  const parsedBlocks = entryBlocks.map((block) => ({ block, parsed: parseEntry(block.text) }));
   const candidateBlock = entryBlocks[entryBlocks.length - 1];
   const candidateKey = planKeyOf(candidateBlock.text);
 
-  const errors = parsed.flatMap((value) => (isParseError(value) ? value : []));
-  if (errors.length > 0) return refuse(errors, candidateKey);
+  // Every blocking error keeps the entry that owns it, so a refusal can say where to look.
+  const blocking = parsedBlocks.flatMap(({ block, parsed }) =>
+    isParseError(parsed) ? parsed.map((error) => ({ error, owner: planKeyOf(block.text) })) : [],
+  );
+  if (blocking.length > 0) return refuse(blocking, candidateKey);
 
-  const entries = parsed.filter((value): value is Entry => !isParseError(value));
+  const entries = parsedBlocks
+    .map((value) => value.parsed)
+    .filter((value): value is Entry => !isParseError(value));
   const rotated = entries[entries.length - 1];
 
   const reason = refuseReason(rotated);
@@ -235,18 +240,24 @@ function splitRegister(text: string, year: string): { kept: string; moved: strin
 }
 
 /**
- * A blocking parse error is reported as `<planKey>: <reason>` — the plan key of the entry whose
- * rotation is blocked — so the refusal names the entry an operator must fix before archiving. The
- * offending line number survives in `line`.
+ * A blocking parse error is reported as `<planKey>: <reason> — line N, in <owner>`: the plan key of
+ * the entry whose rotation is blocked comes first (R13: the refusal names the blocked rotation),
+ * and the entry that owns the offending line follows, so an operator never inspects a clean entry.
+ * The mandated prefix stays byte-identical; the owning entry is appended.
  */
-function refuse(errors: ParseError[], planKey: string): ParseError[] {
-  return errors.map((item) =>
-    UNDISPOSED_RE.test(item.message)
+function refuse(
+  blocking: Array<{ error: ParseError; owner: string }>,
+  planKey: string,
+): ParseError[] {
+  return blocking.map(({ error, owner }) =>
+    UNDISPOSED_RE.test(error.message)
       ? {
-          line: item.line,
-          message: `${planKey}: ${item.message.replace(LINE_PREFIX_RE, '')} (line ${item.line})`,
+          line: error.line,
+          message: `${planKey}: ${error.message.replace(LINE_PREFIX_RE, '')} (line ${error.line}${
+            owner === planKey ? '' : `, in ${owner}`
+          })`,
         }
-      : item,
+      : error,
   );
 }
 

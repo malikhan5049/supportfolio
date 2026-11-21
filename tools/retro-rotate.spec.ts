@@ -50,6 +50,15 @@ describe('rotate', () => {
     expect([r.rotated, r.hot, r.index]).toEqual([null, three, '']);
   });
 
+  it('names the entry that owns an undisposed bullet', () => {
+    const bad = four.replace('- Skipping builds → RA-013', '- Skipping builds');
+    const errors = rotate({ hot: bad, archive: '', index: '', year: '2026', today: '2026-11-22' });
+    if (!Array.isArray(errors)) throw new Error('expected the rotation to be refused');
+    const message = errors.map((error) => error.message).join('\n');
+    expect(message).toContain('Plan 4: bullet has no disposition tag');
+    expect(message).toContain('in Plan 7');
+  });
+
   it('rotates closed and retired register rows dated before this year', () => {
     const reg = [
       '## Closed and dropped actions',
