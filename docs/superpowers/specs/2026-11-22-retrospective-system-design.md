@@ -88,6 +88,7 @@ docs/superpowers/
   retro-actions.md               register — open RAs + active RPs (bounded)
   retro/archive/2026.md          COLD — rotated entries, append-only
   retro/archive/INDEX.md         COLD — one line per retro
+  retro/archive/register-2026.md COLD — closed/retired register rows (annual)
   rulings.md                     deviation ledger (moved out of retros)
   plan-template.md               plan skeleton including the compliance table
 tools/
@@ -132,8 +133,9 @@ tasks 8 · retries 3 · escaped defects 0 · review 2C/4I/9m
 
 Rules:
 
-- Heading grammar: `## YYYY-MM-DD · Plan <N|Ad-hoc> · <slug> · PR #<n>`; the PR segment is
-  optional for `Ad-hoc` entries.
+- Heading grammar: `## YYYY-MM-DD · Plan <N|Ad-hoc> · <slug>`, with an optional
+  `· PR #<n>` suffix. The PR number is optional everywhere because the entry is committed
+  before the pull request is opened.
 - `Headline:` is required and is exactly one line.
 - `Previous actions reviewed` is required and lists every RA/RP that was open or active at
   entry time, each with one of `closed | kept | amended | retired | carried`.
@@ -145,6 +147,9 @@ Rules:
   into an existing ID.
 - A metrics line is required; historical entries may use `metrics: not recorded`.
 - Entry budget: 30 lines or fewer. Longer prose belongs in a linked artifact.
+- Entries written before 2026-11-22 carry `migrated: true` and are exempt from the
+  `Previous actions reviewed` requirement and the 3-new-ID cap; they still require a
+  disposition tag on every bullet.
 - Newest first, separated by `---`, with no trailing separator.
 
 ### 8.3 Register format
@@ -164,11 +169,12 @@ Rules:
 |---|---|---|---|---|
 | RP-004 | Recon before design for integration work | Plan 6 | 2026-11-20 | active |
 
-## Closed actions
+## Closed and dropped actions
 
-| ID | Closed | Evidence |
-|---|---|---|
-| RA-012 | 2026-11-22 | PR #52 |
+| ID | Outcome | Date | Evidence or reason |
+|---|---|---|---|
+| RA-012 | closed | 2026-11-22 | PR #52 |
+| RA-009 | dropped | 2026-11-22 | superseded by RA-013 |
 
 ## Retired practices
 
@@ -177,6 +183,10 @@ Rules:
 | RP-002 | 2026-11-22 | superseded by RP-007 |
 ```
 
+- The register is the single source of truth for RA/RP state. An entry's
+  `Previous actions reviewed` block is an immutable snapshot of that day's review: it must
+  reference existing IDs with legal statuses, but it is not required to match the
+  register's current state.
 - IDs increase monotonically and are never reused.
 - RA status is `open | closed | dropped`; RP status is `active | retired`.
 - `Carried` increments once per retro that leaves the action open. At 3, the retro must
@@ -196,6 +206,9 @@ Rules:
   `2026-11-22 · Plan 7 · PR #52 · <headline> · RA-013, RP-004`
 - An entry lives in exactly one place; the validator rejects duplicate plan keys across hot
   and archive.
+- Closed and dropped actions, and retired practices, older than the current calendar year
+  rotate to `retro/archive/register-<year>.md`; the validator caps the hot register at 40
+  closed/retired rows.
 
 ### 8.5 Briefing — the read surface
 
@@ -240,6 +253,10 @@ Brief run: 2026-11-22 (`npx tsx tools/retro-brief.ts`)
 3. Every RA/RP open on the plan's date must appear. `deferred` requires a reason.
 4. `retro-validate.ts` computes the required set from the register (opened on or before the
    plan date, and not closed before it) and fails on a missing ID or an empty reason.
+5. The gate applies to plans dated **after** 2026-11-22, the adoption date. The plan date is
+   the filename prefix (`YYYY-MM-DD-*.md`), falling back to a `**Date:**` header. CI checks
+   only plans added or modified in the pull request; `--all` scans every in-scope plan. The
+   build plan for this system is the bootstrap plan and is exempt.
 
 ### 8.7 ROADMAP join
 
@@ -278,14 +295,16 @@ Brief run: 2026-11-22 (`npx tsx tools/retro-brief.ts`)
 ### 8.11 Validation rules (authoritative list)
 
 1. Heading grammar, newest-first order, and unique plan key.
-2. Required sections and a `Headline:` line present.
+2. Required sections and a `Headline:` line present; `migrated: true` entries are exempt
+   from `Previous actions reviewed`.
 3. Every bullet has exactly one valid disposition tag.
 4. Every disposition ID exists in the register.
 5. The hot record has at most 3 entries.
 6. No plan key appears in both hot and archive; INDEX has exactly one row per entry.
-7. Register IDs are unique and monotonic; statuses are valid; a closed RA has a date and
-   evidence; a retired RP has a date and reason; `Carried` is at most 3.
-8. Plan compliance covers the open set at the plan date; deferrals have reasons.
+7. Register IDs are unique and monotonic; statuses are valid; a closed or dropped RA has a
+   date and evidence or reason; a retired RP has a date and reason; `Carried` is at most 3.
+8. For plans dated after the adoption date, compliance covers the open set at the plan
+   date; deferrals have reasons.
 9. Every ROADMAP `done` row resolves to an entry or an exemption.
 10. Rulings headings match the grammar.
 
@@ -300,7 +319,9 @@ summary.
    would we like to stop doing?", and update the header contract to match.
 3. Add `Headline:` and `metrics: not recorded` to historical entries; do not invent metrics.
 4. Extract RPs and RAs from existing bullets, assign IDs, and add disposition tags. The
-   proposal is reviewed by the human before commit.
+   proposal is reviewed by the human before commit, targets roughly six RPs and six RAs
+   (most closed or retired, so the hot register stays readable), and marks each entry
+   `migrated: true`.
 5. Move ruling content to `rulings.md`.
 6. Rotate all but the newest 3 entries into `retro/archive/2026.md` and build `INDEX.md`.
 7. Seed the register with evidence-based statuses only (`active`, `closed`, `retired` with
@@ -311,7 +332,8 @@ summary.
 ## 9. Testing and verification
 
 - Jest specs for the parser and validator (`tools/retro-*.spec.ts`) with fixtures: valid
-  hot record, archive, register, and plan, plus one fixture per violation class.
+  hot record, archive, register, and plan; a migrated entry; a dropped action; plus one
+  fixture per violation class.
 - The CLI is the CI entry point; the workflow also runs the tools Jest project filtered to
   `retro`.
 - Workflow: `pull_request` on `docs/superpowers/**`, `tools/retro-*.ts`, `AGENTS.md`, and
@@ -338,3 +360,17 @@ summary.
 - Jest fixture layout.
 - The concrete ID assignment proposal for the migration, presented to the human before
   commit.
+
+## 12. Resolutions from the builder check
+
+A fresh builder reviewed this document and raised six gaps. All were settled without
+changing the chosen approach:
+
+| Builder question | Resolution | Where |
+|---|---|---|
+| Which plans does the compliance gate check, and how is a plan dated? | Plans dated after the adoption date; date from the filename; CI checks only plans changed in the PR; the bootstrap plan is exempt | §8.6.5, §8.11.8 |
+| How are migrated entries exempted, and does the register absorb ~40 IDs? | `migrated: true` exempts them from follow-up and the ID cap; migration curates roughly six RPs and six RAs, most already closed or retired | §8.2, §8.12.4 |
+| Which artifact is authoritative for RA/RP state? | The register; an entry's review block is an immutable snapshot; dropped actions get their own outcome row | §8.3 |
+| Can the entry exist before the PR number is known? | Yes — the PR suffix is optional everywhere, and ROADMAP joins by plan number | §8.2, §8.7 |
+| Do existing governance tools already own this surface? | No: no tool references `docs/superpowers` or `AGENTS.md`, and the `platform/harness/*` specs are unrelated, so the new files are additions | §8.1, §12 |
+| Can the register's closed/retired tables grow forever? | No — annual rotation to `retro/archive/register-<year>.md`, with a 40-row cap on the hot register | §8.4 |
