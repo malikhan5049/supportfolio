@@ -137,6 +137,10 @@ const METRICS_RE = /^tasks \d+ · retries \d+ · escaped defects \d+ · review \
 
 const SEPARATOR_CELL_RE = /^:?-{3,}:?$/;
 
+const COMPLIANCE_HEADING_RE = /^##\s+Retrospective compliance\s*$/i;
+
+const COMPLIANCE_COLUMNS = ['id', 'kind', 'disposition', 'where'];
+
 /** `\r\n` and lone `\r` become `\n`. */
 export function normalize(text: string): string {
   return text.replace(/\r\n?/g, '\n');
@@ -337,7 +341,10 @@ export function parseEntry(text: string): Entry | ParseError[] {
   };
 }
 
-/** Parses the action register. Uniqueness of IDs is enforced across all four tables. */
+/**
+ * Parses the action register. An ID must be unique across all four tables: it may not repeat,
+ * and it may not appear in more than one table (RA and RP namespaces are independent).
+ */
 export function parseRegister(text: string): Register | ParseError[] {
   const register: Register = {
     openActions: [],
@@ -346,7 +353,7 @@ export function parseRegister(text: string): Register | ParseError[] {
     retiredPractices: [],
   };
   const errors: ParseError[] = [];
-  const seenIds = new Set<string>();
+  const idTables = new Map<string, string>();
   let section: string | null = null;
   let header: string[] | null = null;
 
@@ -401,11 +408,19 @@ export function parseRegister(text: string): Register | ParseError[] {
         errors.push(error(lineNumber, `invalid ID "${id}"`));
         return;
       }
-      if (seenIds.has(id)) {
-        errors.push(error(lineNumber, `${id}: duplicate ID`));
+      const existingTable = idTables.get(id);
+      if (existingTable !== undefined) {
+        errors.push(
+          error(
+            lineNumber,
+            existingTable === section
+              ? `${id}: duplicate ID`
+              : `${id}: appears in more than one table ("${existingTable}" and "${section}")`,
+          ),
+        );
         return;
       }
-      seenIds.add(id);
+      idTables.set(id, section);
 
       switch (section) {
         case 'Open actions': {
@@ -534,73 +549,121 @@ export function parseIndex(text: string): IndexRow[] {
   return rows;
 }
 
-/** Parses a plan's `## Retrospective compliance` section. */
+/**
+ * Parses a plan's `## Retrospective compliance` section: the `Brief run:` line and the
+ * `ID | Kind | Disposition | Where` table that follows it. Other tables in the plan are
+ * ignored; a missing section or missing/incorrect header is reported as an error.
+ */
 export function parsePlanCompliance(text: string): ComplianceTable | ParseError[] {
+  const lines = normalize(text).split('\n');
   const errors: ParseError[] = [];
   const rows: ComplianceRow[] = [];
+
+  const headingIndex = lines.findIndex((line) => COMPLIANCE_HEADING_RE.test(line.trim()));
+  if (headingIndex === -1) {
+    return [error(1, 'missing section "## Retrospective compliance"')];
+  }
+
+  const nextHeading = lines.findIndex(
+    (line, index) => index > headingIndex && /^##\s/.test(line.trim()),
+  );
+  const body = lines.slice(headingIndex + 1, nextHeading === -1 ? lines.length : nextHeading);
+  const lineNumberAt = (offset: number): number => headingIndex + offset + 2;
+
   let briefRun: string | null = null;
   let header: string[] | null = null;
+  let headerLine = headingIndex + 1;
+  const dataRows: Array<{ cells: string[]; line: number }> = [];
 
-  normalize(text)
-    .split('\n')
-    .forEach((raw, index) => {
-      const lineNumber = index + 1;
-      const line = raw.trim();
-      if (line === '') return;
+  body.forEach((raw, offset) => {
+    const lineNumber = lineNumberAt(offset);
+    const line = raw.trim();
+    if (line === '') return;
 
-      const briefMatch = /^Brief run:\s*(.+)$/.exec(line);
-      if (briefMatch) {
+    const briefMatch = /^Brief run:\s*(.+)$/.exec(line);
+    if (briefMatch) {
+      if (briefRun === null) {
         briefRun = briefMatch[1].trim();
-        return;
+      } else {
+        errors.push(error(lineNumber, 'duplicate Brief run: line'));
       }
+      return;
+    }
 
-      if (!line.startsWith('|')) return;
+    if (!line.startsWith('|')) return;
 
-      const cells = splitRow(line);
-      if (cells.length > 0 && cells.every((cell) => SEPARATOR_CELL_RE.test(cell))) return;
+    const cells = splitRow(line);
+    if (cells.length > 0 && cells.every((cell) => SEPARATOR_CELL_RE.test(cell))) return;
 
-      if (header === null) {
-        header = cells.map((cell) => cell.toLowerCase());
-        return;
-      }
+    if (header === null) {
+      header = cells.map((cell) => cell.toLowerCase());
+      headerLine = lineNumber;
+      return;
+    }
 
-      const rowHeader = header;
-      const cell = (name: string): string => {
-        const at = rowHeader.indexOf(name);
-        return at === -1 ? '' : (cells[at] ?? '');
-      };
+    dataRows.push({ cells, line: lineNumber });
+  });
 
-      const id = cell('id');
-      if (id === '') {
-        errors.push(error(lineNumber, 'missing ID'));
-        return;
-      }
+  if (header === null) {
+    errors.push(
+      error(headingIndex + 1, 'missing compliance table header (ID | Kind | Disposition | Where)'),
+    );
+    return errors;
+  }
 
-      const kind = cell('kind');
-      if (kind !== 'practice' && kind !== 'action') {
-        errors.push(error(lineNumber, `${id}: unknown kind "${kind}"`));
-        return;
-      }
+  const headerCells = header;
+  const missingColumns = COMPLIANCE_COLUMNS.filter((name) => !headerCells.includes(name));
+  if (missingColumns.length > 0) {
+    errors.push(
+      error(
+        headerLine,
+        `compliance table is missing column(s) ${missingColumns.join(
+          ', ',
+        )} (expected ID | Kind | Disposition | Where)`,
+      ),
+    );
+    return errors;
+  }
 
-      const dispositionCell = cell('disposition');
-      const dispositionMatch = /^(applied|deferred)\s*(?:[–—-]\s*(.+))?$/.exec(dispositionCell);
-      if (!dispositionMatch) {
-        errors.push(error(lineNumber, `${id}: unknown disposition "${dispositionCell}"`));
-        return;
-      }
+  const value = (cells: string[], name: string): string => {
+    const at = headerCells.indexOf(name);
+    return at === -1 ? '' : (cells[at] ?? '');
+  };
 
-      const where = cell('where');
-      if (where === '') errors.push(error(lineNumber, `${id}: missing where`));
+  for (const dataRow of dataRows) {
+    const { cells, line: lineNumber } = dataRow;
 
-      const row: ComplianceRow = {
-        id,
-        kind,
-        disposition: dispositionMatch[1] as ComplianceRow['disposition'],
-        where,
-      };
-      if (dispositionMatch[2] !== undefined) row.reason = dispositionMatch[2].trim();
-      rows.push(row);
-    });
+    const id = value(cells, 'id');
+    if (id === '') {
+      errors.push(error(lineNumber, 'missing ID'));
+      continue;
+    }
+
+    const kind = value(cells, 'kind');
+    if (kind !== 'practice' && kind !== 'action') {
+      errors.push(error(lineNumber, `${id}: unknown kind "${kind}"`));
+      continue;
+    }
+
+    const dispositionCell = value(cells, 'disposition');
+    const dispositionMatch = /^(applied|deferred)\s*(?:[–—-]\s*(.+))?$/.exec(dispositionCell);
+    if (!dispositionMatch) {
+      errors.push(error(lineNumber, `${id}: unknown disposition "${dispositionCell}"`));
+      continue;
+    }
+
+    const where = value(cells, 'where');
+    if (where === '') errors.push(error(lineNumber, `${id}: missing where`));
+
+    const row: ComplianceRow = {
+      id,
+      kind,
+      disposition: dispositionMatch[1] as ComplianceRow['disposition'],
+      where,
+    };
+    if (dispositionMatch[2] !== undefined) row.reason = dispositionMatch[2].trim();
+    rows.push(row);
+  }
 
   return errors.length > 0 ? errors : { briefRun, rows };
 }
@@ -624,9 +687,9 @@ export function formatIndexRow(entry: Entry): string {
   return parts.join(' · ');
 }
 
-/** `YYYY-MM-DD` prefix of the file's basename, or `null`. */
+/** `YYYY-MM-DD` prefix of the file's basename, or `null`. Handles `/` and `\` separators. */
 export function planDateFromFile(path: string): string | null {
-  const basename = normalize(path).split('/').pop() ?? '';
+  const basename = normalize(path).split(/[\\/]/).pop() ?? '';
   const match = /^(\d{4}-\d{2}-\d{2})/.exec(basename);
   return match === null ? null : match[1];
 }

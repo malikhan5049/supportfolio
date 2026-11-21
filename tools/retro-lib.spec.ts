@@ -1,4 +1,11 @@
-import { normalize, parseEntry, parseIndex, parseRegister, planDateFromFile } from './retro-lib';
+import {
+  normalize,
+  parseEntry,
+  parseIndex,
+  parsePlanCompliance,
+  parseRegister,
+  planDateFromFile,
+} from './retro-lib';
 
 const entry = [
   '## 2026-11-22 · Plan 7 · retrospective-system · PR #52',
@@ -166,5 +173,82 @@ describe('parseIndex and planDateFromFile', () => {
   it('prefers the filename date prefix', () => {
     expect(planDateFromFile('docs/superpowers/plans/2026-12-01-retro-ui.md')).toBe('2026-12-01');
     expect(planDateFromFile('docs/superpowers/plans/notes.md')).toBeNull();
+  });
+});
+
+describe('parseRegister ID uniqueness', () => {
+  it('rejects an ID that appears in more than one table', () => {
+    const collide = register.replace(
+      '| RA-012 | closed | 2026-11-22 | PR #52 |',
+      '| RA-013 | closed | 2026-11-22 | PR #52 |',
+    );
+    expect(errs(parseRegister(collide))).toMatch(
+      /RA-013: appears in more than one table \("Open actions" and "Closed and dropped actions"\)/,
+    );
+  });
+});
+
+describe('parsePlanCompliance', () => {
+  const plan = [
+    '## Scope',
+    '| Step | Owner |',
+    '|---|---|',
+    '| 1 | controller |',
+    '',
+    '## Retrospective compliance',
+    '',
+    'Brief run: 2026-11-22 (`npx tsx tools/retro-brief.ts`)',
+    '',
+    '| ID | Kind | Disposition | Where |',
+    '|---|---|---|---|',
+    '| RP-003 | practice | applied | Task 5 |',
+    '| RA-013 | action | deferred — outside this plan scope | - |',
+    '',
+    '## Risks',
+    '| ID | Risk |',
+    '|---|---|',
+    '| R-1 | slip |',
+  ].join('\n');
+
+  it('parses only the compliance section and ignores earlier tables', () => {
+    const table = parsePlanCompliance(plan);
+    if ('length' in table) throw new Error(errs(table));
+    expect(table.briefRun).toContain('2026-11-22');
+    expect(table.rows).toEqual([
+      { id: 'RP-003', kind: 'practice', disposition: 'applied', where: 'Task 5' },
+      {
+        id: 'RA-013',
+        kind: 'action',
+        disposition: 'deferred',
+        where: '-',
+        reason: 'outside this plan scope',
+      },
+    ]);
+  });
+
+  it('fails loudly when the compliance table header is missing', () => {
+    const headerless = [
+      '## Retrospective compliance',
+      '',
+      'Brief run: 2026-11-22',
+      '',
+      'No table yet.',
+    ].join('\n');
+    expect(errs(parsePlanCompliance(headerless))).toMatch(
+      /missing compliance table header \(ID \| Kind \| Disposition \| Where\)/,
+    );
+  });
+
+  it('fails loudly when the compliance section is missing', () => {
+    expect(errs(parsePlanCompliance('# A plan without compliance\n\nNothing here.'))).toMatch(
+      /missing section "## Retrospective compliance"/,
+    );
+  });
+});
+
+describe('planDateFromFile on Windows paths', () => {
+  it('parses a backslash-separated path and still rejects an undated file', () => {
+    expect(planDateFromFile('docs\\superpowers\\plans\\2026-12-01-retro-ui.md')).toBe('2026-12-01');
+    expect(planDateFromFile('docs\\superpowers\\plans\\notes.md')).toBeNull();
   });
 });
