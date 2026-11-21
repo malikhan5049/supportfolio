@@ -71,15 +71,23 @@ describe('collectPlannedPorts', () => {
 
 describe('findPortConflicts', () => {
   it('returns each duplicated port once with its reserved owner', () => {
-    expect(findPortConflicts([8081, 8081])).toEqual([{ port: 8081, owner: 'identity' }]);
+    expect(findPortConflicts([8081, 8081], platform)).toEqual([{ port: 8081, owner: 'identity' }]);
   });
 
   it('falls back to the plan owner for unreserved duplicates', () => {
-    expect(findPortConflicts([4999, 5000, 4999])).toEqual([{ port: 4999, owner: 'plan' }]);
+    expect(findPortConflicts([4999, 5000, 4999], platform)).toEqual([
+      { port: 4999, owner: 'plan' },
+    ]);
   });
 
   it('returns nothing when every port is unique', () => {
-    expect(findPortConflicts([8081, 8082, 4200])).toEqual([]);
+    expect(findPortConflicts([8081, 8082, 4200], platform)).toEqual([]);
+  });
+
+  it('defaults to the repo platform manifest for reserved owners', () => {
+    // Deliberate one-argument call: the default parameter reads the real
+    // platform/project.manifest.yaml, which reserves 8080 for the shell app.
+    expect(findPortConflicts([8080, 8080])).toEqual([{ port: 8080, owner: 'shell' }]);
   });
 });
 

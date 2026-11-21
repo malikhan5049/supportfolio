@@ -1,4 +1,7 @@
-import type { PlatformManifest, ProjectManifest } from './manifests';
+import type { LocalSection, PlatformManifest, ProjectManifest } from './manifests';
+
+/** The host app lives in the platform manifest's `surface.local`, not in a project manifest. */
+const SURFACE_LOCAL_APP_ID = 'shell';
 
 export function resolveOrder(
   appId: string,
@@ -13,10 +16,23 @@ export function resolveOrder(
   const visiting = new Set<string>();
   const path: string[] = [];
 
-  const isKnown = (id: string) => projectsById.has(id) || platformIds.has(id);
+  const localOf = (id: string): LocalSection | undefined => {
+    const projectLocal = projectsById.get(id)?.local;
+    if (projectLocal) {
+      return projectLocal;
+    }
+
+    if (id === SURFACE_LOCAL_APP_ID) {
+      return platform.surface?.local;
+    }
+
+    return undefined;
+  };
+
+  const isKnown = (id: string) => localOf(id) !== undefined || platformIds.has(id);
 
   const dependenciesOf = (id: string): string[] => {
-    const local = projectsById.get(id)?.local;
+    const local = localOf(id);
     return local ? [...local.dependsOn, ...(local.databases ?? [])] : [];
   };
 
@@ -45,6 +61,10 @@ export function resolveOrder(
     visited.add(id);
     order.push(id);
   };
+
+  if (!isKnown(appId)) {
+    throw new Error(`unknown app id "${appId}"`);
+  }
 
   visit(appId);
   return order;

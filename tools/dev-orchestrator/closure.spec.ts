@@ -1,4 +1,6 @@
+import { join } from 'path';
 import { resolveOrder } from './closure';
+import { loadPlatformManifest, loadProjectManifests } from './manifests';
 import type { PlatformManifest, ProjectManifest } from './manifests';
 
 const platform: PlatformManifest = {
@@ -10,6 +12,16 @@ const platform: PlatformManifest = {
     { id: 'shell', kind: 'gradle' },
     { id: 'telemetry', kind: 'compose-profile' },
   ],
+  surface: {
+    local: {
+      frontend: {
+        nxProject: 'shell-host',
+        devPort: 4200,
+        devRemoteEntry: 'http://localhost:4200/remoteEntry.js',
+      },
+      dependsOn: ['identity', 'tinyurl', 'telemetry'],
+    },
+  },
   reservedPorts: [],
 };
 
@@ -60,6 +72,35 @@ describe('resolveOrder', () => {
       'telemetry',
       'shell',
     ]);
+  });
+
+  it('resolves shell dependencies from the platform surface when no shell manifest exists', () => {
+    expect(resolveOrder('shell', [tinyurl], platform)).toEqual([
+      'identity',
+      'postgres',
+      'tinyurl',
+      'telemetry',
+      'shell',
+    ]);
+  });
+
+  it('resolves the real shell app from platform surface.local without a shell manifest', () => {
+    const repoRoot = join(__dirname, '..', '..');
+    const realPlatform = loadPlatformManifest(join(repoRoot, 'platform', 'project.manifest.yaml'));
+    // loadProjectManifests(root)-style input: project manifests only, no shell manifest.
+    const projects = loadProjectManifests(repoRoot).filter((manifest) => manifest.id !== 'shell');
+
+    expect(resolveOrder('shell', projects, realPlatform)).toEqual([
+      'identity',
+      'postgres',
+      'tinyurl',
+      'telemetry',
+      'shell',
+    ]);
+  });
+
+  it('throws when the app id itself is unknown', () => {
+    expect(() => resolveOrder('nope', [tinyurl], platform)).toThrow('unknown app id "nope"');
   });
 
   it('leaves unrelated platform services out of a project closure', () => {
