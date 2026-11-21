@@ -203,3 +203,64 @@ describe('retro-validate: the archive and its global INDEX', () => {
     expect(out).toMatch(/Closed and dropped actions: no "Date" column/);
   });
 });
+
+const PREAMBLE = [
+  '# Retrospectives',
+  '',
+  '> Prime directive: judge the process, not the person.',
+  '',
+  '**How to use this file:**',
+  '',
+  '- After every plan completes, append an entry at the TOP (newest first).',
+  '',
+  '- Rulings for this period: see `docs/superpowers/rulings.md`.',
+].join('\n');
+
+const migratedEntry = (heading: string) =>
+  [
+    heading,
+    '',
+    '**Headline:** One lesson worth remembering.',
+    '**migrated:** true',
+    '',
+    '### What went well?',
+    '',
+    '- It worked. → context-only',
+    '',
+    '### What would we like to continue doing?',
+    '',
+    '- Keep it. → context-only',
+    '',
+    '### What would we like to stop doing?',
+    '',
+    '- Stop it. → context-only',
+    '',
+    '### Metrics',
+    '',
+    'metrics: not recorded',
+  ].join('\n');
+
+describe('retro-validate: the record preamble and per-entry plan keys', () => {
+  it('treats the contract preamble as furniture, not an entry', () => {
+    const text = `${PREAMBLE}\n\n---\n\n${migratedEntry('## 2026-11-22 · Plan 7 · retrospective-system')}\n`;
+    expect(validateEntries('docs/superpowers/retrospectives.md', text)).toEqual([]);
+  });
+
+  it('accepts ad-hoc entries that share a date but not a slug', () => {
+    const text = [
+      migratedEntry('## 2026-11-20 · Ad-hoc · model-router-cost-rebalance'),
+      migratedEntry('## 2026-11-20 · Ad-hoc · branch-worktree-cleanup'),
+    ].join('\n---\n');
+    expect(validateEntries('docs/superpowers/retrospectives.md', text)).toEqual([]);
+  });
+
+  it('still rejects a repeated plan number', () => {
+    const text = [
+      migratedEntry('## 2026-11-20 · Plan 6 · telemetry'),
+      migratedEntry('## 2026-11-18 · Plan 6 · showcase-deployment'),
+    ].join('\n---\n');
+    expect(validateEntries('docs/superpowers/retrospectives.md', text).join('\n')).toMatch(
+      /duplicate plan key "Plan 6"/,
+    );
+  });
+});

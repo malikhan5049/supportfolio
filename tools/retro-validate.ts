@@ -86,7 +86,8 @@ type RegisterRow = {
  */
 export function validateEntries(path: string, text: string): string[] {
   const violations: string[] = [];
-  const blocks = splitEntryBlocks(text);
+  // The record's contract header is furniture, not an entry (the same rule `retro-rotate` applies).
+  const blocks = splitEntryBlocks(text).filter((block) => carriesEntryHeading(block.text));
 
   if (blocks.length > MAX_HOT_ENTRIES) {
     violations.push(
@@ -118,6 +119,7 @@ export function validateEntries(path: string, text: string): string[] {
 
     const date = heading[1];
     const planKey = heading[2];
+    const slug = heading[3];
 
     if (previousDate !== null && date > previousDate) {
       violations.push(
@@ -130,10 +132,12 @@ export function validateEntries(path: string, text: string): string[] {
     }
     previousDate = date;
 
-    if (planKeys.has(planKey)) {
+    // A plan number is unique across the record; ad-hoc entries are identified by their date and slug.
+    const uniquenessKey = planKey === 'Ad-hoc' ? `${date}/Ad-hoc/${slug}` : planKey;
+    if (planKeys.has(uniquenessKey)) {
       violations.push(violation(path, block.startLine, `duplicate plan key "${planKey}"`));
     }
-    planKeys.add(planKey);
+    planKeys.add(uniquenessKey);
 
     const entry = parseEntry(block.text);
     if (isParseError(entry)) {
@@ -584,6 +588,11 @@ function scanTargets(opts: { all?: boolean }): Array<{ path: string; optional: b
   return targets;
 }
 
+/** True when the block carries an entry heading; the record's preamble is furniture, not an entry. */
+function carriesEntryHeading(text: string): boolean {
+  return text.split('\n').some((line) => line.trim().startsWith('## '));
+}
+
 /** Every block that parses, in order; blocks with findings are reported elsewhere. */
 function parsedEntries(text: string): Entry[] {
   const entries: Entry[] = [];
@@ -731,4 +740,13 @@ function violation(path: string, line: number, message: string): string {
 /** `ParseError.message` already repeats `line N: `; the printed line carries its own. */
 function stripLinePrefix(message: string): string {
   return message.replace(/^line \d+: /, '');
+}
+
+if (require.main === module) {
+  // `exitCode`, not `exit()`: a piped stdout (`| Measure-Object -Line`) must flush before exit.
+  // `main(undefined)` is the two-record default scope; an explicit path list wins over it, and
+  // `--all` only widens the scan (Tasks 10/11 run `retro-validate.ts --all`).
+  const argv = process.argv.slice(2);
+  const paths = argv.filter((arg) => !arg.startsWith('--'));
+  process.exitCode = main(paths.length === 0 ? undefined : paths, { all: argv.includes('--all') });
 }
