@@ -1,4 +1,8 @@
-import { buildBrief, searchTopic } from './retro-brief';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+import { buildBrief, main, searchTopic } from './retro-brief';
 
 const register = [
   '## Open actions',
@@ -74,5 +78,57 @@ describe('searchTopic', () => {
       text: Array.from({ length: 9 }, () => '- needle → context-only').join('\n'),
     };
     expect(searchTopic(['needle'], [many])).toHaveLength(5);
+  });
+});
+
+describe('main', () => {
+  let cwd: string;
+  let dir: string;
+
+  beforeEach(() => {
+    cwd = process.cwd();
+    dir = mkdtempSync(join(tmpdir(), 'retro-brief-'));
+    mkdirSync(join(dir, 'docs', 'superpowers', 'retro'), { recursive: true });
+    writeFileSync(
+      join(dir, 'docs', 'superpowers', 'retrospectives.md'),
+      [
+        '## 2026-11-22 · Plan 7 · retrospective-system · PR #52',
+        '**Headline:** A bounded brief beats a growing log.',
+        '### What went well?',
+        '- Parsing first → RP-004',
+        '### What would we like to continue doing?',
+        '- Needle in the hot record → RP-004',
+        '### What would we like to stop doing?',
+        '- Blind reruns → RA-013',
+        '### Metrics',
+        'metrics: not recorded',
+      ].join('\n'),
+    );
+    process.chdir(dir);
+  });
+
+  afterEach(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+    jest.restoreAllMocks();
+  });
+
+  it('prints the brief and exits 0 when the register is missing', () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(main([])).toBe(0);
+    const out = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(out).toContain('# Retrospective brief — ');
+    expect(out).toContain('## Active practices (obey)\n- none');
+    expect(out).toContain('Plan 7 — A bounded brief beats a growing log.');
+  });
+
+  it('prints the topic hits from the record and exits 0', () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(main(['--topic', 'needle'])).toBe(0);
+    const out = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(out).toContain('docs/superpowers/retrospectives.md:6 · ');
+    expect(out).toContain('Needle in the hot record → RP-004');
   });
 });

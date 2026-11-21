@@ -8,7 +8,7 @@
 
 import { readFileSync } from 'fs';
 
-import { normalize, parseEntry, parseRegister, splitEntryBlocks } from './retro-lib';
+import { isParseError, normalize, parseEntry, parseRegister, splitEntryBlocks } from './retro-lib';
 
 export type TopicHit = { file: string; line: number; heading: string; text: string };
 
@@ -31,7 +31,9 @@ const MAX_HITS = 5;
 /** §8.5 order: title, active practices, open actions, last retro, archive. At most 50 lines. */
 export function buildBrief(input: BriefInput): string {
   const parsed = parseRegister(input.register);
-  const register = Array.isArray(parsed) ? null : parsed;
+  // R7: `isParseError([])` is true by design; `parseRegister`/`parseEntry` return an array only
+  // when errors exist, so the predicate cleanly separates a failed parse from a parsed value.
+  const register = isParseError(parsed) ? null : parsed;
 
   const lines: string[] = [`# Retrospective brief — ${input.today}`, ''];
 
@@ -137,7 +139,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
 
   console.log(
     buildBrief({
-      today: new Date().toISOString().slice(0, 10),
+      today: localToday(),
       hot: readOptional(RECORD_PATH),
       register: readOptional(REGISTER_PATH),
       archiveText: readOptional(ARCHIVE_PATH),
@@ -164,7 +166,8 @@ function section(lines: string[], title: string, rows: string[]): void {
 function lastRetro(hot: string): string | null {
   for (const block of splitEntryBlocks(hot)) {
     const entry = parseEntry(block.text);
-    if (!Array.isArray(entry)) return `${entry.planKey} — ${entry.headline}`;
+    // Same R7 predicate: only an error array takes the raw-heading fallback.
+    if (!isParseError(entry)) return `${entry.planKey} — ${entry.headline}`;
 
     const lines = block.text.split('\n').map((line) => line.trim());
     const heading = lines.find((line) => line.startsWith('## '));
@@ -184,4 +187,17 @@ function readOptional(path: string): string {
   } catch {
     return '';
   }
+}
+
+/** The human's calendar day; `toISOString()` would name yesterday west of UTC (and last month at a month boundary). */
+function localToday(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+if (require.main === module) {
+  // `exitCode`, not `exit()`: a piped stdout (`| Measure-Object -Line`) must flush before exit.
+  process.exitCode = main(process.argv.slice(2));
 }
