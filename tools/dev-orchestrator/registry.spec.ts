@@ -6,6 +6,7 @@ import { generateDevRegistry, trustedOriginsFor } from './registry';
 const ROOT = join(__dirname, '..', '..');
 const REGISTRY = join(ROOT, 'platform', 'shell', 'config', 'remote-registry.json');
 
+// Platform surface: fed to trustedOriginsFor only, never to generateDevRegistry.
 const shell: ProjectManifest = {
   id: 'shell',
   displayName: 'Supportfolio',
@@ -19,6 +20,20 @@ const shell: ProjectManifest = {
   },
 };
 
+// Synthetic project manifest, used only to assert sorting independent of input order.
+const alphaProject: ProjectManifest = {
+  id: 'alpha',
+  displayName: 'Alpha',
+  local: {
+    frontend: {
+      nxProject: 'alpha',
+      devPort: 4202,
+      devRemoteEntry: 'http://localhost:4202/remoteEntry.js',
+    },
+    dependsOn: [],
+  },
+};
+
 function tinyurlManifest(): ProjectManifest {
   const tinyurl = loadProjectManifests(ROOT).find((manifest) => manifest.id === 'tinyurl');
   if (!tinyurl) {
@@ -27,37 +42,48 @@ function tinyurlManifest(): ProjectManifest {
   return tinyurl;
 }
 
+// Controller ruling: the dev registry carries project cards only, so the Task 5
+// CLI drops the platform surface (shell) before calling generateDevRegistry.
 describe('generateDevRegistry', () => {
   it('produces byte-identical output for the same manifests', () => {
-    expect(generateDevRegistry([shell, tinyurlManifest()])).toBe(
-      generateDevRegistry([shell, tinyurlManifest()]),
-    );
+    expect(generateDevRegistry([tinyurlManifest()])).toBe(generateDevRegistry([tinyurlManifest()]));
   });
 
   it('ends with a trailing newline', () => {
-    expect(generateDevRegistry([shell, tinyurlManifest()]).endsWith('\n')).toBe(true);
+    expect(generateDevRegistry([tinyurlManifest()]).endsWith('\n')).toBe(true);
+  });
+
+  it('emits one card per project manifest', () => {
+    const parsed = JSON.parse(generateDevRegistry([tinyurlManifest()]));
+
+    expect(parsed.projects.map((project: { id: string }) => project.id)).toEqual(['tinyurl']);
   });
 
   it('mirrors the committed registry envelope and entry shape', () => {
-    const parsed = JSON.parse(generateDevRegistry([shell, tinyurlManifest()]));
+    const parsed = JSON.parse(generateDevRegistry([tinyurlManifest()]));
     const committed = JSON.parse(readFileSync(REGISTRY, 'utf8'));
 
     expect(Object.keys(parsed)).toEqual(Object.keys(committed));
-    expect(Object.keys(parsed.projects[1])).toEqual(Object.keys(committed.projects[0]));
+    expect(Object.keys(parsed.projects[0])).toEqual(Object.keys(committed.projects[0]));
   });
 
   it('sorts projects by id regardless of manifest order', () => {
-    const parsed = JSON.parse(generateDevRegistry([tinyurlManifest(), shell]));
+    const forward = JSON.parse(generateDevRegistry([alphaProject, tinyurlManifest()]));
+    const reversed = JSON.parse(generateDevRegistry([tinyurlManifest(), alphaProject]));
 
-    expect(parsed.projects.map((project: { id: string }) => project.id)).toEqual([
-      'shell',
+    expect(forward.projects.map((project: { id: string }) => project.id)).toEqual([
+      'alpha',
+      'tinyurl',
+    ]);
+    expect(reversed.projects.map((project: { id: string }) => project.id)).toEqual([
+      'alpha',
       'tinyurl',
     ]);
   });
 
   it('emits the full catalog DTO with dev URLs from the manifest', () => {
-    const parsed = JSON.parse(generateDevRegistry([shell, tinyurlManifest()]));
-    const tinyurl = parsed.projects[1];
+    const parsed = JSON.parse(generateDevRegistry([tinyurlManifest()]));
+    const tinyurl = parsed.projects[0];
 
     expect(tinyurl.id).toBe('tinyurl');
     expect(tinyurl.displayName).toBe('TinyURL');
@@ -77,10 +103,11 @@ describe('generateDevRegistry', () => {
   });
 
   it('falls back to the dev remote entry when a manifest exposes no module', () => {
-    const parsed = JSON.parse(generateDevRegistry([shell, tinyurlManifest()]));
+    const withoutExposure: ProjectManifest = { ...tinyurlManifest(), exposedModules: [] };
+    const parsed = JSON.parse(generateDevRegistry([withoutExposure]));
 
     expect(parsed.projects[0].exposedModules).toEqual([
-      { name: 'shell', version: '1.0.0', remoteEntry: 'http://localhost:4200/remoteEntry.js' },
+      { name: 'tinyurl', version: '1.0.0', remoteEntry: 'http://localhost:4201/remoteEntry.js' },
     ]);
   });
 });

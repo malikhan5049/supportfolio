@@ -33,6 +33,7 @@ function exposedModulesFor(manifest: ProjectManifest): ExposedModule[] {
     return [];
   }
 
+  // Placeholder entry only: it keeps the card's remote entry populated, it is not a resolvable exposure.
   return [{ name: manifest.id, version: FALLBACK_MODULE_VERSION, remoteEntry }];
 }
 
