@@ -6,7 +6,7 @@
  * not parse degrades to `- none` or to the raw heading and headline rather than failing.
  */
 
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 
 import { isParseError, normalize, parseEntry, parseRegister, splitEntryBlocks } from './retro-lib';
 
@@ -16,13 +16,17 @@ export type BriefInput = {
   today: string;
   hot: string;
   register: string;
+  /** One archive file's text, for callers that hold a single year. */
   archiveText: string;
+  /** The name that text came from, printed in the Archive line. */
   archiveName: string;
+  /** Every year file, so the brief counts the whole archive and never rots at rollover (N5). */
+  archives?: Array<{ name: string; text: string }>;
 };
 
 const RECORD_PATH = 'docs/superpowers/retrospectives.md';
 const REGISTER_PATH = 'docs/superpowers/retro-actions.md';
-const ARCHIVE_PATH = 'docs/superpowers/retro/archive/2026.md';
+const ARCHIVE_DIR = 'docs/superpowers/retro/archive';
 
 const MAX_LINES = 50;
 const MAX_ROWS = 12;
@@ -57,10 +61,15 @@ export function buildBrief(input: BriefInput): string {
   lines.push(lastRetro(input.hot) ?? '- none');
   lines.push('');
 
-  const count = splitEntryBlocks(input.archiveText).length;
+  const archives = archiveInputs(input);
+  const count = archives.reduce((total, file) => total + entryCount(file.text), 0);
   lines.push('## Archive');
+  const where =
+    archives.length === 0
+      ? 'retro/archive/ (no year files yet)'
+      : `retro/archive/${archives.map((file) => file.name).join(', ')}`;
   lines.push(
-    `${count} entries in retro/archive/${input.archiveName}. Search: \`npx tsx tools/retro-brief.ts --topic <keywords>\``,
+    `${count} entries in ${where}. Search: \`npx tsx tools/retro-brief.ts --topic <keywords>\``,
   );
 
   if (lines.length <= MAX_LINES) return lines.join('\n');
@@ -126,7 +135,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
 
     const hits = searchTopic(keywords, [
       { path: RECORD_PATH, text: readOptional(RECORD_PATH) },
-      { path: ARCHIVE_PATH, text: readOptional(ARCHIVE_PATH) },
+      ...readArchives().map((file) => ({ path: `${ARCHIVE_DIR}/${file.name}`, text: file.text })),
     ]);
 
     for (const hit of hits) {
@@ -137,13 +146,15 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     return 0;
   }
 
+  const archives = readArchives();
   console.log(
     buildBrief({
       today: localToday(),
       hot: readOptional(RECORD_PATH),
       register: readOptional(REGISTER_PATH),
-      archiveText: readOptional(ARCHIVE_PATH),
-      archiveName: ARCHIVE_PATH.slice(ARCHIVE_PATH.lastIndexOf('/') + 1),
+      archiveText: '',
+      archiveName: '',
+      archives,
     }),
   );
   return 0;
@@ -179,6 +190,35 @@ function lastRetro(hot: string): string | null {
     if (key !== '' && value !== '') return `${key} — ${value}`;
   }
   return null;
+}
+
+/** The year files the brief reports on: `archives` when given, else the single `archiveText`. */
+function archiveInputs(input: BriefInput): Array<{ name: string; text: string }> {
+  if (input.archives !== undefined) return input.archives;
+  if (input.archiveText === '') return [];
+  return [{ name: input.archiveName, text: input.archiveText }];
+}
+
+/** Blocks that carry a heading; an archive file's preamble is never counted as an entry. */
+function entryCount(text: string): number {
+  return splitEntryBlocks(text).filter((block) =>
+    block.text.split('\n').some((line) => line.trim().startsWith('## ')),
+  ).length;
+}
+
+/** Every `archive/<year>.md`; `INDEX.md` indexes the archive but is not an archive of entries. */
+function readArchives(): Array<{ name: string; text: string }> {
+  let names: string[];
+  try {
+    names = readdirSync(ARCHIVE_DIR);
+  } catch {
+    return [];
+  }
+
+  return names
+    .filter((name) => name.endsWith('.md') && name !== 'INDEX.md')
+    .sort()
+    .map((name) => ({ name, text: readOptional(`${ARCHIVE_DIR}/${name}`) }));
 }
 
 function readOptional(path: string): string {

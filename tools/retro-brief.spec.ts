@@ -81,6 +81,25 @@ describe('searchTopic', () => {
   });
 });
 
+describe('buildBrief: the archive never rots at rollover (N5)', () => {
+  it('sums the entry count across year files and lists them', () => {
+    const brief = buildBrief({
+      today: '2026-11-22',
+      hot,
+      register,
+      archiveText: '',
+      archiveName: '',
+      archives: [
+        { name: '2025.md', text: '## 2025-12-30 · Plan 4 · old\n' },
+        { name: '2026.md', text: '## 2026-01-05 · Plan 3 · a\n---\n## 2026-02-05 · Plan 3 · b\n' },
+      ],
+    });
+
+    expect(brief).toContain('3 entries in retro/archive/2025.md, 2026.md');
+    expect(brief.split('\n').length).toBeLessThanOrEqual(50);
+  });
+});
+
 describe('main', () => {
   let cwd: string;
   let dir: string;
@@ -130,5 +149,24 @@ describe('main', () => {
     const out = log.mock.calls.map((call) => String(call[0])).join('\n');
     expect(out).toContain('docs/superpowers/retrospectives.md:6 · ');
     expect(out).toContain('Needle in the hot record → RP-004');
+  });
+
+  it('searches every year file, not one hard-coded year (N5)', () => {
+    const archiveDir = join(dir, 'docs', 'superpowers', 'retro', 'archive');
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(
+      join(archiveDir, '2025.md'),
+      '## 2025-12-30 · Plan 4 · old\n- needle in 2025 → context-only\n',
+    );
+    writeFileSync(
+      join(archiveDir, '2026.md'),
+      '## 2026-01-05 · Plan 3 · new\n- needle in 2026 → context-only\n',
+    );
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(main(['--topic', 'needle'])).toBe(0);
+    const out = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(out).toContain('needle in 2025');
+    expect(out).toContain('needle in 2026');
   });
 });
