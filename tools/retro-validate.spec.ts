@@ -19,6 +19,40 @@ function run(name: string, register = 'valid-register.md'): { code: number; out:
   return { code, out };
 }
 
+const adHocEntry = (date: string, slug: string) =>
+  [
+    `## ${date} · Ad-hoc · ${slug}`,
+    '**Headline:** Lesson from the ad-hoc run.',
+    '### What went well?',
+    '- Something worked → RP-004',
+    '### What would we like to continue doing?',
+    '- Keep the spec first → RP-004',
+    '### What would we like to stop doing?',
+    '- Skipping builds → RA-013',
+    '### Metrics',
+    'tasks 1 · retries 0 · escaped defects 0 · review 0C/0I/0m',
+  ].join('\n');
+
+/** Rule 6's duplicate finding only; the INDEX-count findings an empty INDEX raises are not the subject. */
+const duplicatePlanKey = (violations: string[]) =>
+  violations.filter((line) => /appears in both the hot record and the archive/.test(line));
+
+describe('retro-validate: ad-hoc entries join by slug', () => {
+  it('flags a duplicate only when the same ad-hoc slug sits in both places', () => {
+    const distinct = duplicatePlanKey(
+      validateArchivePair(adHocEntry('2026-11-20', 'a'), adHocEntry('2026-11-13', 'b'), ''),
+    );
+    const same = duplicatePlanKey(
+      validateArchivePair(adHocEntry('2026-11-13', 'a'), adHocEntry('2026-11-13', 'a'), ''),
+    );
+
+    expect([distinct, same]).toEqual([
+      [],
+      ['plan key "Ad-hoc/a" appears in both the hot record and the archive'],
+    ]);
+  });
+});
+
 describe('retro-validate: entries, dispositions, register', () => {
   it('exits 0 on a valid hot record and register', () => {
     expect(main([fixture('valid-hot.md'), fixture('valid-register.md')])).toBe(0);

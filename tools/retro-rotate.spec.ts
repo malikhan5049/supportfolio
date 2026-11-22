@@ -59,6 +59,22 @@ describe('rotate', () => {
     expect(message).toContain('in Plan 7');
   });
 
+  it('does not prepend an INDEX row it already holds for an ad-hoc entry', () => {
+    const hot = [
+      block('2026-11-22', 'Plan 7'),
+      block('2026-11-20', 'Plan 6'),
+      block('2026-11-18', 'Plan 5'),
+      block('2026-11-10', 'Ad-hoc'),
+    ].join('\n---\n');
+    const row = '2026-11-10 · Ad-hoc/demo-slug · Lesson for Ad-hoc. · RA-013, RP-004';
+
+    const r = rotate({ hot, archive: '', index: row, year: '2026', today: '2026-11-22' });
+    if (Array.isArray(r)) throw new Error(JSON.stringify(r));
+
+    expect(r.rotated?.planKey).toBe('Ad-hoc');
+    expect(r.index.trim()).toBe(row);
+  });
+
   it('rotates closed and retired register rows dated before this year', () => {
     const reg = [
       '## Closed and dropped actions',

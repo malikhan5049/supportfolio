@@ -82,15 +82,20 @@ type RegisterRow = {
 };
 
 /**
- * Validates one entry file (rules 1, 2, 3 and 5). The hot cap is unconditional: no option or
- * caller can widen an entry file past {@link MAX_HOT_ENTRIES}.
+ * Validates one entry file (rules 1, 2, 3 and 5). The hot cap belongs to the hot record: an
+ * archive file grows by design, so `main` passes `hot: false` for it. Nothing widens a hot record
+ * past {@link MAX_HOT_ENTRIES}.
  */
-export function validateEntries(path: string, text: string): string[] {
+export function validateEntries(
+  path: string,
+  text: string,
+  opts: { hot?: boolean } = {},
+): string[] {
   const violations: string[] = [];
   // The record's contract header is furniture, not an entry (the same rule `retro-rotate` applies).
   const blocks = splitEntryBlocks(text).filter((block) => carriesEntryHeading(block.text));
 
-  if (blocks.length > MAX_HOT_ENTRIES) {
+  if (opts.hot !== false && blocks.length > MAX_HOT_ENTRIES) {
     violations.push(
       violation(
         path,
@@ -428,7 +433,8 @@ export function validateRulings(path: string, text: string): string[] {
  * silently.
  *
  * `opts.all` widens the scan scope only (the two records, INDEX, every plan, the archive, ROADMAP
- * and the rulings); no rule changes, and the hot cap in particular applies to every entry file.
+ * and the rulings); no rule changes — the hot cap still applies to the hot record and never to an
+ * archive file, which grows by design.
  * Explicit paths always win over the wider default scope. Under `--all` the records, INDEX,
  * ROADMAP and rulings are required (their absence is a violation) while individual plans and
  * archive files are optional.
@@ -468,7 +474,7 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
   const entryKeys = new Set<string>();
   let entryCount = 0;
   for (const file of entryFiles) {
-    violations.push(...validateEntries(file.path, file.text));
+    violations.push(...validateEntries(file.path, file.text, { hot: file.kind === 'entry' }));
     entryCount += splitEntryBlocks(file.text).length;
     for (const entry of parsedEntries(file.text)) entryKeys.add(entryKey(entry));
   }
