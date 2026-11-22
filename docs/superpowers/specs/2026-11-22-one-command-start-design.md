@@ -212,3 +212,23 @@ Untouched: `docker-compose.demo.yml` core services, `platform/shell/config/remot
 - `npm run prod:shell`: `:18080/apps/tinyurl/` still composes identically.
 - `tools/` Jest specs: closure resolution, cycle detection, port collisions, registry
   generation determinism.
+
+## Amendments (dated, approved by the human)
+
+**2026-11-22 — approved in session.** Three implementation-reality amendments, each ledgered
+during execution:
+
+1. **`local.service.envFile` is NOT supported.** The manifest schema still declares the field,
+   but the orchestrator rejects it at plan time with
+   `local.service.envFile is not supported yet` — silently accepting an unimplemented
+   capability was ruled worse than rejecting it. The §Manifest extension `envFile` example
+   above is therefore aspirational, not shipped behavior.
+2. **The tcp readiness gate is generalized.** "Never bare TCP, except Postgres" is superseded:
+   every dependency that resolves to a `compose` platform service WITH a port gets a
+   `tcp:127.0.0.1:<port>` wait-on fragment (Postgres included), so a future Redis-like
+   dependency is gated by the same rule instead of a name check.
+3. **The genericity promise is amended.** "Adding project #5 = add a manifest entry and a
+   registry entry — never editing the orchestrator" becomes "…plus one `package.json` script
+   line per app" (npm scripts are static; this matches the JHipster workspace-script model the
+   design was modelled on). Everything else (closure, ports, registry, CSP origins, telemetry
+   inclusion) remains manifest-driven with zero orchestrator edits.
