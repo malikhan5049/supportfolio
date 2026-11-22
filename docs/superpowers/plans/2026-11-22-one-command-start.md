@@ -12,7 +12,7 @@
 - Work on branch `feat/one-command-start` (create in Task 0); never commit to `main`; conventional commits (CI-enforced).
 - Windows-first: npm scripts run under cmd.exe; use `gradlew.bat` locally; every path passed to a Spring process must be ABSOLUTE (`bootRun` CWD = the module directory).
 - Do not touch: `platform/shell/config/remote-registry.json`, `scripts/demo.ps1`, `docker-compose.demo.yml`, anything under `.github/`, `platform/identity/dev-key.pem` (never commit/move/copy; generate locally with openssl if missing).
-- `tools/` is plain Node/Jest TS, NOT on the Nx graph. Test command: `npx jest --selectProjects tools --testPathPattern <pattern>`. Prettier gate: `npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"`.
+- `tools/` is plain Node/Jest TS, NOT on the Nx graph. Test command: `npx jest --selectProjects tools --testPathPatterns<pattern>`. Prettier gate: `npx prettier --check "platform/**/*.{ts,html}" "tools/**/*.ts" "eslint.config.mjs" "jest.config.ts" "jest.preset.js"`.
 - Spring DevTools goes in the `developmentOnly` configuration only; LiveReload is disabled via env `SPRING_DEVTOOLS_LIVERELOAD_ENABLED=false` on every devtools service (three instances would race for port 35729).
 - Reserved port map (platform manifest owns it): 4200 shell-host, 4201 tinyurl-mf, 8080 shell gateway, 8081 identity, 8082 tinyurl-service, 8083 spare, 5432 postgres, 9091/9092/9093 management, 18080 shell demo, 18082 tinyurl standalone, 19090 prometheus, 13000 grafana.
 - Dev containers always run under compose project name `supportfolio-dev` so `down` can never touch the demo stack's volumes.
@@ -98,7 +98,8 @@ describe('local section', () => {
   it('rejects a typo inside local (invalid-manifest-local-typo.yaml)', () => {
     const result = validateManifest(readFileSync(join(__dirname, 'fixtures/invalid-manifest-local-typo.yaml'), 'utf8'));
     expect(result.valid).toBe(false);
-    expect(result.errors.join('\n')).toContain('additionalProperties');
+    // Ajv's message text is "must NOT have additional properties"; pin the cause via the property path.
+    expect(result.errors.map((e) => JSON.stringify(e)).join('\n')).toContain('dependOn');
   });
 
   it('validates the real tinyurl manifest with its local block', () => {
@@ -110,7 +111,7 @@ describe('local section', () => {
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest --selectProjects tools --testPathPattern validate-manifest`
+Run: `npx jest --selectProjects tools --testPathPatternsvalidate-manifest`
 Expected: the two new fixture tests fail — the valid fixture is rejected once `additionalProperties: false` exists (unknown `local`/`openUrl` keys) and the typo fixture is wrongly accepted (`Received: true`). The real-manifest test may pass before Step 4; the two fixture failures are the gate.
 
 - [ ] **Step 3: Extend the schema**
@@ -227,7 +228,7 @@ reservedPorts:
 
 - [ ] **Step 5: Run the specs again**
 
-Run: `npx jest --selectProjects tools --testPathPattern validate-manifest`
+Run: `npx jest --selectProjects tools --testPathPatternsvalidate-manifest`
 Expected: all tests pass, including the 3 new ones.
 
 - [ ] **Step 6: Run the whole tools project (fixture fallout check)**
@@ -324,7 +325,7 @@ await expect(checkPortsFree([busyPort])).resolves.toEqual([{ port: busyPort, bus
 
 - [ ] **Step 2: Run them and watch them fail**
 
-Run: `npx jest --selectProjects tools --testPathPattern "closure|manifests|ports"`
+Run: `npx jest --selectProjects tools --testPathPatterns "closure|manifests|ports"`
 Expected: 3 suites fail with `Cannot find module './closure'` / `'./manifests'` / `'./ports'` (module-not-found), plus TS error `TS2307`.
 
 - [ ] **Step 3: Implement the three libraries**
@@ -337,7 +338,7 @@ Expected: 3 suites fail with `Cannot find module './closure'` / `'./manifests'` 
 
 - [ ] **Step 4: Run the specs again**
 
-Run: `npx jest --selectProjects tools --testPathPattern "closure|manifests|ports"`
+Run: `npx jest --selectProjects tools --testPathPatterns "closure|manifests|ports"`
 Expected: 3 suites pass, 0 failures.
 
 - [ ] **Step 5: Commit**
@@ -364,12 +365,14 @@ export function trustedOriginsFor(manifests: ProjectManifest[]): string
 - [ ] **Step 1: Write the failing spec**
 
 ```ts
-const out = generateDevRegistry([shell, tinyurl]);
+// Controller ruling (Task 3): the dev registry carries PROJECT cards only — the Task 5 CLI
+// passes project manifests, excluding the platform surface (shell). The generator stays generic.
+const out = generateDevRegistry([tinyurl]);
 expect(out).toBe(generateDevRegistry([shell, tinyurl]));            // deterministic
 expect(out.endsWith('\n')).toBe(true);
 const parsed = JSON.parse(out);
 expect(Object.keys(parsed)).toEqual(Object.keys(JSON.parse(readFileSync(REGISTRY, 'utf8'))));
-expect(parsed.projects.map((p: { id: string }) => p.id)).toEqual(['shell', 'tinyurl']);
+expect(parsed.projects.map((p: { id: string }) => p.id)).toEqual(['tinyurl']);
 const committed = JSON.parse(readFileSync(REGISTRY, 'utf8'));
 expect(Object.keys(parsed.projects[1])).toEqual(Object.keys(committed.projects[0]));
 expect(parsed.projects[1].exposedModules[0]).toEqual(
@@ -379,7 +382,7 @@ expect(trustedOriginsFor([shell, tinyurl])).toBe('http://localhost:4200,http://l
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest --selectProjects tools --testPathPattern registry`
+Run: `npx jest --selectProjects tools --testPathPatternsregistry`
 Expected: fails with `Cannot find module './registry'`.
 
 - [ ] **Step 3: Implement `registry.ts`**
@@ -388,7 +391,7 @@ Read the committed registry once at module scope only inside the spec (the imple
 
 - [ ] **Step 4: Run it again**
 
-Run: `npx jest --selectProjects tools --testPathPattern registry`
+Run: `npx jest --selectProjects tools --testPathPatternsregistry`
 Expected: passes.
 
 - [ ] **Step 5: Commit**
@@ -453,7 +456,7 @@ Same file, three more cases: (`serve`, tinyurl) → 4 processes `['identity','po
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest --selectProjects tools --testPathPattern plan`
+Run: `npx jest --selectProjects tools --testPathPatternsplan`
 Expected: `Cannot find module './plan'`.
 
 - [ ] **Step 3: Implement `plan.ts`**
@@ -462,7 +465,7 @@ Implement exactly the derivation above; parse `.env` with `split('\n')` → `lin
 
 - [ ] **Step 4: Run the spec again**
 
-Run: `npx jest --selectProjects tools --testPathPattern plan`
+Run: `npx jest --selectProjects tools --testPathPatternsplan`
 Expected: passes, 4 test cases.
 
 - [ ] **Step 5: Commit**
@@ -503,7 +506,7 @@ Plus a spawn test with `jest.mock('concurrently')` asserting `concurrently` was 
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest --selectProjects tools --testPathPattern dev-orchestrator`
+Run: `npx jest --selectProjects tools --testPathPatternsdev-orchestrator`
 Expected: `Cannot find module './tools/dev-orchestrator'` → the spec's `import … from './dev-orchestrator'` fails with `TS2307`.
 
 - [ ] **Step 3: Implement the CLI**
@@ -512,7 +515,7 @@ Implement `parseArgs`, `runPreflight`, `main` per the interface. `main` prints t
 
 - [ ] **Step 4: Run it again, then the whole tools project**
 
-Run: `npx jest --selectProjects tools --testPathPattern dev-orchestrator`
+Run: `npx jest --selectProjects tools --testPathPatternsdev-orchestrator`
 Expected: passes (parseArgs 3 cases, preflight 3 cases, spawn 1 case).
 Run: `npx jest --selectProjects tools`
 Expected: green, 0 failures.
@@ -600,7 +603,7 @@ describe('standalone environment', () => {
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx jest --selectProjects tinyurl-microfrontend --testPathPattern environment.standalone`
+Run: `npx jest --selectProjects tinyurl-microfrontend --testPathPatternsenvironment.standalone`
 Expected: fails — `Cannot find module './environment.standalone'`.
 
 - [ ] **Step 3: Create the environment (exact content) and the build configuration**
@@ -645,7 +648,7 @@ In `projects/tinyurl/microfrontend/project.json` add a sibling of `production` u
 
 - [ ] **Step 4: Run the spec again**
 
-Run: `npx jest --selectProjects tinyurl-microfrontend --testPathPattern environment.standalone`
+Run: `npx jest --selectProjects tinyurl-microfrontend --testPathPatternsenvironment.standalone`
 Expected: passes.
 
 - [ ] **Step 5: Build and gate the standalone bundle**
