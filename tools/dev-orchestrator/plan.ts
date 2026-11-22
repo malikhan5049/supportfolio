@@ -191,6 +191,15 @@ export function buildProcessPlan(
   const localOf = (id: string): LocalSection | undefined =>
     localSectionFor(id, manifests, platform);
 
+  // The requested app must start something of its own: an unstartable app is a manifest defect, not
+  // an empty session. Dependencies stay exempt — a pure-frontend dependency is legal.
+  const appLocal = localOf(app.id);
+  if (!appLocal?.service && !appLocal?.frontend) {
+    throw new Error(
+      `manifest "${app.id}" declares neither local.service nor local.frontend — nothing to start`,
+    );
+  }
+
   const waitOnFor = (id: string): string => {
     const dependencies = order.slice(0, order.indexOf(id));
     const urls = dependencies

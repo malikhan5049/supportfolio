@@ -152,6 +152,26 @@ describe('buildProcessPlan', () => {
       ).toThrow('local.service.envFile is not supported yet');
     });
 
+    it('throws when the requested app declares neither a service nor a frontend', () => {
+      // An empty plan is a manifest bug: without this gate the CLI would exit 0 having started nothing.
+      const emptyLocal: ProjectManifest = {
+        id: 'empty',
+        displayName: 'Empty',
+        local: { dependsOn: [] },
+      };
+
+      expect(() =>
+        buildProcessPlan('serve', emptyLocal, [emptyLocal], platform, FAKE_REPO_ROOT),
+      ).toThrow(
+        'manifest "empty" declares neither local.service nor local.frontend — nothing to start',
+      );
+
+      const noLocal: ProjectManifest = { id: 'empty', displayName: 'Empty' };
+      expect(() => buildProcessPlan('serve', noLocal, [noLocal], platform, FAKE_REPO_ROOT)).toThrow(
+        'manifest "empty" declares neither local.service nor local.frontend — nothing to start',
+      );
+    });
+
     it('plans a pure-frontend dependency without inventing a service process', () => {
       const cards: ProjectManifest = {
         id: 'cards',

@@ -22,15 +22,24 @@ npm run build-watch:shell
 # Print the resolved plan (processes, env, generated registry path) and spawn nothing
 npm run start:plan
 
-# Tear down: Gradle daemons, dev port listeners, supportfolio-dev containers
+# Tear down: Gradle daemons, dev port listeners, supportfolio-dev/prod containers
 npm run stop
 ```
 
-`watch:shell` starts 7 processes with coloured `[name]` prefixes: `identity`, `postgres`,
-`tinyurl-service`, `tinyurl-microfrontend`, `telemetry`, `shell`, `shell-host`. Spring services
-`wait-on` their dependencies' actuator health before booting, and the dev registry
+`npm run stop` is deliberately blunt: it kills ANY process listening on a platform-reserved port
+(4200, 4201, 8080–8083, 9091–9093) and downs the `supportfolio-dev` and `supportfolio-prod` compose
+projects. The demo stack (`scripts/demo.ps1`, project `supportfolio`) is untouched.
+
+`watch:shell` starts 8 processes with coloured `[name]` prefixes: `identity`, `postgres`,
+`tinyurl-service`, `tinyurl-microfrontend`, `telemetry`, `shell`, `shell-host`, `compile`. Spring
+services `wait-on` their dependencies' actuator health before booting, and the dev registry
 (`platform/shell/config/remote-registry.dev.json`) is generated from the project manifests before
 anything spawns. `.env` is git-ignored; fill real GitHub credentials there before login can work.
+
+`[compile]` is a continuous `gradlew -t …classes` watcher over every Gradle module in the closure:
+DevTools restarts Java only when class files change, so without it the dev loop has nothing to
+restart on. It starts last so it never competes for a Gradle daemon; cold boot still takes ~3 min
+because each Spring service compiles before it serves.
 
 | Port | Owner |
 | --- | --- |
@@ -47,6 +56,11 @@ anything spawns. `.env` is git-ignored; fill real GitHub credentials there befor
 | 13000 | grafana |
 
 > `watch:*` and `build-watch:*` are mutually exclusive with `npx nx e2e shell-host-e2e`: Playwright's config runs `npx nx serve tinyurl-microfrontend --port 4201 --configuration=development` and `npx nx serve shell-host --port 4200 --configuration=e2e`, so the dev servers must be stopped first.
+
+**Prod topology:** `prod:shell` runs the composed platform (shell + TinyURL inside it + telemetry) on
+:18080; `prod:tinyurl` runs TinyURL standalone on :18082 with no shell. Both use the
+`supportfolio-prod` compose project over the same postgres/identity/tinyurl-service containers, so a
+second `up` reconciles — i.e. recreates — the first stack's services: run one at a time.
 
 Environment defaults for the children: identity `http://localhost:8081`, registry file
 `platform/shell/config/remote-registry.dev.json`, trusted origins

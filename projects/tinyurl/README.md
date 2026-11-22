@@ -22,17 +22,26 @@ npm run build-watch:tinyurl
 # Print the resolved plan (processes, env, generated registry path) and spawn nothing
 npm run start:plan
 
-# Tear down: Gradle daemons, dev port listeners, supportfolio-dev containers
+# Tear down: Gradle daemons, dev port listeners, supportfolio-dev/prod containers
 npm run stop
 
 # Standalone production build: postgres + identity + tinyurl service + SPA on http://localhost:18082
 npm run prod:tinyurl
 ```
 
-`watch:tinyurl` starts 4 processes with coloured `[name]` prefixes: `identity`, `postgres`,
-`tinyurl-service`, `tinyurl-microfrontend`. It has **no** telemetry: its `local.dependsOn` is
+`npm run stop` kills ANY listener on the platform-reserved ports (4200/4201, 8080–8083,
+9091–9093) and downs the `supportfolio-dev` and `supportfolio-prod` compose projects; the demo stack
+(`scripts/demo.ps1`, project `supportfolio`) is untouched. `prod:tinyurl` (:18082) and `prod:shell`
+(:18080) share the `supportfolio-prod` project and its containers, so they are run one at a time.
+
+`watch:tinyurl` starts 5 processes with coloured `[name]` prefixes: `identity`, `postgres`,
+`tinyurl-service`, `tinyurl-microfrontend`, `compile`. It has **no** telemetry: its `local.dependsOn` is
 `["identity"]` with `databases: ["postgres"]`, so Prometheus/Grafana only come up with
 `watch:shell` (the shell manifest's `dependsOn` includes `telemetry`).
+
+`[compile]` is the continuous `gradlew -t …classes` watcher over the closure's Gradle modules:
+DevTools restarts Java only when class files change. It starts last so it never competes for a
+Gradle daemon, and cold boot still takes ~3 min because each Spring service compiles before it serves.
 
 | Port | Owner |
 | --- | --- |
