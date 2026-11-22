@@ -27,6 +27,9 @@ export type BriefInput = {
 const RECORD_PATH = 'docs/superpowers/retrospectives.md';
 const REGISTER_PATH = 'docs/superpowers/retro-actions.md';
 const ARCHIVE_DIR = 'docs/superpowers/retro/archive';
+// Mirrors `YEAR_FILE_RE` in `tools/retro-rotate.ts`: only `archive/<year>.md` holds entries.
+// `register-<year>.md` is a register (its section headings are not entry blocks) and INDEX is an index.
+const YEAR_FILE_RE = /^(\d{4})\.md$/;
 
 const MAX_LINES = 50;
 const MAX_ROWS = 12;
@@ -206,7 +209,7 @@ function entryCount(text: string): number {
   ).length;
 }
 
-/** Every `archive/<year>.md`; `INDEX.md` indexes the archive but is not an archive of entries. */
+/** Every `archive/<year>.md`; `register-<year>.md` and `INDEX.md` are not archives of entries. */
 function readArchives(): Array<{ name: string; text: string }> {
   let names: string[];
   try {
@@ -216,7 +219,7 @@ function readArchives(): Array<{ name: string; text: string }> {
   }
 
   return names
-    .filter((name) => name.endsWith('.md') && name !== 'INDEX.md')
+    .filter((name) => YEAR_FILE_RE.test(name))
     .sort()
     .map((name) => ({ name, text: readOptional(`${ARCHIVE_DIR}/${name}`) }));
 }

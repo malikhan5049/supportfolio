@@ -169,4 +169,35 @@ describe('main', () => {
     expect(out).toContain('needle in 2025');
     expect(out).toContain('needle in 2026');
   });
+
+  it('keeps register year files out of the archive count and the topic search (R24)', () => {
+    const archiveDir = join(dir, 'docs', 'superpowers', 'retro', 'archive');
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(
+      join(archiveDir, '2026.md'),
+      ['## 2026-01-05 · Plan 3 · archived', '- needle in the year file → context-only'].join('\n'),
+    );
+    writeFileSync(
+      join(archiveDir, 'register-2026.md'),
+      [
+        '## Closed and dropped actions',
+        '| ID | Outcome | Date | Evidence or reason |',
+        '|---|---|---|---|',
+        '| RA-012 | closed | 2025-12-01 | needle retired row |',
+      ].join('\n'),
+    );
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(main([])).toBe(0);
+    const brief = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(brief).toContain('1 entries in retro/archive/2026.md');
+    expect(brief).not.toContain('register-2026.md');
+
+    log.mockClear();
+    expect(main(['--topic', 'needle'])).toBe(0);
+    const hits = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(hits).toContain('needle in the year file');
+    expect(hits).not.toContain('needle retired row');
+    expect(hits).not.toContain('register-2026.md');
+  });
 });
