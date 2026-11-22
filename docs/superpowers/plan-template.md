@@ -20,8 +20,8 @@ Brief run: YYYY-MM-DD (`npx tsx tools/retro-brief.ts`)
 
 | ID | Kind | Disposition | Where |
 |---|---|---|---|
-| RP-003 | practice | applied | Task 5 |
-| RA-013 | action | deferred — outside this plan's scope | — |
+| RA-001 | action | applied | Task 3 |
+| RA-002 | action | deferred — outside this plan's scope | — |
 
 The two rows above are examples: replace them with every RA/RP open on the plan date — `applied` names the task that carries it, `deferred` requires a reason.
 

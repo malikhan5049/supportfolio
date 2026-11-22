@@ -7,7 +7,6 @@ on:
       - 'tools/retro-*.ts'
       - 'tools/fixtures/retro/**'
       - 'AGENTS.md'
-      - 'ROADMAP.md'
 
 jobs:
   validate-retrospectives:
