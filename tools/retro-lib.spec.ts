@@ -1,4 +1,5 @@
 import {
+  formatIndexRow,
   normalize,
   parseEntry,
   parseIndex,
@@ -173,6 +174,31 @@ describe('parseIndex and planDateFromFile', () => {
   it('prefers the filename date prefix', () => {
     expect(planDateFromFile('docs/superpowers/plans/2026-12-01-retro-ui.md')).toBe('2026-12-01');
     expect(planDateFromFile('docs/superpowers/plans/notes.md')).toBeNull();
+  });
+});
+
+describe('formatIndexRow join keys', () => {
+  it('keys an ad-hoc row by its slug and keeps Plan N on a numbered row', () => {
+    const adHoc = parseEntry(
+      entry.replace(
+        'Plan 7 · retrospective-system · PR #52',
+        'Ad-hoc · model-router-cost-rebalance',
+      ),
+    );
+    if (Array.isArray(adHoc)) throw new Error(errs(adHoc));
+
+    const numbered = parseEntry(entry);
+    if (Array.isArray(numbered)) throw new Error(errs(numbered));
+
+    const adHocRow = formatIndexRow(adHoc);
+    expect(adHocRow).toContain(' · Ad-hoc/model-router-cost-rebalance · ');
+    expect(formatIndexRow(numbered)).toContain(' · Plan 7 · PR #52 · ');
+
+    // The slash keeps the cell intact: a `·` inside it would break `parseIndex`'s part split.
+    expect(parseIndex(adHocRow).map((row) => row.planKey)).toEqual([
+      'Ad-hoc/model-router-cost-rebalance',
+    ]);
+    expect(parseIndex(formatIndexRow(numbered)).map((row) => row.planKey)).toEqual(['Plan 7']);
   });
 });
 

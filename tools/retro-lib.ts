@@ -668,6 +668,19 @@ export function parsePlanCompliance(text: string): ComplianceTable | ParseError[
   return errors.length > 0 ? errors : { briefRun, rows };
 }
 
+const AD_HOC_KEY = 'Ad-hoc';
+
+/**
+ * The join key shared by INDEX rows, the ROADMAP and the archive: `Plan N` for a numbered plan,
+ * `Ad-hoc/<slug>` for an ad-hoc entry. A slash separates the pair because a `·` would split the
+ * INDEX row into five parts and `parseIndex` would drop it (R17).
+ */
+export function indexPlanKey(entry: Pick<Entry, 'planKey' | 'slug'>): string {
+  return entry.planKey === AD_HOC_KEY && entry.slug !== ''
+    ? `${AD_HOC_KEY}/${entry.slug}`
+    : entry.planKey;
+}
+
 /** `<date> · <planKey> · [PR #<n> · ]<headline> · <ids|->`, IDs deduped and sorted. */
 export function formatIndexRow(entry: Entry): string {
   const ids = Array.from(
@@ -680,7 +693,7 @@ export function formatIndexRow(entry: Entry): string {
     ),
   ).sort();
 
-  const parts = [entry.date, entry.planKey];
+  const parts = [entry.date, indexPlanKey(entry)];
   if (entry.prNumber !== null) parts.push(`PR #${entry.prNumber}`);
   parts.push(entry.headline);
   parts.push(ids.length > 0 ? ids.join(', ') : '-');

@@ -15,6 +15,7 @@ import { basename } from 'path';
 import {
   ADOPTION_DATE,
   formatIndexRow,
+  indexPlanKey,
   isParseError,
   normalize,
   parseEntry,
@@ -248,10 +249,13 @@ export function validateArchivePair(hot: string, archive: string, index: string)
   const hotEntries = parsedEntries(hot);
   const archived = parsedEntries(archive);
 
-  const archivedKeys = new Set(archived.map((entry) => entry.planKey));
+  // `indexPlanKey`, not `planKey`: every ad-hoc entry shares the key "Ad-hoc", so the plain key
+  // would read as a duplicate the moment one ad-hoc entry is archived and another stays hot.
+  const archivedKeys = new Set(archived.map((entry) => indexPlanKey(entry)));
   for (const entry of hotEntries) {
-    if (archivedKeys.has(entry.planKey)) {
-      violations.push(`plan key "${entry.planKey}" appears in both the hot record and the archive`);
+    const key = indexPlanKey(entry);
+    if (archivedKeys.has(key)) {
+      violations.push(`plan key "${key}" appears in both the hot record and the archive`);
     }
   }
 
@@ -269,7 +273,7 @@ export function validateArchivePair(hot: string, archive: string, index: string)
   const expected = new Map(
     archived.map((entry) => [
       entryKey(entry),
-      { entry, display: `${entry.date} · ${entry.planKey}` },
+      { entry, display: `${entry.date} · ${indexPlanKey(entry)}` },
     ]),
   );
 
@@ -603,9 +607,9 @@ function parsedEntries(text: string): Entry[] {
   return entries;
 }
 
-/** The ROADMAP and INDEX join key, `<date>/<planKey>`. */
+/** The ROADMAP and INDEX join key, `<date>/<planKey>` (`Ad-hoc/<slug>` for an ad-hoc entry). */
 function entryKey(entry: Entry): string {
-  return `${entry.date}/${entry.planKey}`;
+  return `${entry.date}/${indexPlanKey(entry)}`;
 }
 
 /**

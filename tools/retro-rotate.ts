@@ -10,7 +10,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
 
-import { formatIndexRow, isParseError, normalize, parseEntry, splitEntryBlocks } from './retro-lib';
+import {
+  formatIndexRow,
+  indexPlanKey,
+  isParseError,
+  normalize,
+  parseEntry,
+  splitEntryBlocks,
+} from './retro-lib';
 import type { Entry, ParseError } from './retro-lib';
 
 export type RotateInput = {
@@ -119,7 +126,7 @@ export function rotate(input: RotateInput): RotateResult | ParseError[] {
   const row = formatIndexRow(rotated);
   const present = current
     .split('\n')
-    .some((line) => line.trim().startsWith(`${rotated.date} · ${rotated.planKey} ·`));
+    .some((line) => line.trim().startsWith(`${rotated.date} · ${indexPlanKey(rotated)} ·`));
   const index = present ? current : current === '' ? row : `${row}\n${current}`;
 
   return { hot, archive, index, rotated, retiredRegister };
