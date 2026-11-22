@@ -1,10 +1,13 @@
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join, resolve } from 'path';
 import {
   main,
   validateArchivePair,
   validateEntries,
   validatePlan,
+  validateRegister,
+  validateRegisterCap,
   validateRoadmap,
   validateRulings,
 } from './retro-validate';
@@ -349,5 +352,143 @@ describe('retro-validate: the record preamble and per-entry plan keys', () => {
     expect(validateEntries('docs/superpowers/retrospectives.md', text).join('\n')).toMatch(
       /duplicate plan key "Plan 6"/,
     );
+  });
+});
+
+describe('retro-validate: closed tables accumulate out of ID order (R22)', () => {
+  it('does not compare a row ID to its neighbour', () => {
+    const register = [
+      '## Closed and dropped actions',
+      '| ID | Outcome | Date | Evidence or reason |',
+      '|---|---|---|---|',
+      '| RA-006 | closed | 2026-11-10 | PR #30 |',
+      '| RA-001 | closed | 2026-11-12 | PR #31 |',
+      '## Retired practices',
+      '| ID | Retired | Reason |',
+      '|---|---|---|',
+      '| RP-009 | 2026-11-11 | superseded by RP-004 |',
+      '| RP-002 | 2026-11-12 | superseded by RP-004 |',
+    ].join('\n');
+
+    expect(validateRegister('retro-actions.md', register)).toEqual([]);
+  });
+});
+
+describe('retro-validate: the hot register row cap (R23)', () => {
+  const register = (count: number) =>
+    [
+      '## Closed and dropped actions',
+      '| ID | Outcome | Date | Evidence or reason |',
+      '|---|---|---|---|',
+      ...Array.from(
+        { length: count },
+        (_, index) =>
+          `| RA-${String(index + 1).padStart(3, '0')} | closed | 2026-11-10 | PR #${index + 1} |`,
+      ),
+    ].join('\n');
+
+  it('accepts exactly 40 rows', () => {
+    expect(validateRegisterCap('docs/superpowers/retro-actions.md', register(40))).toEqual([]);
+  });
+
+  it('rejects 41 rows and names retro-rotate', () => {
+    expect(validateRegisterCap('docs/superpowers/retro-actions.md', register(41))).toEqual([
+      expect.stringContaining('register holds 41 rows; cap is 40'),
+    ]);
+    expect(
+      validateRegisterCap('docs/superpowers/retro-actions.md', register(41)).join('\n'),
+    ).toMatch(/run retro-rotate to move closed\/retired rows to register-<year>\.md/);
+  });
+});
+
+describe('retro-validate: rule 8 cites the register (N3)', () => {
+  const plan = (rows: string[]) =>
+    [
+      '**Date:** 2026-12-01',
+      '',
+      '## Retrospective compliance',
+      '',
+      '| ID | Kind | Disposition | Where |',
+      '|---|---|---|---|',
+      ...rows,
+    ].join('\n');
+
+  it('rejects a compliance row whose ID is not in the register', () => {
+    const text = plan(['| RA-404 | action | applied | Task 3 |']);
+
+    expect(
+      validatePlan('2026-12-01-brief-ui.md', text, () => [], new Set(['RA-001'])).join('\n'),
+    ).toMatch(/RA-404: not in the register/);
+  });
+
+  it('accepts a compliance row whose ID the register holds', () => {
+    const text = plan(['| RA-001 | action | applied | Task 3 |']);
+
+    expect(validatePlan('2026-12-01-brief-ui.md', text, () => [], new Set(['RA-001']))).toEqual([]);
+  });
+
+  it('treats a dash-only Where on an applied row as empty', () => {
+    const text = plan(['| RA-001 | action | applied | — |']);
+
+    expect(validatePlan('2026-12-01-brief-ui.md', text, () => [], new Set(['RA-001']))).toEqual([
+      '2026-12-01-brief-ui.md:1: RA-001: applied without a Where',
+    ]);
+  });
+});
+
+describe('retro-validate: a record with no entries is a violation (N7)', () => {
+  it('rejects a file whose headings are all gone', () => {
+    const prose = [
+      '# Retrospectives',
+      '',
+      '> Prime directive: judge the process, not the person.',
+      '',
+      'Prose only: every entry heading was lost in a bad merge.',
+    ].join('\n');
+
+    expect(validateEntries('docs/superpowers/retrospectives.md', prose)).toEqual([
+      'docs/superpowers/retrospectives.md:1: no entries found',
+    ]);
+  });
+});
+
+describe('retro-validate: the OK line counts entries, not blocks (O6)', () => {
+  let cwd: string;
+  let dir: string;
+
+  beforeEach(() => {
+    cwd = process.cwd();
+    dir = mkdtempSync(join(tmpdir(), 'retro-validate-'));
+    mkdirSync(join(dir, 'docs', 'superpowers'), { recursive: true });
+    process.chdir(dir);
+  });
+
+  afterEach(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+    jest.restoreAllMocks();
+  });
+
+  it('reports the parsed entry count while the preamble is not an entry', () => {
+    const record = join(dir, 'docs', 'superpowers', 'retrospectives.md');
+    const register = join(dir, 'docs', 'superpowers', 'retro-actions.md');
+    writeFileSync(
+      record,
+      `${PREAMBLE}\n\n---\n\n${migratedEntry('## 2026-11-22 · Plan 7 · retrospective-system')}\n`,
+    );
+    writeFileSync(
+      register,
+      [
+        '## Active practices',
+        '| ID | Practice | Source | Since | Status |',
+        '|---|---|---|---|---|',
+        '| RP-009 | Name the cause | Plan 7 | 2026-11-22 | active |',
+      ].join('\n'),
+    );
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(main([record, register])).toBe(0);
+    const out = log.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(out).toContain('retro: OK (1 entries, 1 register rows)');
   });
 });

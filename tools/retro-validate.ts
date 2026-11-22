@@ -33,6 +33,14 @@ export const MAX_HOT_ENTRIES = 3;
 export const MAX_NEW_IDS = 3;
 /** An action may be carried across at most three retros before it must be closed or dropped. */
 export const MAX_CARRIED = 3;
+/** The hot register stays readable: past this, `retro-rotate` moves closed/retired rows to a year file. */
+export const MAX_REGISTER_ROWS = 40;
+
+const HOT_REGISTER_NAME = 'retro-actions.md';
+const REGISTER_YEAR_FILE_RE = /^register-\d{4}\.md$/;
+
+/** A `Where` cell holding only dashes says nothing; it is as empty as a blank cell. */
+const EMPTY_WHERE_RE = /^[\s\u2013\u2014-]*$/;
 
 const DEFAULT_TARGETS = ['docs/superpowers/retrospectives.md', 'docs/superpowers/retro-actions.md'];
 
@@ -42,6 +50,7 @@ const INDEX_PATH = 'docs/superpowers/retro/archive/INDEX.md';
 const PLANS_DIR = 'docs/superpowers/plans';
 const ARCHIVE_DIR = 'docs/superpowers/retro/archive';
 
+// Grammar source of record: `tools/retro-lib.ts` (parseEntry's HEADING_RE); keep the two in step.
 const HEADING_RE =
   /^## (\d{4}-\d{2}-\d{2})\s*·\s*(Plan \d+|Ad-hoc)\s*·\s*([a-z0-9-]+)(?:\s*·\s*PR #(\d+))?$/;
 
@@ -113,6 +122,11 @@ export function validateEntries(
     if (firstEntryBlock === -1 || index < firstEntryBlock) return;
     violations.push(violation(path, block.startLine, 'entry block has no ## heading'));
   });
+
+  if (blocks.length === 0 && opts.hot !== false) {
+    // A record whose headings are all gone (gutted, or emptied) would otherwise validate green.
+    violations.push(violation(path, 1, 'no entries found'));
+  }
 
   if (opts.hot !== false && blocks.length > MAX_HOT_ENTRIES) {
     violations.push(
@@ -212,8 +226,9 @@ export function validateEntries(
 
 /**
  * Validates the action register (rule 7). The parser owns duplicate IDs, unknown statuses and
- * rows missing a date/evidence/reason; the cell values it cannot check (`Carried`, ID order) and
- * its own findings are reported here.
+ * rows missing a date/evidence/reason; the `Carried` count (which the parser only reads as a
+ * number) is reported here. Rows are not compared to their neighbours: closed tables accumulate
+ * in the order work finished, never in ID order (R4, R22).
  */
 export function validateRegister(path: string, text: string): string[] {
   const violations: string[] = [];
@@ -226,41 +241,35 @@ export function validateRegister(path: string, text: string): string[] {
     }
   }
 
-  const lastNumberBySeries = new Map<string, number>();
-
   for (const row of rows) {
-    if (row.section === 'Open actions') {
-      const carriedAt = row.header.indexOf('carried');
-      const raw = carriedAt === -1 ? '' : (row.cells[carriedAt] ?? '');
-      const carried = Number(raw);
-      if (raw !== '' && Number.isInteger(carried) && carried > MAX_CARRIED) {
-        violations.push(
-          violation(path, row.line, `${row.id}: Carried is ${carried}; max is ${MAX_CARRIED}`),
-        );
-      }
-    }
-
-    const series = /^((?:RP|RA))-(\d{3})$/.exec(row.id);
-    if (!series) continue;
-    const key = `${row.section}/${series[1]}`;
-    const number = Number(series[2]);
-    const last = lastNumberBySeries.get(key);
-    if (last !== undefined && number <= last) {
+    if (row.section !== 'Open actions') continue;
+    const carriedAt = row.header.indexOf('carried');
+    const raw = carriedAt === -1 ? '' : (row.cells[carriedAt] ?? '');
+    const carried = Number(raw);
+    if (raw !== '' && Number.isInteger(carried) && carried > MAX_CARRIED) {
       violations.push(
-        violation(
-          path,
-          row.line,
-          `${row.id}: ID is not increasing within "${row.section}" (previous was ${series[1]}-${String(
-            last,
-          ).padStart(3, '0')})`,
-        ),
+        violation(path, row.line, `${row.id}: Carried is ${carried}; max is ${MAX_CARRIED}`),
       );
-    } else {
-      lastNumberBySeries.set(key, number);
     }
   }
 
   return violations;
+}
+
+/**
+ * Rule 7's size cap (R23): the four tables of the hot register hold at most {@link MAX_REGISTER_ROWS}
+ * data rows. A yearly register file has no cap — it grows by design.
+ */
+export function validateRegisterCap(path: string, text: string): string[] {
+  const rows = readRegisterRows(text);
+  if (rows.length <= MAX_REGISTER_ROWS) return [];
+  return [
+    violation(
+      path,
+      1,
+      `register holds ${rows.length} rows; cap is ${MAX_REGISTER_ROWS} — run retro-rotate to move closed/retired rows to register-<year>.md`,
+    ),
+  ];
 }
 
 /**
@@ -329,6 +338,7 @@ export function validatePlan(
   path: string,
   text: string,
   openIdsAt: (date: string) => string[],
+  registerIds?: Set<string>,
 ): string[] {
   const normalized = normalize(text);
   const header = PLAN_DATE_HEADER_RE.exec(normalized);
@@ -350,22 +360,42 @@ export function validatePlan(
   const violations: string[] = [];
   const byId = new Map(parsed.rows.map((row) => [row.id, row]));
 
-  for (const id of openIdsAt(date)) {
+  // Rule 8 cites the register, not a private vocabulary: a phantom ID names an action nobody owns.
+  if (registerIds !== undefined) {
+    for (const row of parsed.rows) {
+      if (!registerIds.has(row.id)) {
+        violations.push(violation(path, 1, `${row.id}: not in the register`));
+      }
+    }
+  }
+
+  const open = new Set(openIdsAt(date));
+
+  for (const id of open) {
     const row = byId.get(id);
     if (row === undefined) {
       violations.push(violation(path, 1, `${id} missing from Retrospective compliance`));
-    } else if (row.where.trim() === '') {
+    } else if (row.disposition === 'applied' && isEmptyWhere(row.where)) {
       violations.push(violation(path, 1, `${id}: missing where`));
     }
   }
 
   for (const row of parsed.rows) {
+    // An `applied` row must name where it was applied; `—` is a placeholder, not a location.
+    if (row.disposition === 'applied' && isEmptyWhere(row.where) && !open.has(row.id)) {
+      violations.push(violation(path, 1, `${row.id}: applied without a Where`));
+    }
     if (row.disposition === 'deferred' && (row.reason ?? '').trim() === '') {
       violations.push(violation(path, 1, `${row.id} deferred without a reason`));
     }
   }
 
   return violations;
+}
+
+/** A `Where` cell that is blank or only dashes carries no location. */
+function isEmptyWhere(value: string): boolean {
+  return EMPTY_WHERE_RE.test(value);
 }
 
 /**
@@ -484,6 +514,10 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
   for (const file of registerFiles) {
     violations.push(...validateRegister(file.path, file.text));
     violations.push(...validateRegisterDateColumns(file.path, file.text));
+    // The row cap belongs to the hot register only; a yearly file grows by design.
+    if (basename(normalize(file.path)) === HOT_REGISTER_NAME) {
+      violations.push(...validateRegisterCap(file.path, file.text));
+    }
     const rows = readRegisterRows(file.text);
     registerRowCount += rows.length;
     for (const row of rows) registerIds.add(row.id);
@@ -494,7 +528,8 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
   let entryCount = 0;
   for (const file of entryFiles) {
     violations.push(...validateEntries(file.path, file.text, { hot: file.kind === 'entry' }));
-    entryCount += splitEntryBlocks(file.text).length;
+    // Count entries, not blocks: the record's contract preamble is furniture, not an entry.
+    entryCount += parsedEntries(file.text).length;
     for (const entry of parsedEntries(file.text)) entryKeys.add(entryKey(entry));
   }
 
@@ -509,9 +544,11 @@ export function main(paths?: string[], opts: { all?: boolean } = {}): number {
   }
 
   const planFiles = files.filter((file) => file.kind === 'plan');
-  const openIdsAt = openIdsAtFromRegister(registerFiles.map((file) => file.text).join('\n'));
+  const openIdsAt = openIdsAtFromRegister(registerFiles.map((file) => file.text).join('\n\n'));
+  const knownIds = registerIds.size > 0 ? registerIds : undefined;
   for (const file of files) {
-    if (file.kind === 'plan') violations.push(...validatePlan(file.path, file.text, openIdsAt));
+    if (file.kind === 'plan')
+      violations.push(...validatePlan(file.path, file.text, openIdsAt, knownIds));
     if (file.kind === 'roadmap')
       violations.push(...validateRoadmap(file.path, file.text, entryKeys));
     if (file.kind === 'rulings') violations.push(...validateRulings(file.path, file.text));
@@ -580,6 +617,9 @@ function classify(path: string, text: string): Kind {
   const name = basename(normalizedPath);
   if (name === 'INDEX.md') return 'index';
   if (name === 'retro-actions.md') return 'register';
+  // `retro-rotate` writes the retired rows to `register-<year>.md`; those rows carry IDs that
+  // entries still cite, so the file is a register — never an archive of entries.
+  if (REGISTER_YEAR_FILE_RE.test(name)) return 'register';
   if (name === 'ROADMAP.md') return 'roadmap';
   if (name === 'rulings.md') return 'rulings';
   // Snapshots and fixtures are named freely; a file that carries the register's own section
@@ -592,8 +632,9 @@ function classify(path: string, text: string): Kind {
 }
 
 /**
- * The `--all` scope. The records, INDEX, ROADMAP and rulings are required; individual plans and
- * archive files are optional so a repository that has not archived anything yet still validates.
+ * The `--all` scope. The two records, INDEX, ROADMAP and rulings are required — a missing INDEX
+ * would let an archive file pass unchecked — while individual plans and archive files are
+ * optional, so a repository that has not archived anything yet still validates.
  */
 function scanTargets(opts: { all?: boolean }): Array<{ path: string; optional: boolean }> {
   if (opts.all !== true) return DEFAULT_TARGETS.map((path) => ({ path, optional: false }));
