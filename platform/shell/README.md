@@ -53,9 +53,8 @@ Environment defaults for the children: identity `http://localhost:8081`, registr
 `http://localhost:4200,http://localhost:4201`. Override with `SUPPORTFOLIO_SHELL_IDENTITY_URI`,
 `SUPPORTFOLIO_SHELL_REMOTE_REGISTRY_FILE`, `SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS`.
 
-If your npm `script-shell` is Git Bash (`npm config get script-shell`), npm hands that shell to
-`concurrently` and `gradlew.bat` is not on it. Run `npm --script-shell=cmd.exe run watch:shell`
-(or unset `script-shell`) on Windows.
+The orchestrator pins the shell it spawns its children in (cmd.exe on Windows), so a Git Bash npm
+`script-shell` (`npm config get script-shell`) no longer breaks the Gradle processes.
 
 ### Add project #4
 

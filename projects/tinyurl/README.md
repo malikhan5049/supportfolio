@@ -47,9 +47,8 @@ npm run prod:tinyurl
 > `watch:*` and `build-watch:*` are mutually exclusive with `npx nx e2e shell-host-e2e`: Playwright's config runs `npx nx serve tinyurl-microfrontend --port 4201 --configuration=development` and `npx nx serve shell-host --port 4200 --configuration=e2e`, so the dev servers must be stopped first.
 
 The catalog card opens `http://localhost:4201`; with `watch:shell` the shell renders it on
-`http://localhost:4200`. If your npm `script-shell` is Git Bash, npm hands that shell to
-`concurrently` and `gradlew.bat` is not on it — run `npm --script-shell=cmd.exe run watch:tinyurl`
-(or unset `script-shell`) on Windows.
+`http://localhost:4200`. The orchestrator pins the shell it spawns its children in (cmd.exe on Windows), so a Git Bash npm
+`script-shell` no longer breaks the Gradle processes.
 
 ### Add project #4
 

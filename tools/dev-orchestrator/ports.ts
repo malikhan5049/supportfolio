@@ -60,17 +60,40 @@ export function findPortConflicts(planned: number[], platform: PlatformManifest)
   return conflicts;
 }
 
-function isPortBusy(port: number): Promise<boolean> {
+/**
+ * A listener may bind a single stack: `nx serve` takes `[::1]` only, Docker publishes on IPv4.
+ * Probing both loopback stacks is the only reliable preflight on a dual-stack machine.
+ */
+const PROBE_HOSTS = ['127.0.0.1', '::1'];
+const PROBE_TIMEOUT_MS = 300;
+
+function canConnect(host: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once('error', (error: NodeJS.ErrnoException) => {
-      resolve(error.code === 'EADDRINUSE');
-    });
-    server.once('listening', () => {
-      server.close(() => resolve(false));
-    });
-    server.listen(port);
+    const socket = net.connect({ host, port });
+    let settled = false;
+    const settle = (busy: boolean): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      socket.destroy();
+      resolve(busy);
+    };
+
+    socket.setTimeout(PROBE_TIMEOUT_MS, () => settle(false));
+    socket.once('connect', () => settle(true));
+    socket.once('error', () => settle(false));
   });
+}
+
+async function isPortBusy(port: number): Promise<boolean> {
+  for (const host of PROBE_HOSTS) {
+    if (await canConnect(host, port)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export async function checkPortsFree(ports: number[]): Promise<{ port: number; busy: true }[]> {

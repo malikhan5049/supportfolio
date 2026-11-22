@@ -104,9 +104,28 @@ describe('findPortConflicts', () => {
 });
 
 describe('checkPortsFree', () => {
-  it('reports a port that is already bound', async () => {
+  it('reports a port bound on the IPv4 loopback only', async () => {
     const server = net.createServer();
-    await new Promise<void>((resolve) => server.listen(0, resolve));
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen({ port: 0, host: '127.0.0.1' }, resolve);
+    });
+    const busyPort = (server.address() as net.AddressInfo).port;
+
+    try {
+      await expect(checkPortsFree([busyPort])).resolves.toEqual([{ port: busyPort, busy: true }]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  // `nx serve` binds `[::1]` only: a bind-probe on the wildcard address misses it entirely.
+  it('reports a port bound on the IPv6 loopback only', async () => {
+    const server = net.createServer();
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen({ port: 0, host: '::1' }, resolve);
+    });
     const busyPort = (server.address() as net.AddressInfo).port;
 
     try {
@@ -118,7 +137,7 @@ describe('checkPortsFree', () => {
 
   it('reports nothing when every port is free', async () => {
     const server = net.createServer();
-    await new Promise<void>((resolve) => server.listen(0, resolve));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const freedPort = (server.address() as net.AddressInfo).port;
     await new Promise<void>((resolve) => server.close(() => resolve()));
 

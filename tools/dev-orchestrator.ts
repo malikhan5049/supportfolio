@@ -39,7 +39,7 @@ const DEV_KEY_OVERRIDE = 'SUPPORTFOLIO_DEV_KEY_FILE';
 
 const CONCURRENTLY_MODULE = 'concurrently';
 
-/** Mirrors the installed typings: `env` is per-command (`CommandInfo`), never an option. */
+/** Mirrors the installed typings: `env` is per-command (`CommandInfo`), `shell` is an option. */
 interface ConcurrentlyModule {
   concurrently: (
     commands: {
@@ -52,8 +52,26 @@ interface ConcurrentlyModule {
     options: {
       killOthersOn: 'failure'[];
       prefix: 'name';
+      /** Explicit shell: without it concurrently adopts npm's `script-shell`. */
+      shell: string;
     },
   ) => Promise<unknown>;
+}
+
+const WINDOWS_CHILD_SHELL = 'cmd.exe';
+const POSIX_CHILD_SHELL = '/bin/sh';
+
+/**
+ * The plan's commands are cmd-shaped (`gradlew.bat`), but concurrently resolves its child shell
+ * from `npm_config_script_shell` - npm's `script-shell` - falling back to the platform default.
+ * A Git Bash `script-shell` (a common Windows setting) hands `gradlew.bat` to bash, which cannot
+ * find it: every Gradle child then exits 127. Pin the shell the commands are written for.
+ */
+export function resolveChildShell(
+  platform: string = process.platform,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return platform === 'win32' ? (env.ComSpec ?? WINDOWS_CHILD_SHELL) : POSIX_CHILD_SHELL;
 }
 
 export interface DevArgs {
@@ -164,7 +182,7 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
         prefixColor: process.color,
         env: plan.env,
       })),
-      { killOthersOn: ['failure'], prefix: 'name' },
+      { killOthersOn: ['failure'], prefix: 'name', shell: resolveChildShell() },
     );
     return anyChildFailed(results) ? 1 : 0;
   } catch (error) {

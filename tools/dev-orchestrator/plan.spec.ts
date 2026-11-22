@@ -26,19 +26,21 @@ const SHELL_NAMES = [
   'telemetry',
   'shell',
   'shell-host',
+  'compile',
 ];
 
 const SHELL_SERVE_COMMANDS = [
-  'gradlew.bat :platform:identity:bootRun --console=plain',
+  'gradlew.bat --no-daemon :platform:identity:bootRun --console=plain',
   'docker compose -p supportfolio-dev -f projects/tinyurl/docker-compose.yml up -d --wait postgres',
-  'wait-on -t 120000 http-get://localhost:9092/actuator/health tcp:127.0.0.1:5432 && gradlew.bat :projects:tinyurl:service:bootRun --console=plain',
+  'wait-on -t 300000 http-get://localhost:9092/actuator/health tcp:127.0.0.1:5432 && gradlew.bat --no-daemon :projects:tinyurl:service:bootRun --console=plain',
   'npx nx serve tinyurl-microfrontend',
   'docker compose -p supportfolio-dev -f docker-compose.demo.yml -f docker-compose.dev.yml --profile observability up -d --wait --no-deps prometheus grafana',
-  'wait-on -t 120000 http-get://localhost:9092/actuator/health http-get://localhost:9093/actuator/health tcp:127.0.0.1:5432 && gradlew.bat :platform:shell:bootRun --console=plain',
+  'wait-on -t 300000 http-get://localhost:9092/actuator/health http-get://localhost:9093/actuator/health tcp:127.0.0.1:5432 && gradlew.bat --no-daemon :platform:shell:bootRun --console=plain',
   'npx nx serve shell-host',
+  'gradlew.bat -t :platform:identity:classes :projects:tinyurl:service:classes :platform:shell:classes --console=plain',
 ];
 
-const SHELL_COLORS = ['green', 'gray', 'magenta', 'yellow', 'cyan', 'blue', 'yellow'];
+const SHELL_COLORS = ['green', 'gray', 'magenta', 'yellow', 'cyan', 'blue', 'yellow', 'red'];
 
 describe('buildProcessPlan', () => {
   describe('serve', () => {
@@ -89,8 +91,9 @@ describe('buildProcessPlan', () => {
         'postgres',
         'tinyurl-service',
         'tinyurl-microfrontend',
+        'compile',
       ]);
-      expect(plan.processes).toHaveLength(4);
+      expect(plan.processes).toHaveLength(5);
     });
 
     it('keeps the host surface origin in the CSP list when the closure omits it', () => {
@@ -176,6 +179,7 @@ describe('buildProcessPlan', () => {
       expect(plan.processes.map((process) => process.name)).toEqual([
         'cards-microfrontend',
         'consumer-service',
+        'compile',
       ]);
     });
 
@@ -214,9 +218,10 @@ describe('buildProcessPlan', () => {
       expect(plan.processes.map((process) => process.name)).toEqual([
         'redis',
         'cache-consumer-service',
+        'compile',
       ]);
       expect(plan.processes[1].command).toBe(
-        'wait-on -t 120000 tcp:127.0.0.1:6379 && gradlew.bat :projects:cache-consumer:service:bootRun --console=plain',
+        'wait-on -t 300000 tcp:127.0.0.1:6379 && gradlew.bat --no-daemon :projects:cache-consumer:service:bootRun --console=plain',
       );
     });
   });

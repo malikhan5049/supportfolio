@@ -26,7 +26,14 @@ jest.mock('node:fs', () => {
 });
 
 import type { ResolvedPlan } from './dev-orchestrator/plan';
-import { main, parseArgs, plannedPorts, runPreflight, type PlanContext } from './dev-orchestrator';
+import {
+  main,
+  parseArgs,
+  plannedPorts,
+  resolveChildShell,
+  runPreflight,
+  type PlanContext,
+} from './dev-orchestrator';
 import { loadPlatformManifest, loadProjectManifests } from './dev-orchestrator/manifests';
 import * as ports from './dev-orchestrator/ports';
 
@@ -280,8 +287,18 @@ describe('main', () => {
 
     expect(code).toBe(0);
     expect(concurrently).not.toHaveBeenCalled();
-    expect(plan.processes).toHaveLength(7);
+    expect(plan.processes).toHaveLength(8);
     expect(plan.registryPath).toBe(registryPathIn(repoRoot));
+  });
+
+  it('pins the child shell instead of inheriting npm script-shell', () => {
+    // Git Bash as npm's `script-shell` is what made every Gradle child exit 127.
+    expect(resolveChildShell('win32', { ComSpec: 'C:\\Windows\\system32\\cmd.exe' })).toBe(
+      'C:\\Windows\\system32\\cmd.exe',
+    );
+    expect(resolveChildShell('win32', {})).toBe('cmd.exe');
+    expect(resolveChildShell('linux', {})).toBe('/bin/sh');
+    expect(resolveChildShell('darwin', {})).toBe('/bin/sh');
   });
 
   it('keeps the shell origin in the trusted remote origins', async () => {
@@ -319,7 +336,7 @@ describe('main', () => {
         { command: string; name: string; prefixColor: string; env?: Record<string, unknown> }[],
         unknown,
       ];
-      expect(mapped).toHaveLength(7);
+      expect(mapped).toHaveLength(8);
       expect(mapped).toEqual(
         plan.processes.map((process) => ({
           command: process.command,
@@ -332,7 +349,12 @@ describe('main', () => {
       // options type has no `env`), so every mapped command must carry the same plan map.
       expect(mapped.every((command) => command.env === mapped[0].env)).toBe(true);
       expect(mapped[0].env).toEqual(plan.env);
-      expect(options).toEqual({ killOthersOn: ['failure'], prefix: 'name' });
+      // The shell is pinned at the options level; `env` stays a per-command contract.
+      expect(options).toEqual({
+        killOthersOn: ['failure'],
+        prefix: 'name',
+        shell: resolveChildShell(),
+      });
     } finally {
       captured.restore();
       freePorts.mockRestore();

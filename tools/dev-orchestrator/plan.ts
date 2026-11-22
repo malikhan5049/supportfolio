@@ -32,7 +32,12 @@ const SPA_APP_ID = SHELL_APP_ID;
 /** Nx emits `dist/<project root>`; the host's root is the platform surface app. */
 const SPA_PROJECT_ROOT = ['platform', 'shell', 'host'];
 const DOCKER_PROJECT = 'supportfolio-dev';
-const WAIT_ON_TIMEOUT_MS = 120000;
+/**
+ * A readiness gate starts at the child's own start, so it must cover the *transitive* chain:
+ * a third Spring service only becomes reachable after its siblings booted (identity ~75 s on a
+ * cold, compiling machine, then the service it gates on ~50 s more). 120 s expired one step early.
+ */
+const WAIT_ON_TIMEOUT_MS = 300000;
 const REGISTRY_PATH = ['platform', 'shell', 'config', 'remote-registry.dev.json'];
 const IDENTITY_PRIVATE_KEY_FILE = ['platform', 'identity', 'dev-key.pem'];
 
@@ -49,6 +54,10 @@ const PLATFORM_SERVICE_COLORS: Record<string, string> = {
 const PROJECT_SERVICE_COLOR = 'magenta';
 const FRONTEND_COLOR = 'yellow';
 const DEFAULT_SERVICE_COLOR = 'white';
+/** Continuous compile watcher: last process, so it never competes with a `bootRun` for the daemon. */
+const COMPILE_PROCESS_NAME = 'compile';
+const COMPILE_COLOR = 'red';
+const WINDOWS_GRADLE_LAUNCHER = 'gradlew.bat';
 
 /**
  * Nx writes every build to `dist/<project root>`: a manifest may declare its root with
@@ -86,11 +95,26 @@ function parseEnvFile(path: string): Record<string, string> {
   return env;
 }
 
+/**
+ * `bootRun` never exits, so its daemon stays busy for the whole session and a second Gradle
+ * client cannot acquire a daemon for itself: it prints "Starting a Gradle Daemon", starts none,
+ * and waits until the `wait-on` gate of a sibling expires. `--no-daemon` runs the build in the
+ * client process, so N services boot concurrently without competing for a daemon.
+ */
 function gradleCommand(service: { gradleModule?: string }, id: string): string {
   if (!service.gradleModule) {
     throw new Error(`gradle service "${id}" has no gradleModule`);
   }
-  return `gradlew.bat :${service.gradleModule}:bootRun --console=plain`;
+  return `${WINDOWS_GRADLE_LAUNCHER} --no-daemon :${service.gradleModule}:bootRun --console=plain`;
+}
+
+/**
+ * DevTools only reloads Java when the class files change: the dev loop needs a continuous
+ * compile of every Gradle module the closure runs, otherwise a restart never fires.
+ */
+function compileWatcherCommand(gradleModules: string[]): string {
+  const tasks = gradleModules.map((module) => `:${module}:classes`).join(' ');
+  return `${WINDOWS_GRADLE_LAUNCHER} -t ${tasks} --console=plain`;
 }
 
 function composeCommand(service: PlatformService, id: string): string {
@@ -187,11 +211,17 @@ export function buildProcessPlan(
   };
 
   const processes: ProcessSpec[] = [];
+  /** Gradle modules the closure boots, in resolution order: the targets of the compile watcher. */
+  const gradleModules: string[] = [];
+
   for (const id of order) {
     const platformService = platformServiceById.get(id);
     const local = localOf(id);
 
     if (platformService) {
+      if (platformService.gradleModule) {
+        gradleModules.push(platformService.gradleModule);
+      }
       processes.push({
         name: platformService.id,
         color: PLATFORM_SERVICE_COLORS[platformService.id] ?? DEFAULT_SERVICE_COLOR,
@@ -207,6 +237,9 @@ export function buildProcessPlan(
       }
 
       const projectService = local.service;
+      if (projectService.gradleModule) {
+        gradleModules.push(projectService.gradleModule);
+      }
       processes.push({
         name: id === SPA_APP_ID ? id : `${id}-service`,
         color: PROJECT_SERVICE_COLOR,
@@ -223,6 +256,16 @@ export function buildProcessPlan(
         command: frontendCommand(frontend, mode),
       });
     }
+  }
+
+  // The compile watcher comes last and has no readiness gate of its own: DevTools restarts on
+  // class-file changes only, so the watcher must run for the whole dev session.
+  if (gradleModules.length > 0) {
+    processes.push({
+      name: COMPILE_PROCESS_NAME,
+      color: COMPILE_COLOR,
+      command: compileWatcherCommand(gradleModules),
+    });
   }
 
   // The host app's frontend origin must stay in the CSP list even when the caller omits its manifest.
