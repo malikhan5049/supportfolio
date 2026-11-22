@@ -316,7 +316,7 @@ describe('main', () => {
       expect(concurrently).toHaveBeenCalledTimes(1);
 
       const [mapped, options] = concurrently.mock.calls[0] as [
-        { command: string; name: string; prefixColor: string }[],
+        { command: string; name: string; prefixColor: string; env?: Record<string, unknown> }[],
         unknown,
       ];
       expect(mapped).toHaveLength(7);
@@ -325,13 +325,14 @@ describe('main', () => {
           command: process.command,
           name: process.name,
           prefixColor: process.color,
+          env: plan.env,
         })),
       );
-      // The derived env reaches the children: the registry path and the CSP origins are only
-      // meaningful inside the Spring processes.
-      expect(options).toEqual(
-        expect.objectContaining({ killOthersOn: ['failure'], prefix: 'name', env: plan.env }),
-      );
+      // The derived env reaches the children: `concurrently` only honours it per command (its
+      // options type has no `env`), so every mapped command must carry the same plan map.
+      expect(mapped.every((command) => command.env === mapped[0].env)).toBe(true);
+      expect(mapped[0].env).toEqual(plan.env);
+      expect(options).toEqual({ killOthersOn: ['failure'], prefix: 'name' });
     } finally {
       captured.restore();
       freePorts.mockRestore();

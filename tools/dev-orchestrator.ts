@@ -39,14 +39,19 @@ const DEV_KEY_OVERRIDE = 'SUPPORTFOLIO_DEV_KEY_FILE';
 
 const CONCURRENTLY_MODULE = 'concurrently';
 
+/** Mirrors the installed typings: `env` is per-command (`CommandInfo`), never an option. */
 interface ConcurrentlyModule {
   concurrently: (
-    commands: { command: string; name: string; prefixColor: string }[],
+    commands: {
+      command: string;
+      name: string;
+      prefixColor: string;
+      /** The plan's env map: children inherit nothing else from the resolver. */
+      env?: Record<string, unknown>;
+    }[],
     options: {
       killOthersOn: 'failure'[];
       prefix: 'name';
-      /** The plan's env map: children inherit nothing else from the resolver. */
-      env: Record<string, string>;
     },
   ) => Promise<unknown>;
 }
@@ -151,14 +156,15 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
     // specifier stays indirect so this module type-checks before the package exists on disk.
     const { concurrently } = (await import(CONCURRENTLY_MODULE)) as ConcurrentlyModule;
     const results = await concurrently(
+      // The derived env (registry path, CSP origins, static locations, key path) reaches the
+      // Spring children per command: `ConcurrentlyOptions` has no `env`, only `CommandInfo` does.
       plan.processes.map((process) => ({
         command: process.command,
         name: process.name,
         prefixColor: process.color,
+        env: plan.env,
       })),
-      // The derived env (registry path, CSP origins, static locations, key path) only reaches the
-      // Spring children through this option.
-      { killOthersOn: ['failure'], prefix: 'name', env: plan.env },
+      { killOthersOn: ['failure'], prefix: 'name' },
     );
     return anyChildFailed(results) ? 1 : 0;
   } catch (error) {
