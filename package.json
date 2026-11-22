@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "description": "Supportfolio monorepo",
   "scripts": {
-    "run:all": "node node_modules/@angular-architects/module-federation/src/server/mf-dev-server.js"
+    "run:all": "node node_modules/@angular-architects/module-federation/src/server/mf-dev-server.js",
+    "watch:shell": "npx tsx tools/dev-orchestrator.ts watch shell",
+    "watch:tinyurl": "npx tsx tools/dev-orchestrator.ts watch tinyurl",
+    "build-watch:shell": "npx tsx tools/dev-orchestrator.ts watch shell --build-watch",
+    "build-watch:tinyurl": "npx tsx tools/dev-orchestrator.ts watch tinyurl --build-watch",
+    "start:plan": "npx tsx tools/dev-orchestrator.ts plan shell",
+    "prod:shell": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prod.ps1 -App shell",
+    "prod:tinyurl": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prod.ps1 -App tinyurl",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop.ps1"
   },
   "devDependencies": {
     "@angular-architects/module-federation": "^22.0.0",
@@ -32,6 +40,7 @@
     "@typescript-eslint/utils": "^8.72.1",
     "ajv": "^8.20.0",
     "angular-eslint": "^22.6.0",
+    "concurrently": "^10.0.7",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "~30.5.2",
@@ -46,6 +55,7 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
+    "wait-on": "^9.5.1",
     "webpack": "5.112.0",
     "webpack-merge": "^5.10.0"
   },

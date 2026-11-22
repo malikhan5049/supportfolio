@@ -22,6 +22,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     // Prometheus-format metrics for the management endpoint; version-managed by the Boot BOM.
     implementation("io.micrometer:micrometer-registry-prometheus")
+    // DevTools is BOM-managed by Boot 4.1.1; developmentOnly keeps it out of prod images.
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")

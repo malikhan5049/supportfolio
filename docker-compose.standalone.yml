@@ -1,0 +1,12 @@
+# Standalone TinyURL: no shell. Publishes the service and identity's redirect origin,
+# and shadows the composed bundle with the locally built standalone one.
+services:
+  tinyurl-service:
+    ports:
+      - "127.0.0.1:18082:8082"
+    volumes:
+      - ./dist/projects/tinyurl/microfrontend-standalone:/app/static:ro
+
+  identity:
+    environment:
+      SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS: http://localhost:18080,http://localhost:18082

@@ -6,16 +6,65 @@ the shell renders (`card@1.0.0`).
 
 ## Run it (dev)
 
-1. **Postgres** — `docker compose -f projects/tinyurl/docker-compose.yml up -d`
-   (localhost-only dev defaults: db/user/password `tinyurl`.)
-2. **Identity** — the login flow needs `http://localhost:4201` in
-   `SUPPORTFOLIO_IDENTITY_REDIRECT_ORIGINS` before Identity starts.
-3. **TinyURL service** — `./gradlew :projects:tinyurl:service:bootRun` (port 8082; env overrides like
-   `SUPPORTFOLIO_TINYURL_DB_*`, `SUPPORTFOLIO_TINYURL_IDENTITY_URI`, `SUPPORTFOLIO_TINYURL_RATE_LIMIT_PER_HOUR`).
-4. **TinyURL frontend** — `npx nx serve tinyurl-microfrontend` (port 4201; the dev proxy sends
-   `/api/token` and `/auth/login` to Identity, everything else `/api/**` to the service).
-5. **Shell** — `npx nx serve shell-host`; the catalog card opens `http://localhost:4201`.
-   Once one more project lands there will be two cards; today the dev grid shows exactly this one.
+One command starts this project's slice; no per-service terminals. Prerequisites: JDK 17, Node 24
+and Docker Desktop.
+
+```powershell
+# One-time: create .env from .env.example and fill the absolute dev key path
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-secrets.ps1
+
+# postgres + identity + the service (8082) + the microfrontend dev server (4201)
+npm run watch:tinyurl
+
+# Same services, but the service serves the built SPA and remote entry on http://localhost:8082
+npm run build-watch:tinyurl
+
+# Print the resolved plan (processes, env, generated registry path) and spawn nothing
+npm run start:plan
+
+# Tear down: Gradle daemons, dev port listeners, supportfolio-dev/prod containers
+npm run stop
+
+# Standalone production build: postgres + identity + tinyurl service + SPA on http://localhost:18082
+npm run prod:tinyurl
+```
+
+`npm run stop` kills ANY listener on the platform-reserved ports (4200/4201, 8080–8083,
+9091–9093) and downs the `supportfolio-dev` and `supportfolio-prod` compose projects; the demo stack
+(`scripts/demo.ps1`, project `supportfolio`) is untouched. `prod:tinyurl` (:18082) and `prod:shell`
+(:18080) share the `supportfolio-prod` project and its containers, so they are run one at a time.
+
+`watch:tinyurl` starts 5 processes with coloured `[name]` prefixes: `identity`, `postgres`,
+`tinyurl-service`, `tinyurl-microfrontend`, `compile`. It has **no** telemetry: its `local.dependsOn` is
+`["identity"]` with `databases: ["postgres"]`, so Prometheus/Grafana only come up with
+`watch:shell` (the shell manifest's `dependsOn` includes `telemetry`).
+
+`[compile]` is the continuous `gradlew -t …classes` watcher over the closure's Gradle modules:
+DevTools restarts Java only when class files change. It starts last so it never competes for a
+Gradle daemon, and cold boot still takes ~3 min because each Spring service compiles before it serves.
+
+| Port | Owner |
+| --- | --- |
+| 4201 | `tinyurl-microfrontend` (remote entry and app) |
+| 8082 | tinyurl service |
+| 8081 | identity |
+| 5432 | postgres |
+| 9092 | identity management (actuator) |
+| 9093 | tinyurl service management (actuator) |
+| 18082 | `prod:tinyurl` standalone (postgres + identity + the service, **no shell**) |
+
+> `watch:*` and `build-watch:*` are mutually exclusive with `npx nx e2e shell-host-e2e`: Playwright's config runs `npx nx serve tinyurl-microfrontend --port 4201 --configuration=development` and `npx nx serve shell-host --port 4200 --configuration=e2e`, so the dev servers must be stopped first.
+
+The catalog card opens `http://localhost:4201`; with `watch:shell` the shell renders it on
+`http://localhost:4200`. The orchestrator pins the shell it spawns its children in (cmd.exe on Windows), so a Git Bash npm
+`script-shell` no longer breaks the Gradle processes.
+
+### Add project #4
+
+Create `projects/<id>/project.manifest.yaml` with a `local:` block — `service`
+(`gradleModule`, `port`, `managementPort`, `healthPath`), `frontend` (`nxProject`, `devPort`),
+`dependsOn` and `databases` — then run `npm run start:plan`. The dev registry, the trusted origins
+and the process list are generated from the manifests: no orchestrator edit.
 
 ## API
 
