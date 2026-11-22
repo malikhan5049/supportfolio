@@ -9,6 +9,8 @@
   - Frees the dev ports (4200, 4201, 8080, 8081, 8082, 9091, 9092, 9093) by
     killing whatever is listening on them.
   - Downs the `supportfolio-dev` compose project (the demo stack is untouched).
+  - Downs the `supportfolio-prod` compose project when `npm run prod:shell` or
+    `npm run prod:tinyurl` left containers behind (demo stack still untouched).
 
 .PARAMETER Volumes
   Also remove the dev stack's container volumes (`docker compose down -v`).
@@ -70,6 +72,25 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
   Push-Location $root
   try {
     & docker @composeArgs
+
+    # `npm run prod:*` runs its own compose project; down it too, or the standalone
+    # / shell prod stack keeps serving on 18080/18082 after `npm run stop` said stopped.
+    $prodFiles = @(
+      'compose', '-p', 'supportfolio-prod', '-f', 'docker-compose.demo.yml',
+      '--profile', 'observability'
+    )
+    $prodContainers = @(& docker @prodFiles ps -q)
+    if ($prodContainers.Count -eq 0) {
+      Write-Host 'prod stack -> nothing running'
+    }
+    else {
+      $prodDown = $prodFiles + @('down', '--remove-orphans')
+      if ($Volumes) {
+        $prodDown += '-v'
+      }
+      & docker @prodDown
+      Write-Host "prod stack -> removed $($prodContainers.Count) container(s)"
+    }
   }
   finally {
     Pop-Location

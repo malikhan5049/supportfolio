@@ -13,6 +13,10 @@
   is printed when the stack is up. Demo login and demo seeding are owned by
   scripts/demo.ps1; the production images bake the demo flags off.
 
+  Both stacks run in their own compose project (`supportfolio-prod`, via
+  `-p`), so they never collide with the demo stack or the dev stack, and
+  `scripts/stop.ps1` can down them without touching the others.
+
 .PARAMETER App
   Which stack to build and start: shell or tinyurl.
 
@@ -86,7 +90,7 @@ try {
 
     Write-Host 'Starting shell stack with observability...' -ForegroundColor Cyan
     Invoke-Native 'docker' @(
-      'compose', '-f', 'docker-compose.demo.yml', '--profile', 'observability',
+      'compose', '-p', 'supportfolio-prod', '-f', 'docker-compose.demo.yml', '--profile', 'observability',
       'up', '-d', '--wait', 'shell', 'prometheus', 'grafana'
     )
 
@@ -100,7 +104,7 @@ try {
 Keep this laptop awake while the stack is in use.
 
 Reset command (destroys the database volume):
-  docker compose -f docker-compose.demo.yml --profile observability down -v
+  docker compose -p supportfolio-prod -f docker-compose.demo.yml --profile observability down -v
 "@
     Write-Host $note -ForegroundColor Yellow
   }
@@ -137,7 +141,7 @@ Reset command (destroys the database volume):
     # dependencies and never starts the shell container.
     Write-Host 'Starting standalone TinyURL stack...' -ForegroundColor Cyan
     Invoke-Native 'docker' @(
-      'compose', '-f', 'docker-compose.demo.yml', '-f', 'docker-compose.standalone.yml',
+      'compose', '-p', 'supportfolio-prod', '-f', 'docker-compose.demo.yml', '-f', 'docker-compose.standalone.yml',
       'up', '-d', '--wait', 'tinyurl-service'
     )
 
@@ -149,7 +153,7 @@ Reset command (destroys the database volume):
 Keep this laptop awake while the stack is in use.
 
 Reset command (destroys the database volume):
-  docker compose -f docker-compose.demo.yml -f docker-compose.standalone.yml down -v
+  docker compose -p supportfolio-prod -f docker-compose.demo.yml -f docker-compose.standalone.yml down -v
 "@
     Write-Host $note -ForegroundColor Yellow
   }
