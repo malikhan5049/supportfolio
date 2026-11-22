@@ -62,6 +62,13 @@ const RULING_HEADING_RE = /^## \d{4}-\d{2}-\d{2}\s*·\s*Ruling\s*·\s*.+$/;
 
 const EXEMPT_PREFIXES = ['retro: exempt —', 'retro: exempt -'];
 
+/**
+ * Rule 9's done-detection (ruling R20): a Status cell counts as done when it starts with the
+ * word — `done`, `done (PR #17)`, `done (merged, Oct 2026)`. Anything else (`not planned`,
+ * `in progress`, `in review`) exempts the row from the entry join.
+ */
+const DONE_STATUS_RE = /^done\b/;
+
 const DATE_COLUMNS: Record<string, { column: string; label: string }> = {
   'Open actions': { column: 'opened', label: 'Opened' },
   'Active practices': { column: 'since', label: 'Since' },
@@ -386,7 +393,7 @@ export function validateRoadmap(path: string, text: string, entryKeys: Set<strin
       }
 
       if (planAt === -1 || statusAt === -1 || retroAt === -1) return;
-      if ((cells[statusAt] ?? '').toLowerCase() !== 'done') return;
+      if (!DONE_STATUS_RE.test((cells[statusAt] ?? '').toLowerCase())) return;
 
       const plan = cells[planAt] ?? '';
       const retro = cells[retroAt] ?? '';

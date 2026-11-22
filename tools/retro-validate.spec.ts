@@ -170,6 +170,26 @@ describe('retro-validate: plan, roadmap, rulings', () => {
     );
   });
 
+  it('treats a Status that starts with done as done (R20)', () => {
+    const keys = new Set(['2026-10-20/Plan 3', '2026-10-24/Plan 4']);
+    const roadmap = [
+      '| Plan | Status | Retro |',
+      '|---|---|---|',
+      '| Plan 3 | done (PR #17) | 2026-10-20/Plan 3 |',
+      '| Plan 4 | done (merged, Oct 2026) | 2026-10-24/Plan 4 |',
+      '| Future hosting | not planned |  |',
+    ].join('\n');
+    expect(validateRoadmap('ROADMAP.md', roadmap, keys)).toEqual([]);
+
+    const unresolved = roadmap.replace(
+      '| Plan 3 | done (PR #17) | 2026-10-20/Plan 3 |',
+      '| Plan 3 | done (PR #17) |  |',
+    );
+    const errors = validateRoadmap('ROADMAP.md', unresolved, keys).join('\n');
+    expect(errors).toMatch(/Plan 3: no retrospective entry and no "retro: exempt"/);
+    expect(errors).not.toMatch(/Future hosting/);
+  });
+
   it('enforces the rulings heading grammar', () => {
     expect(validateRulings('rulings.md', read('rulings-valid.md'))).toEqual([]);
     expect(validateRulings('rulings.md', read('rulings-bad.md')).join('\n')).toMatch(
