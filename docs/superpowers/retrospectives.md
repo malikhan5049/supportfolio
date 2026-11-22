@@ -76,7 +76,7 @@ metrics: not recorded
 ## 2026-11-18 · Plan 5 · showcase-deployment · PR #47
 
 **Headline:** Recon-before-design killed two wrong assumptions before any code existed and produced the exact signatures that made 14 TDD tasks dispatchable.
-**migrated:** true
+**migrated:** true — heading reconstructed 2026-11-22 (source block had no heading)
 
 ### What went well?
 

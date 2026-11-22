@@ -40,6 +40,8 @@ export type Entry = {
   sections: Section[];
   metrics: string;
   migrated: boolean;
+  /** The optional `— <note>` suffix on the migrated marker; says how the entry was reconstructed. */
+  migratedNote?: string;
   line: number;
 };
 
@@ -125,7 +127,7 @@ const HEADING_RE =
 const REVIEW_RE =
   /^- ((?:RP|RA)-\d{3}) [\u2013\u2014-] (closed|kept|amended|retired|carried)(?: [\u2013\u2014-] (.+))?$/;
 
-const MIGRATED_RE = /^\*\*migrated:\*\* true$/i;
+const MIGRATED_RE = /^\*\*migrated:\*\* true(?:\s+—\s+(.+))?$/i;
 
 const ID_RE = /^(?:RP|RA)-\d{3}$/;
 
@@ -206,6 +208,7 @@ export function parseEntry(text: string): Entry | ParseError[] {
   let prNumber: number | null = null;
   let headline: string | null = null;
   let migrated = false;
+  let migratedNote: string | undefined;
   let metrics = '';
   let headingSeen = false;
   let lastSectionIndex = -1;
@@ -273,6 +276,8 @@ export function parseEntry(text: string): Entry | ParseError[] {
 
     if (MIGRATED_RE.test(line)) {
       migrated = true;
+      const note = MIGRATED_RE.exec(line)?.[1];
+      if (note !== undefined) migratedNote = note.trim();
       return;
     }
 
@@ -327,7 +332,7 @@ export function parseEntry(text: string): Entry | ParseError[] {
 
   if (errors.length > 0 || headline === null) return errors;
 
-  return {
+  const entry: Entry = {
     date,
     planKey,
     slug,
@@ -339,6 +344,8 @@ export function parseEntry(text: string): Entry | ParseError[] {
     migrated,
     line: block.startLine,
   };
+  if (migratedNote !== undefined) entry.migratedNote = migratedNote;
+  return entry;
 }
 
 /**
@@ -743,7 +750,10 @@ function parseBullet(line: string, lineNumber: number, errors: ParseError[]): Bu
 
   if (tagCount > 1) {
     errors.push(
-      error(lineNumber, `bullet has ${tagCount} disposition tags, expected exactly 1: ${content}`),
+      error(
+        lineNumber,
+        `bullet has ${tagCount} disposition tags, expected exactly 1 (remove stray → characters from prose): ${content}`,
+      ),
     );
     return null;
   }
