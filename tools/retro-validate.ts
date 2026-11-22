@@ -100,7 +100,19 @@ export function validateEntries(
 ): string[] {
   const violations: string[] = [];
   // The record's contract header is furniture, not an entry (the same rule `retro-rotate` applies).
-  const blocks = splitEntryBlocks(text).filter((block) => carriesEntryHeading(block.text));
+  // Only the blocks *before* the first entry heading are exempt: a heading-less block after one is
+  // a pasted entry that lost its heading, and it must not pass silently.
+  const allBlocks = splitEntryBlocks(text);
+  const firstEntryBlock = allBlocks.findIndex((block) => carriesEntryHeading(block.text));
+  const blocks: Array<{ text: string; startLine: number }> = [];
+  allBlocks.forEach((block, index) => {
+    if (carriesEntryHeading(block.text)) {
+      blocks.push(block);
+      return;
+    }
+    if (firstEntryBlock === -1 || index < firstEntryBlock) return;
+    violations.push(violation(path, block.startLine, 'entry block has no ## heading'));
+  });
 
   if (opts.hot !== false && blocks.length > MAX_HOT_ENTRIES) {
     violations.push(

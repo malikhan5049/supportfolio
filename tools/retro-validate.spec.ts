@@ -300,6 +300,39 @@ describe('retro-validate: the record preamble and per-entry plan keys', () => {
     expect(validateEntries('docs/superpowers/retrospectives.md', text)).toEqual([]);
   });
 
+  it('rejects a heading-less block that follows an entry, naming its line', () => {
+    const stray = [
+      'Pasted entry without its heading.',
+      '',
+      '### What went well?',
+      '',
+      '- It worked. → context-only',
+    ].join('\n');
+    const text = `${PREAMBLE}\n\n---\n\n${migratedEntry(
+      '## 2026-11-22 · Plan 7 · retrospective-system',
+    )}\n\n---\n\n${stray}\n`;
+    const line = text.split('\n').indexOf('Pasted entry without its heading.') + 1;
+
+    expect(validateEntries('docs/superpowers/retrospectives.md', text)).toEqual([
+      `docs/superpowers/retrospectives.md:${line}: entry block has no ## heading`,
+    ]);
+  });
+
+  it('keeps validating the entries around a heading-less block', () => {
+    const stray = ['Another pasted entry.', '', '<summary>', '', 'x', '</summary>'].join('\n');
+    const text = [
+      PREAMBLE,
+      migratedEntry('## 2026-11-22 · Plan 7 · retrospective-system'),
+      stray,
+      migratedEntry('## 2026-11-22 · Plan 6 · telemetry'),
+    ].join('\n\n---\n\n');
+    const line = text.split('\n').indexOf('Another pasted entry.') + 1;
+
+    expect(validateEntries('docs/superpowers/retrospectives.md', text)).toEqual([
+      `docs/superpowers/retrospectives.md:${line}: entry block has no ## heading`,
+    ]);
+  });
+
   it('accepts ad-hoc entries that share a date but not a slug', () => {
     const text = [
       migratedEntry('## 2026-11-20 · Ad-hoc · model-router-cost-rebalance'),
