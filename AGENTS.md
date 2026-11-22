@@ -8,7 +8,7 @@ Binding rules for coding agents. User instruction in-session wins — say out lo
 - **Angular 22 micro-frontends** (Nx, under `platform/`): `shell-host`, `tinyurl-microfrontend`, `shared-ui-lib` (`platform/shared-ui-lib`); module federation; Playwright e2e in `platform/shell/host-e2e`.
 - **TinyURL project slice**: `projects/tinyurl/{service,microfrontend}`.
 - **Governance** — `tools/`: plain Node/Jest TS, **not** on the Nx graph.
-- Specs/plans/retros/roadmap: `docs/superpowers/{specs,plans,retrospectives.md,ROADMAP.md}`. Read-only records (amended only with dated notes when explicitly approved).
+- Specs/plans/retros/roadmap: `docs/superpowers/{specs,plans,retrospectives.md,retro-actions.md,rulings.md,ROADMAP.md,retro/archive/}`; new plans start from `docs/superpowers/plan-template.md`. Read-only records (amended only with dated notes when explicitly approved).
 
 ## CI gates (source of truth — reuse exactly)
 
@@ -60,7 +60,6 @@ Touched Angular code → run `npx nx build <project>` before closing. New runtim
 ## Hygiene
 
 - Conventional commits (CI-enforced); PR template; prettier/eslint on the scopes above.
-- Reading `docs/superpowers/retrospectives.md` before planning is mandatory; write a `Ruling:` ledger line the moment you deviate from a standing rule.
 
 ## Env
 
@@ -68,13 +67,10 @@ Windows/PowerShell first (`gradlew.bat` locally, `./gradlew` in CI). Node 24, JD
 
 
 
-## Plan retrospective (binding)
+## Retrospectives and rulings (binding)
 
-At the end of every completed plan, before reporting the plan complete:
-
-- Add one timestamped, plan-tagged entry at the top of
-  `docs/superpowers/retrospectives.md` answering: **What went well?**,
-  **What would we like to continue doing?**, and **What would we like to
-  stop doing?**
-- Present the same three answers to the human in the completion message.
-- Write the entry once, after the plan is complete; do not add mid-plan retrospective entries.
+- **Plan with the brief.** Before invoking the planning skill, run `npx tsx tools/retro-brief.ts` and paste its output into the plan's `## Retrospective compliance` section (copy `docs/superpowers/plan-template.md`). Every RA/RP open on the plan date appears in the table as `applied` (naming the task that carries it) or `deferred — <reason>`; a missing ID or an empty reason fails CI.
+- **Ledger every task.** During execution each plan's `## Dispatch Ledger` gains one row per task, with the optional `Lesson` column carrying what the next plan should do differently.
+- **Close with one entry.** At completion add exactly one entry at the top of `docs/superpowers/retrospectives.md` — headline, previous actions reviewed, the three questions, a metrics line, one disposition per bullet, at most 3 new IDs — update `docs/superpowers/retro-actions.md`, then run `npx tsx tools/retro-rotate.ts` so the hot record stays at 3 entries. Write it once, after the plan is complete; do not add mid-plan entries. Present the same three answers to the human in the completion message.
+- **Rulings live in `docs/superpowers/rulings.md`**, never in the retrospective record; write a `Ruling:` line the moment you deviate from a standing rule.
+- **The retro header keeps its prime directive line** (`> Prime directive: judge the process, not the person.`) — never remove or reword it.
