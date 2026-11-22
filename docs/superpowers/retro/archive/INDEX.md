@@ -1,3 +1,4 @@
+2026-11-20 · Ad-hoc/model-router-cost-rebalance · The pre-change review caught three real cost traps before any edit, and small parse-checked config batches kept every increment verifiable. · -
 2026-11-18 · Plan 5 · PR #47 · Recon-before-design killed two wrong assumptions before any code existed and produced the exact signatures that made 14 TDD tasks dispatchable. · RP-001, RP-003
 2026-11-13 · Ad-hoc/branch-worktree-cleanup · Step-by-step verification after each mutation caught the one Windows long-path failure before branch deletion, and every protected ref survived untouched. · -
 2026-11-08 · Ad-hoc/dependabot-pr-repair · The only genuinely failing PR was fixed by systematic debugging, not guesswork, because the published artifact chain exposed the real BOM pin. · RA-005, RP-003

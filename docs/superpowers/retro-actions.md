@@ -6,6 +6,8 @@
 |---|---|---|---|---|---|---|
 | RA-001 | Check for bash on the Windows host before choosing a superpowers script, and record the manual fallback in the plan | controller | 2026-11-20 | the plan template names the Windows fallback | 1 | open |
 | RA-002 | Build the identity and shell images in the PR-blocking CI job (Plan 6 final-review Critical; the record does not state the fix landed) | controller | 2026-11-20 | the PR job builds both images on every run | 1 | open |
+| RA-007 | Add the tools Jest suite (`npx jest --selectProjects tools`) to a CI workflow — it currently runs in no workflow and was only verified locally | controller | 2026-11-22 | a workflow runs the tools Jest suite on every PR | 0 | open |
+| RA-008 | Triage the ~40 parked DEFER findings from the one-command-start final review into GitHub issues or explicitly drop them | controller | 2026-11-22 | each finding is an open issue or recorded as dropped | 0 | open |
 
 ## Active practices
 
@@ -15,6 +17,7 @@
 | RP-002 | Deep review mandated for high-shape service/auth/CI changes, every Critical/Important finding closed through a RED→GREEN regression and one fix pass | Plan 3 | 2026-10-20 | active |
 | RP-003 | Verify against the artifact that runs: `npx nx build` for touched UI, one browser E2E for new runtime behaviour, and the required checks green on the PR | Plan 3 | 2026-10-20 | active |
 | RP-007 | Land the enforcement tools before the content they gate, so the content is gated by the tool that ships with it | Plan 7 | 2026-11-22 | active |
+| RP-008 | Copy the repo's verification commands verbatim from AGENTS.md/CI docs instead of recomposing them from memory | Plan 8 | 2026-11-22 | active |
 
 ## Closed and dropped actions
 
