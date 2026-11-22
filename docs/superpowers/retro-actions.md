@@ -4,8 +4,8 @@
 
 | ID | Action | Owner | Opened | Done when | Carried | Status |
 |---|---|---|---|---|---|---|
-| RA-001 | Check for bash on the Windows host before choosing a superpowers script, and record the manual fallback in the plan | controller | 2026-11-20 | the plan template names the Windows fallback | 0 | open |
-| RA-002 | Build the identity and shell images in the PR-blocking CI job (Plan 6 final-review Critical; the record does not state the fix landed) | controller | 2026-11-20 | the PR job builds both images on every run | 0 | open |
+| RA-001 | Check for bash on the Windows host before choosing a superpowers script, and record the manual fallback in the plan | controller | 2026-11-20 | the plan template names the Windows fallback | 1 | open |
+| RA-002 | Build the identity and shell images in the PR-blocking CI job (Plan 6 final-review Critical; the record does not state the fix landed) | controller | 2026-11-20 | the PR job builds both images on every run | 1 | open |
 
 ## Active practices
 
@@ -14,6 +14,7 @@
 | RP-001 | Recon before design: read the files and probe the runtime a plan will touch before drafting tasks | Plan 6 | 2026-11-20 | active |
 | RP-002 | Deep review mandated for high-shape service/auth/CI changes, every Critical/Important finding closed through a RED→GREEN regression and one fix pass | Plan 3 | 2026-10-20 | active |
 | RP-003 | Verify against the artifact that runs: `npx nx build` for touched UI, one browser E2E for new runtime behaviour, and the required checks green on the PR | Plan 3 | 2026-10-20 | active |
+| RP-007 | Land the enforcement tools before the content they gate, so the content is gated by the tool that ships with it | Plan 7 | 2026-11-22 | active |
 
 ## Closed and dropped actions
 

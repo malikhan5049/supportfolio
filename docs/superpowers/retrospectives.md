@@ -18,6 +18,39 @@
 
 ---
 
+## 2026-11-22 · Plan 7 · retrospective-system
+
+**Headline:** The retrospective system shipped tools-first and then gated its own first entry — the final review caught the one defect six per-task reviews missed.
+
+### Previous actions reviewed
+
+- RA-001 — carried — `docs/superpowers/plan-template.md` still names no Windows/bash fallback for the superpowers scripts, so the done-when is unmet.
+- RA-002 — carried — building the identity and shell images in the PR job is outside this plan's docs/tools scope.
+- RP-001 — kept — the design and a builder check ran before any task, and the migration read the records before rewriting them.
+- RP-002 — kept — the final whole-branch review ran before merge and closed its Critical through a regression.
+- RP-003 — kept — the real `retro-rotate` and `retro-validate` CLI runs in the worktree verified the artifact that ships, not a mock.
+
+### What went well?
+
+- Landing the enforcement tools before the content they gate (Tasks 1–5 ahead of the migration) meant the migration was gated by its own validator, which caught or exposed every content defect. → RP-007
+- The human checkpoint on the register — the one place a person, not a tool, owns the record — kept the closed and retired tables honest while the schema was still moving. → context-only
+- N1 survived six per-task reviews and died in the final whole-branch review, which is exactly the layer it existed for. → RP-002
+
+### What would we like to continue doing?
+
+- The per-plan review loop with fresh reviewers, each scoped to its task's diff, so no reviewer inherits the author's assumptions. → RP-002
+- Recording rulings at deviation time (R1–R25): that is what made the final review's triage — keep, fix, or re-file — decidable in one pass instead of an archaeology exercise. → context-only
+
+### What would we like to stop doing?
+
+- Stop drafting CLI invocations into a plan without running them in the target tree: `--testPathPattern` is not this repo's Jest flag, and the root `ROADMAP.md` filter pointed at a path that never existed here — both written from memory, which is RP-001's rule violated at plan-writing time and recurring after RP-006 was retired for exactly this. → RP-001
+
+### Metrics
+
+tasks 12 · retries 9 · escaped defects 1 · review ~18-findings
+
+---
+
 ## 2026-11-20 · Plan 6 · telemetry
 
 **Headline:** Recon-before-design plus a builder check caught the plan's one real contradiction before any task existed.
@@ -70,35 +103,3 @@ metrics: not recorded
 ### Metrics
 
 metrics: not recorded
-
----
-
-## 2026-11-18 · Plan 5 · showcase-deployment · PR #47
-
-**Headline:** Recon-before-design killed two wrong assumptions before any code existed and produced the exact signatures that made 14 TDD tasks dispatchable.
-**migrated:** true — heading reconstructed 2026-11-22 (source block had no heading)
-
-### What went well?
-
-- Recon-before-design killed two wrong assumptions before any code existed (no `/auth` prefix needed — identity namespaces don't collide; demo login is a flag-gated controller, not a second `IdentityProvider` adapter), and the same recon produced exact signatures that made 14 TDD tasks dispatchable without ambiguity. → RP-001
-- Per-task TDD with scoped reviews caught the failures that mattered exactly once each: the JWKS file-variant bypass (`JwksController`), the forwarded-host loss (`PreserveHostHeader`), the inert-flag tautology in the seeder test — none reached the branch review. → context-only
-- The whole-branch review was pointed at demo-facing failure modes ("what breaks first for the public demo") and found five real ones — the runner leaving demo flags off, a shared rate-limit bucket, a dead GitHub button, a vacuous test, a stale required check — all fixed in one wave. → context-only
-
-### What would we like to continue doing?
-
-- Prove deployments against the artifact that will actually run (compose smoke in CI), and keep flag-gated demo surfaces inert by default with tests that can fail (bean-absence assertions, not just count checks). → RP-003
-- Controllers finishing mechanical verification (formatter runs, container probes) when implementers hit step caps keeps capped sessions from stalling the plan. → context-only
-
-### What would we like to stop doing?
-
-- Tasks touching only yaml/scripts still skipped the full `gradlew build` gate locally — Spotless slipped through four times and was caught only in final verification. Run the gate in-task. → RP-003
-- Markdown is ungated by prettier; a spec heading got mangled (`### Versions### Versions`) and only the reviewer caught it. Consider a heading-sanity check in `tools/`. → context-only
-- Long Docker-heavy tasks (compose, CI smoke) exhausted their step caps three times and needed resumes; give such tasks explicit larger budgets or split them. → context-only
-
-### Metrics
-
-metrics: not recorded
-
-### Retro of the retro
-
-- Rulings for this period: see docs/superpowers/rulings.md. → context-only
