@@ -13,6 +13,7 @@ import {
   loadPlatformManifest,
   loadProjectManifests,
   shellAppFromManifest,
+  SHELL_APP_ID,
   type PlatformManifest,
   type ProjectManifest,
 } from './dev-orchestrator/manifests';
@@ -27,9 +28,7 @@ import { generateDevRegistry } from './dev-orchestrator/registry';
 
 const USAGE = 'usage: tsx tools/dev-orchestrator.ts <plan|watch> <app> [--build-watch]';
 const BUILD_WATCH_FLAG = '--build-watch';
-const DEFAULT_APP_ID = 'shell';
-/** Host app: its local section lives in the platform manifest's `surface.local`, not in a project. */
-const SURFACE_APP_ID = 'shell';
+const DEFAULT_APP_ID = SHELL_APP_ID;
 const PLATFORM_MANIFEST = ['platform', 'project.manifest.yaml'];
 const DEV_KEY_FILE = ['platform', 'identity', 'dev-key.pem'];
 const ENV_FILE = '.env';
@@ -43,7 +42,12 @@ const CONCURRENTLY_MODULE = 'concurrently';
 interface ConcurrentlyModule {
   concurrently: (
     commands: { command: string; name: string; prefixColor: string }[],
-    options: { killOthersOn: 'failure'[]; prefix: 'name' },
+    options: {
+      killOthersOn: 'failure'[];
+      prefix: 'name';
+      /** The plan's env map: children inherit nothing else from the resolver. */
+      env: Record<string, string>;
+    },
   ) => Promise<unknown>;
 }
 
@@ -98,7 +102,7 @@ export function parseArgs(argv: string[]): DevArgs {
 export async function runPreflight(
   plan: ResolvedPlan,
   env: Record<string, string>,
-  context?: PlanContext,
+  context: PlanContext,
 ): Promise<void> {
   const repoRoot = repoRootOf(plan.registryPath);
 
@@ -114,11 +118,7 @@ export async function runPreflight(
     );
   }
 
-  // Without the manifests there are no planned ports to derive; the CLI always passes them.
-  if (!context) {
-    return;
-  }
-
+  // The planned ports come from the manifests, so the check cannot be skipped by omission.
   const planned = plannedPorts(context);
   const [duplicate] = findPortConflicts(planned, context.platform);
   if (duplicate) {
@@ -156,7 +156,9 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
         name: process.name,
         prefixColor: process.color,
       })),
-      { killOthersOn: ['failure'], prefix: 'name' },
+      // The derived env (registry path, CSP origins, static locations, key path) only reaches the
+      // Spring children through this option.
+      { killOthersOn: ['failure'], prefix: 'name', env: plan.env },
     );
     return anyChildFailed(results) ? 1 : 0;
   } catch (error) {
@@ -168,22 +170,9 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<n
 /** Every port the plan binds, in dependency order — read from the manifests, never scraped. */
 export function plannedPorts(context: PlanContext): number[] {
   const order = resolveOrder(context.appId, context.manifests, context.platform);
-  return collectPlannedPorts(order, manifestsWithSurface(context), context.platform);
-}
-
-/**
- * The host app's local section (its frontend port) lives in the platform manifest's
- * `surface.local`, so the port collector only sees it through a synthetic app entry — the same
- * trick `buildProcessPlan` plays for the trusted origins.
- */
-function manifestsWithSurface(context: PlanContext): ProjectManifest[] {
-  if (!context.platform.surface?.local) {
-    return context.manifests;
-  }
-  if (context.manifests.some((manifest) => manifest.id === SURFACE_APP_ID)) {
-    return context.manifests;
-  }
-  return [...context.manifests, shellAppFromManifest(context.platform)];
+  // `collectPlannedPorts` resolves the host surface through the same lift the plan builder uses,
+  // so the project manifests alone are the complete input.
+  return collectPlannedPorts(order, context.manifests, context.platform);
 }
 
 function buildPlan(

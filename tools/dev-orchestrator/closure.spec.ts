@@ -99,6 +99,17 @@ describe('resolveOrder', () => {
     ]);
   });
 
+  it('accepts a dependency whose manifest declares no local section', () => {
+    const headless: ProjectManifest = { id: 'headless', displayName: 'Headless' };
+    const dependent: ProjectManifest = {
+      id: 'app',
+      displayName: 'App',
+      local: { dependsOn: ['headless'] },
+    };
+
+    expect(resolveOrder('app', [dependent, headless], platform)).toEqual(['headless', 'app']);
+  });
+
   it('throws when the app id itself is unknown', () => {
     expect(() => resolveOrder('nope', [tinyurl], platform)).toThrow('unknown app id "nope"');
   });

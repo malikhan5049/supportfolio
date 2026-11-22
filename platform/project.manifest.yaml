@@ -21,6 +21,7 @@ platformServices:
   - id: telemetry
     kind: compose-profile
     profile: observability
+    services: [prometheus, grafana]
 surface:
   local:
     frontend:

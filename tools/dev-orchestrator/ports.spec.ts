@@ -60,6 +60,24 @@ describe('collectPlannedPorts', () => {
     ).toEqual([8081, 9092, 5432, 8082, 9093, 4201, 8080, 9091, 4200]);
   });
 
+  it('resolves the host surface ports without a shell project manifest', () => {
+    const withSurface: PlatformManifest = {
+      ...platform,
+      surface: {
+        local: {
+          frontend: {
+            nxProject: 'shell-host',
+            devPort: 4200,
+            devRemoteEntry: 'http://localhost:4200/remoteEntry.js',
+          },
+          dependsOn: [],
+        },
+      },
+    };
+
+    expect(collectPlannedPorts(['shell'], [], withSurface)).toEqual([8080, 9091, 4200]);
+  });
+
   it('returns an empty list for an empty order', () => {
     expect(collectPlannedPorts([], [tinyurl, shell], platform)).toEqual([]);
   });
@@ -82,12 +100,6 @@ describe('findPortConflicts', () => {
 
   it('returns nothing when every port is unique', () => {
     expect(findPortConflicts([8081, 8082, 4200], platform)).toEqual([]);
-  });
-
-  it('defaults to the repo platform manifest for reserved owners', () => {
-    // Deliberate one-argument call: the default parameter reads the real
-    // platform/project.manifest.yaml, which reserves 8080 for the shell app.
-    expect(findPortConflicts([8080, 8080])).toEqual([{ port: 8080, owner: 'shell' }]);
   });
 });
 

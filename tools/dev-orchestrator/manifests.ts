@@ -16,6 +16,8 @@ export interface LocalFrontend {
   devPort: number;
   devRemoteEntry: string;
   standaloneBuild?: string;
+  /** Nx output root relative to `dist/`; defaults to the layout implied by the app id. */
+  distPath?: string;
 }
 
 export interface LocalSection {
@@ -51,6 +53,10 @@ export interface PlatformService {
   composeFile?: string;
   serviceName?: string;
   profile?: string;
+  /** Profile services this command brings up; defaults to the telemetry stack. */
+  services?: string[];
+  /** Compose files the profile command overlays; defaults to the telemetry stack's. */
+  composeFiles?: string[];
 }
 
 export interface PlatformManifest {
@@ -62,6 +68,9 @@ export interface PlatformManifest {
 }
 
 const MANIFEST_FILE = 'project.manifest.yaml';
+
+/** Host app id: it names a platform service and carries its local section on `platform.surface`. */
+export const SHELL_APP_ID = 'shell';
 
 export function loadProjectManifests(root: string): ProjectManifest[] {
   const projectsDir = join(root, 'projects');
@@ -95,8 +104,25 @@ export function shellAppFromManifest(platform: PlatformManifest): ProjectManifes
     throw new Error('platform manifest has no surface.local');
   }
   return {
-    id: 'shell',
+    id: SHELL_APP_ID,
     displayName: platform.displayName,
     local: platform.surface.local,
   };
+}
+
+/**
+ * The one place that resolves an id's local section: a project manifest's own `local` wins, and the
+ * host app falls back to the platform manifest's `surface.local`.
+ */
+export function localSectionFor(
+  id: string,
+  manifests: ProjectManifest[],
+  platform: PlatformManifest,
+): LocalSection | undefined {
+  const projectLocal = manifests.find((manifest) => manifest.id === id)?.local;
+  if (projectLocal) {
+    return projectLocal;
+  }
+
+  return id === SHELL_APP_ID ? platform.surface?.local : undefined;
 }

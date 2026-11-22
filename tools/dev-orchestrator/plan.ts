@@ -7,7 +7,9 @@ import {
   PlatformManifest,
   PlatformService,
   ProjectManifest,
+  localSectionFor,
   shellAppFromManifest,
+  SHELL_APP_ID,
 } from './manifests';
 import { trustedOriginsFor } from './registry';
 
@@ -26,18 +28,17 @@ export interface ResolvedPlan {
 }
 
 /** Host app: its local section lives in the platform manifest's `surface.local`, not in a project. */
-const SPA_APP_ID = 'shell';
+const SPA_APP_ID = SHELL_APP_ID;
 /** Nx emits `dist/<project root>`; the host's root is the platform surface app. */
 const SPA_PROJECT_ROOT = ['platform', 'shell', 'host'];
 const DOCKER_PROJECT = 'supportfolio-dev';
-const DATABASE_ID = 'postgres';
-const DEFAULT_DATABASE_PORT = 5432;
-/** Compose files overlaid for profile services (telemetry observes the dev stack). */
-const PROFILE_COMPOSE_FILES = ['docker-compose.demo.yml', 'docker-compose.dev.yml'];
-const PROFILE_SERVICE_NAMES = ['prometheus', 'grafana'];
 const WAIT_ON_TIMEOUT_MS = 120000;
 const REGISTRY_PATH = ['platform', 'shell', 'config', 'remote-registry.dev.json'];
 const IDENTITY_PRIVATE_KEY_FILE = ['platform', 'identity', 'dev-key.pem'];
+
+/** Profile defaults: the telemetry stack observes the dev Compose project. */
+const DEFAULT_PROFILE_COMPOSE_FILES = ['docker-compose.demo.yml', 'docker-compose.dev.yml'];
+const DEFAULT_PROFILE_SERVICES = ['prometheus', 'grafana'];
 
 const PLATFORM_SERVICE_COLORS: Record<string, string> = {
   postgres: 'gray',
@@ -49,8 +50,16 @@ const PROJECT_SERVICE_COLOR = 'magenta';
 const FRONTEND_COLOR = 'yellow';
 const DEFAULT_SERVICE_COLOR = 'white';
 
-/** Nx writes every project build to `dist/<project root>`; project frontends follow the slice layout. */
+/**
+ * Nx writes every build to `dist/<project root>`: a manifest may declare its root with
+ * `local.frontend.distPath`, otherwise the slice layout implied by the app id stands.
+ */
 function frontendOutputPath(app: ProjectManifest): string[] {
+  const configured = app.local?.frontend?.distPath;
+  if (configured) {
+    return configured.split(/[\\/]+/).filter((segment) => segment !== '');
+  }
+
   return app.id === SPA_APP_ID ? SPA_PROJECT_ROOT : ['projects', app.id, 'microfrontend'];
 }
 
@@ -95,8 +104,16 @@ function composeProfileCommand(service: PlatformService, id: string): string {
   if (!service.profile) {
     throw new Error(`compose-profile service "${id}" needs a profile`);
   }
-  const files = PROFILE_COMPOSE_FILES.map((file) => `-f ${file}`).join(' ');
-  return `docker compose -p ${DOCKER_PROJECT} ${files} --profile ${service.profile} up -d --wait --no-deps ${PROFILE_SERVICE_NAMES.join(' ')}`;
+
+  const services = service.services ?? DEFAULT_PROFILE_SERVICES;
+  if (services.length === 0) {
+    throw new Error(`compose-profile service "${id}" needs at least one service name`);
+  }
+
+  const files = (service.composeFiles ?? DEFAULT_PROFILE_COMPOSE_FILES)
+    .map((file) => `-f ${file}`)
+    .join(' ');
+  return `docker compose -p ${DOCKER_PROJECT} ${files} --profile ${service.profile} up -d --wait --no-deps ${services.join(' ')}`;
 }
 
 function serviceCommand(service: PlatformService, id: string): string {
@@ -148,10 +165,7 @@ export function buildProcessPlan(
 
   // The host app's local section is lifted from the platform manifest; never hardcode its shape.
   const localOf = (id: string): LocalSection | undefined =>
-    manifests.find((manifest) => manifest.id === id)?.local ??
-    (id === app.id ? platform.surface?.local : undefined);
-
-  const databasePort = platformServiceById.get(DATABASE_ID)?.port ?? DEFAULT_DATABASE_PORT;
+    localSectionFor(id, manifests, platform);
 
   const waitOnFor = (id: string): string => {
     const dependencies = order.slice(0, order.indexOf(id));
@@ -161,8 +175,12 @@ export function buildProcessPlan(
       )
       .filter((url): url is string => url !== undefined);
 
-    if (dependencies.includes(DATABASE_ID)) {
-      urls.push(`tcp:127.0.0.1:${databasePort}`);
+    // Containers publish a port: every compose dependency gets the raw TCP gate, not just a database.
+    for (const dependencyId of dependencies) {
+      const dependencyService = platformServiceById.get(dependencyId);
+      if (dependencyService?.kind === 'compose' && dependencyService.port !== undefined) {
+        urls.push(`tcp:127.0.0.1:${dependencyService.port}`);
+      }
     }
 
     return urls.length === 0 ? '' : `wait-on -t ${WAIT_ON_TIMEOUT_MS} ${urls.join(' ')} && `;
@@ -171,6 +189,8 @@ export function buildProcessPlan(
   const processes: ProcessSpec[] = [];
   for (const id of order) {
     const platformService = platformServiceById.get(id);
+    const local = localOf(id);
+
     if (platformService) {
       processes.push({
         name: platformService.id,
@@ -181,11 +201,12 @@ export function buildProcessPlan(
             ? `${waitOnFor(id)}${serviceCommand(platformService, id)}`
             : serviceCommand(platformService, id),
       });
-    } else {
-      const projectService = localOf(id)?.service;
-      if (!projectService) {
-        throw new Error(`no local service definition for "${id}"`);
+    } else if (local?.service) {
+      if (local.service.envFile !== undefined) {
+        throw new Error('local.service.envFile is not supported yet');
       }
+
+      const projectService = local.service;
       processes.push({
         name: id === SPA_APP_ID ? id : `${id}-service`,
         color: PROJECT_SERVICE_COLOR,
@@ -193,7 +214,8 @@ export function buildProcessPlan(
       });
     }
 
-    const frontend = localOf(id)?.frontend;
+    // A pure-frontend dependency has no service process; its frontend process is unconditional.
+    const frontend = local?.frontend;
     if (frontend) {
       processes.push({
         name: frontend.nxProject,

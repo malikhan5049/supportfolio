@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { isAbsolute, join } from 'path';
 import { loadPlatformManifest, loadProjectManifests, shellAppFromManifest } from './manifests';
+import type { PlatformManifest, ProjectManifest } from './manifests';
 import { buildProcessPlan } from './plan';
 
 const WORKSPACE_ROOT = join(__dirname, '..', '..');
@@ -89,6 +92,133 @@ describe('buildProcessPlan', () => {
       ]);
       expect(plan.processes).toHaveLength(4);
     });
+
+    it('keeps the host surface origin in the CSP list when the closure omits it', () => {
+      const plan = buildProcessPlan('serve', tinyurl, manifests, platform, FAKE_REPO_ROOT);
+
+      // The shell is not in the resolved order here: its origin comes from the surface lift alone.
+      expect(plan.processes.map((process) => process.name)).not.toContain('shell-host');
+      expect(plan.env.SUPPORTFOLIO_SHELL_TRUSTED_REMOTE_ORIGINS).toBe(
+        'http://localhost:4200,http://localhost:4201',
+      );
+    });
+
+    it('parses the repo .env: comments and blank lines skipped, values keep their own "="', () => {
+      const root = mkdtempSync(join(tmpdir(), 'plan-env-'));
+      try {
+        writeFileSync(
+          join(root, '.env'),
+          [
+            '# local secrets, never committed',
+            '',
+            'IDENTITY_ISSUER=http://localhost:8081',
+            'DATABASE_PASSWORD=a=b',
+            'NO_SEPARATOR',
+            '',
+          ].join('\n'),
+          'utf8',
+        );
+
+        const plan = buildProcessPlan('serve', tinyurl, manifests, platform, root);
+
+        expect(plan.env.IDENTITY_ISSUER).toBe('http://localhost:8081');
+        expect(plan.env.DATABASE_PASSWORD).toBe('a=b');
+        expect(plan.env.NO_SEPARATOR).toBeUndefined();
+        expect(Object.keys(plan.env).some((key) => key.startsWith('#'))).toBe(false);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it('throws on a declared but unimplemented local.service.envFile', () => {
+      const withEnvFile: ProjectManifest = {
+        ...tinyurl,
+        local: {
+          ...tinyurl.local,
+          service: {
+            ...tinyurl.local?.service,
+            gradleModule: 'projects:tinyurl:service',
+            port: 8082,
+            envFile: '.env.tinyurl',
+          },
+        },
+      };
+
+      expect(() =>
+        buildProcessPlan('serve', withEnvFile, [withEnvFile], platform, FAKE_REPO_ROOT),
+      ).toThrow('local.service.envFile is not supported yet');
+    });
+
+    it('plans a pure-frontend dependency without inventing a service process', () => {
+      const cards: ProjectManifest = {
+        id: 'cards',
+        displayName: 'Cards',
+        local: {
+          frontend: {
+            nxProject: 'cards-microfrontend',
+            devPort: 4203,
+            devRemoteEntry: 'http://localhost:4203/remoteEntry.js',
+          },
+          dependsOn: [],
+        },
+      };
+      const consumer: ProjectManifest = {
+        id: 'consumer',
+        displayName: 'Consumer',
+        local: {
+          service: { gradleModule: 'projects:consumer:service', port: 8099 },
+          dependsOn: ['cards'],
+        },
+      };
+
+      const plan = buildProcessPlan('serve', consumer, [cards, consumer], platform, FAKE_REPO_ROOT);
+
+      expect(plan.processes.map((process) => process.name)).toEqual([
+        'cards-microfrontend',
+        'consumer-service',
+      ]);
+    });
+
+    it('gates every compose dependency on its tcp port, not just the database', () => {
+      const withCache: PlatformManifest = {
+        ...platform,
+        platformServices: [
+          ...platform.platformServices,
+          {
+            id: 'redis',
+            kind: 'compose',
+            composeFile: 'docker-compose.redis.yml',
+            serviceName: 'redis',
+            port: 6379,
+          },
+        ],
+      };
+      const cacheConsumer: ProjectManifest = {
+        id: 'cache-consumer',
+        displayName: 'Cache consumer',
+        local: {
+          service: { gradleModule: 'projects:cache-consumer:service', port: 8099 },
+          dependsOn: [],
+          databases: ['redis'],
+        },
+      };
+
+      const plan = buildProcessPlan(
+        'serve',
+        cacheConsumer,
+        [cacheConsumer],
+        withCache,
+        FAKE_REPO_ROOT,
+      );
+
+      expect(plan.processes.map((process) => process.name)).toEqual([
+        'redis',
+        'cache-consumer-service',
+      ]);
+      expect(plan.processes[1].command).toBe(
+        'wait-on -t 120000 tcp:127.0.0.1:6379 && gradlew.bat :projects:cache-consumer:service:bootRun --console=plain',
+      );
+    });
   });
 
   describe('build-watch', () => {
@@ -126,6 +256,35 @@ describe('buildProcessPlan', () => {
       expect(isAbsolute(staticLocationsPath)).toBe(true);
       expect(
         staticLocationsPath.endsWith(join('dist', 'projects', 'tinyurl', 'microfrontend', '')),
+      ).toBe(true);
+    });
+
+    it('honours a manifest-declared distPath over the default layout', () => {
+      const customLayout: ProjectManifest = {
+        ...tinyurl,
+        local: {
+          ...tinyurl.local,
+          frontend: {
+            nxProject: 'tinyurl-microfrontend',
+            devPort: 4201,
+            devRemoteEntry: 'http://localhost:4201/remoteEntry.js',
+            distPath: 'custom/tinyurl/out',
+          },
+        },
+      };
+
+      const plan = buildProcessPlan(
+        'build-watch',
+        customLayout,
+        [customLayout],
+        platform,
+        FAKE_REPO_ROOT,
+      );
+
+      expect(
+        plan.env.SPRING_WEB_RESOURCES_STATIC_LOCATIONS.endsWith(
+          join('dist', 'custom', 'tinyurl', 'out', ''),
+        ),
       ).toBe(true);
     });
   });

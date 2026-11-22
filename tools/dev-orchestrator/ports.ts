@@ -1,6 +1,5 @@
 import * as net from 'net';
-import { join } from 'path';
-import { loadPlatformManifest, type PlatformManifest, type ProjectManifest } from './manifests';
+import { localSectionFor, type PlatformManifest, type ProjectManifest } from './manifests';
 
 export interface PortConflict {
   port: number;
@@ -13,7 +12,6 @@ export function collectPlannedPorts(
   platform: PlatformManifest,
 ): number[] {
   const servicesById = new Map(platform.platformServices.map((service) => [service.id, service]));
-  const projectsById = new Map(manifests.map((manifest) => [manifest.id, manifest]));
   const ports: number[] = [];
 
   for (const id of order) {
@@ -25,7 +23,8 @@ export function collectPlannedPorts(
       ports.push(service.managementPort);
     }
 
-    const local = projectsById.get(id)?.local;
+    // Same lift as the plan builder: the host app's local section lives on the platform manifest.
+    const local = localSectionFor(id, manifests, platform);
     if (local?.service) {
       ports.push(local.service.port);
       if (local.service.managementPort !== undefined) {
@@ -40,12 +39,7 @@ export function collectPlannedPorts(
   return ports;
 }
 
-export function findPortConflicts(
-  planned: number[],
-  platform: PlatformManifest = loadPlatformManifest(
-    join(__dirname, '..', '..', 'platform', 'project.manifest.yaml'),
-  ),
-): PortConflict[] {
+export function findPortConflicts(planned: number[], platform: PlatformManifest): PortConflict[] {
   const ownerByPort = new Map(platform.reservedPorts.map((entry) => [entry.port, entry.owner]));
   const seen = new Set<number>();
   const reported = new Set<number>();

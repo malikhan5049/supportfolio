@@ -2,6 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { loadPlatformManifest, loadProjectManifests, shellAppFromManifest } from './manifests';
+import { localSectionFor } from './manifests';
+import type { ProjectManifest } from './manifests';
 
 const root = join(__dirname, '..', '..');
 
@@ -62,6 +64,28 @@ describe('loadProjectManifests', () => {
   });
 });
 
+describe('localSectionFor', () => {
+  const platform = loadPlatformManifest(join(root, 'platform', 'project.manifest.yaml'));
+  const manifests: ProjectManifest[] = loadProjectManifests(root);
+
+  it('lifts the host surface local section when no shell manifest exists', () => {
+    expect(localSectionFor('shell', manifests, platform)).toBe(platform.surface?.local);
+  });
+
+  it('prefers a project manifest own local section over the platform surface', () => {
+    const overriding: ProjectManifest[] = [
+      ...manifests,
+      { id: 'shell', displayName: 'Shell', local: { dependsOn: [] } },
+    ];
+
+    expect(localSectionFor('shell', overriding, platform)?.dependsOn).toEqual([]);
+  });
+
+  it('returns nothing for an id with neither a manifest nor the surface', () => {
+    expect(localSectionFor('tinyurl-service', manifests, platform)).toBeUndefined();
+  });
+});
+
 describe('loadPlatformManifest', () => {
   const platform = loadPlatformManifest(join(root, 'platform', 'project.manifest.yaml'));
 
@@ -99,7 +123,12 @@ describe('loadPlatformManifest', () => {
         managementPort: 9091,
         healthPath: '/actuator/health',
       },
-      { id: 'telemetry', kind: 'compose-profile', profile: 'observability' },
+      {
+        id: 'telemetry',
+        kind: 'compose-profile',
+        profile: 'observability',
+        services: ['prometheus', 'grafana'],
+      },
     ]);
   });
 

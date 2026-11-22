@@ -19,6 +19,19 @@ function devRemoteEntryFor(manifest: ProjectManifest): string | undefined {
   return manifest.local?.frontend?.devRemoteEntry;
 }
 
+/**
+ * A manifest that declares neither `openUrl` nor `exposedModules` still serves itself in dev: both
+ * URLs are derived from the same `local.frontend` entry so the card can open and mount.
+ */
+function openUrlFor(manifest: ProjectManifest): string {
+  if (manifest.openUrl !== undefined) {
+    return manifest.openUrl;
+  }
+
+  const devPort = manifest.local?.frontend?.devPort;
+  return devPort === undefined ? '' : `http://localhost:${devPort}`;
+}
+
 function exposedModulesFor(manifest: ProjectManifest): ExposedModule[] {
   if (manifest.exposedModules && manifest.exposedModules.length > 0) {
     return manifest.exposedModules.map((module) => ({
@@ -43,7 +56,7 @@ function toRegistryEntry(manifest: ProjectManifest): DevRegistryEntry {
     displayName: manifest.displayName,
     shortDescription: manifest.shortDescription ?? '',
     features: manifest.features ?? [],
-    openUrl: manifest.openUrl ?? '',
+    openUrl: openUrlFor(manifest),
     exposedModules: exposedModulesFor(manifest),
   };
 }

@@ -102,6 +102,17 @@ describe('generateDevRegistry', () => {
     );
   });
 
+  it('derives openUrl and the module entry from local.frontend when neither is declared', () => {
+    const parsed = JSON.parse(generateDevRegistry([alphaProject]));
+
+    expect(parsed.projects[0].openUrl).toBe('http://localhost:4202');
+    expect(parsed.projects[0].exposedModules[0]).toEqual({
+      name: 'alpha',
+      version: '1.0.0',
+      remoteEntry: 'http://localhost:4202/remoteEntry.js',
+    });
+  });
+
   it('falls back to the dev remote entry when a manifest exposes no module', () => {
     const withoutExposure: ProjectManifest = { ...tinyurlManifest(), exposedModules: [] };
     const parsed = JSON.parse(generateDevRegistry([withoutExposure]));
