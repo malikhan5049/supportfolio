@@ -1,0 +1,4 @@
+2026-11-13 · Ad-hoc/branch-worktree-cleanup · Step-by-step verification after each mutation caught the one Windows long-path failure before branch deletion, and every protected ref survived untouched. · -
+2026-11-08 · Ad-hoc/dependabot-pr-repair · The only genuinely failing PR was fixed by systematic debugging, not guesswork, because the published artifact chain exposed the real BOM pin. · RA-005, RP-003
+2026-10-24 · Plan 4 · PR #20 · Deep review and Testcontainers/browser tests caught real defects beyond happy-path coverage, and the PR's first hosted run proved the value of executable CI. · RA-004, RP-002, RP-003, RP-005
+2026-10-20 · Plan 3 · PR #17 · The single Playwright E2E paid for itself immediately by catching the one defect unit tests masked while the plan's back half ran with zero retries. · RA-003, RA-006, RP-002, RP-003, RP-004
