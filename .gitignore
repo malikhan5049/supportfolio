@@ -32,3 +32,8 @@ dist/
 *.local.ps1
 run-identity.local.ps1
 .env
+
+# Generated per-run by tools/dev-orchestrator.ts
+platform/shell/config/remote-registry.dev.json
+# Local scratch (env files if ever added, logs, dumps)
+.dev/
