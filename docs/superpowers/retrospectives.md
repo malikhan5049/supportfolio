@@ -18,6 +18,42 @@
 
 ---
 
+## 2026-11-22 · Plan 8 · one-command-start · PR #52
+
+**Headline:** The manifest-driven orchestrator collapsed a six-terminal boot into one command per project per mode and shipped with the tests that enforce it — verified end to end, not just in CI.
+
+### Previous actions reviewed
+
+- RA-001 — carried — the plan template still names no Windows/bash fallback for the superpowers scripts, so this plan ran manual PowerShell equivalents in its workspace.
+- RA-002 — carried — PR #52's CI still does not build the identity and shell images in a PR-blocking job; they remain demo-stack-only.
+- RP-001 — kept — preflight recon (conflict scan plus self-review) caught two plan defects before any task ran: an unsatisfiable Ajv assertion and wait-on URLs pointed at public ports instead of management ports.
+- RP-002 — kept — all 13 tasks received an implementer plus an independent reviewer, two batched cross-cutting waves closed cross-task findings, and the final whole-branch review's fix waves were re-reviewed clean.
+- RP-003 — kept — runtime behaviour was verified end to end (dev loop, standalone prod, teardown) and the PR's 18 required checks were green at merge.
+- RP-007 — kept — the orchestrator shipped together with the genericity and spec tests that enforce its manifest contract, so "add a project = manifest plus one script line" is checked by the tool that ships.
+
+### What went well?
+
+- The manifest-driven design turned a six-terminal boot into one command per project per mode while every service still runs standalone: `prod:tinyurl` was verified serving on port 18082 with no shell involved. → context-only
+- Per-task SDD reviews with fresh, task-scoped reviewers caught contract drift early — the generated registry entry shape and per-command env delivery were corrected before they compounded across tasks. → RP-002
+- Preflight recon (conflict scan plus self-review) killed two plan defects before any task ran: an unsatisfiable Ajv assertion and wait-on URLs pointed at public ports instead of management ports. → context-only
+
+### What would we like to continue doing?
+
+- The implementer plus independent-reviewer loop on every task, with controller-verified test evidence, so no reviewer inherits the author's assumptions. → RP-002
+- Verifying runtime behaviour end to end — the 8-process dev loop with Java DevTools reload, registry/JWKS/prometheus proofs, the IPv6 port-preflight gate, prod standalone at 18082, and a full teardown — instead of trusting a green build. → context-only
+- Shipping the enforcement with the thing enforced: the orchestrator landed with the genericity and spec tests that check "add a project = manifest plus one script line". → RP-007
+
+### What would we like to stop doing?
+
+- Stop recomposing CLI invocations from memory instead of copying the repo's documented commands: `--testPathPattern` (singular) is not this repo's Jest flag, and `./gradlew build -x e2e` named a Gradle task this repo does not have, failing twice before the real CI gate line was copied verbatim from `AGENTS.md`. → RP-008
+- Stop executing plans that predate the retrospective template without checking their record: `docs/superpowers/plans/2026-11-22-one-command-start.md` carries no `## Dispatch Ledger` and no `## Retrospective compliance` section, so its compliance was unverifiable from the record itself; plans are read-only records, so the gap is noted here instead of amended. → context-only
+
+### Metrics
+
+tasks 13 · retries 2 · escaped defects 0 · review ~40-findings-deferred
+
+---
+
 ## 2026-11-22 · Plan 7 · retrospective-system
 
 **Headline:** The retrospective system shipped tools-first and then gated its own first entry — the final review caught the one defect six per-task reviews missed.
@@ -73,32 +109,6 @@ tasks 12 · retries 9 · escaped defects 1 · review ~18-findings
 - Stop drafting plan snippets (script param blocks, compose steps, CI job YAML) without reading the actual files first — Task 6's `-WhatIf` premise, its line numbers, and Task 7's missing image-build step were all unverified drafts that cost a final-review Critical. → RP-006
 - Stop assuming bash-based superpowers scripts run on this Windows host — check for bash at setup time and pick the manual fallback immediately. → RA-001
 - Stop leaving compose/CI verification claims ambiguous about which surface proved them (image-level vs compose-level healthchecks). → RP-003
-
-### Metrics
-
-metrics: not recorded
-
----
-
-## 2026-11-20 · Ad-hoc · model-router-cost-rebalance
-
-**Headline:** The pre-change review caught three real cost traps before any edit, and small parse-checked config batches kept every increment verifiable.
-**migrated:** true
-
-### What went well?
-
-- The pre-change review caught three real cost traps before any edit: `@fast` is hard read-only (shell/web/websearch denied), the default 4× `costCeiling` would abort the ladder at 1+8 before heavy, and kimi-k2.7-code medium costs more per token than deepseek-v4-pro heavy. → context-only
-- Small config batches (enforcement+rules, coverage, descriptions/fallback, review batching) each followed by a JSONC parse check kept every increment verifiable; the timestamped backup gave a clean rollback path for an out-of-repo config. → context-only
-
-### What would we like to continue doing?
-
-- Parse-check the override after every batch and re-read the changed block, even for comment-only edits — a stale comment is still wrong documentation. → context-only
-- Gate A/B experiments on a nominated real task at plan start; when none exists, record `deferred — no real task`, keep the incumbent, and finish the plan instead of inventing a synthetic task. → context-only
-
-### What would we like to stop doing?
-
-- Stop writing router rules that assume `@fast` can run shell/web commands or fetch URLs; those tasks belong to the orchestrator or `@medium`. → context-only
-- Stop leaving `costRatio` values that exceed the configured `costCeiling` ladder (1+8+10=19 required raising the ceiling to 20); check the sum whenever a ratio changes. → context-only
 
 ### Metrics
 
