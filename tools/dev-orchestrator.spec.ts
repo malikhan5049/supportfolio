@@ -44,7 +44,7 @@ const concurrently = jest.requireMock<ConcurrentlyModule>('concurrently').concur
 const repoRoot = path.join(__dirname, '..');
 const USAGE = 'usage: tsx tools/dev-orchestrator.ts <plan|watch> <app> [--build-watch]';
 /** Every port the real `shell` plan binds — the host surface's 4200 included. */
-const SHELL_PLANNED_PORTS = [4200, 4201, 5432, 8080, 8081, 8082, 9091, 9092, 9093];
+const SHELL_PLANNED_PORTS = [4200, 8080, 8081, 9091, 9092];
 
 function tempRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'dev-orchestrator-'));
@@ -287,7 +287,7 @@ describe('main', () => {
 
     expect(code).toBe(0);
     expect(concurrently).not.toHaveBeenCalled();
-    expect(plan.processes).toHaveLength(8);
+    expect(plan.processes).toHaveLength(5);
     expect(plan.registryPath).toBe(registryPathIn(repoRoot));
   });
 
@@ -336,7 +336,7 @@ describe('main', () => {
         { command: string; name: string; prefixColor: string; env?: Record<string, unknown> }[],
         unknown,
       ];
-      expect(mapped).toHaveLength(8);
+      expect(mapped).toHaveLength(5);
       expect(mapped).toEqual(
         plan.processes.map((process) => ({
           command: process.command,

@@ -143,7 +143,7 @@ describe('loadPlatformManifest', () => {
     expect(shell.displayName).toBe('Supportfolio platform');
     expect(shell.local?.frontend?.nxProject).toBe('shell-host');
     expect(shell.local?.frontend?.devPort).toBe(4200);
-    expect(shell.local?.dependsOn).toEqual(['identity', 'tinyurl', 'telemetry']);
+    expect(shell.local?.dependsOn).toEqual(['identity', 'telemetry']);
   });
 
   it('throws when platformServices is missing', () => {

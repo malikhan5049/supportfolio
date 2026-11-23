@@ -28,7 +28,7 @@ surface:
       nxProject: shell-host
       devPort: 4200
       devRemoteEntry: http://localhost:4200/remoteEntry.js
-    dependsOn: [identity, tinyurl, telemetry]
+    dependsOn: [identity, telemetry]
 reservedPorts:
   - { port: 4200, owner: shell-host }
   - { port: 4201, owner: tinyurl-microfrontend }
