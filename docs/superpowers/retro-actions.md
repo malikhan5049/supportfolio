@@ -4,10 +4,12 @@
 
 | ID | Action | Owner | Opened | Done when | Carried | Status |
 |---|---|---|---|---|---|---|
-| RA-001 | Check for bash on the Windows host before choosing a superpowers script, and record the manual fallback in the plan | controller | 2026-11-20 | the plan template names the Windows fallback | 1 | open |
-| RA-002 | Build the identity and shell images in the PR-blocking CI job (Plan 6 final-review Critical; the record does not state the fix landed) | controller | 2026-11-20 | the PR job builds both images on every run | 1 | open |
-| RA-007 | Add the tools Jest suite (`npx jest --selectProjects tools`) to a CI workflow — it currently runs in no workflow and was only verified locally | controller | 2026-11-22 | a workflow runs the tools Jest suite on every PR | 0 | open |
-| RA-008 | Triage the ~40 parked DEFER findings from the one-command-start final review into GitHub issues or explicitly drop them | controller | 2026-11-22 | each finding is an open issue or recorded as dropped | 0 | open |
+| RA-001 | Check for bash on the Windows host before choosing a superpowers script, and record the manual fallback in the plan | controller | 2026-11-20 | the plan template names the Windows fallback | 2 | open |
+| RA-002 | Build the identity and shell images in the PR-blocking CI job (Plan 6 final-review Critical; the record does not state the fix landed) | controller | 2026-11-20 | the PR job builds both images on every run | 2 | open |
+| RA-007 | Add the tools Jest suite (`npx jest --selectProjects tools`) to a CI workflow — it currently runs in no workflow and was only verified locally | controller | 2026-11-22 | a workflow runs the tools Jest suite on every PR | 1 | open |
+| RA-008 | Triage the ~40 parked DEFER findings from the one-command-start final review into GitHub issues or explicitly drop them | controller | 2026-11-22 | each finding is an open issue or recorded as dropped | 1 | open |
+| RA-009 | Stop treating router-verification DoD failures as real failures before triage: when the check cannot literally match (literal `expect=` substring, absent npm `test` script), record the grader-artifact ruling and re-run covering suites instead of burning fix cycles | controller | 2026-11-23 | verification-harness artifacts are distinguished from real failures before any fix pass starts | 0 | open |
+| RA-010 | Triage Plan 9's deferred review findings (~5: offline-tile component styles, `remoteBacked`/`offline` mutual exclusivity, the e2e fixture's home under `public/`, `@for track $index`, `dead-remote.openUrl`'s dead port) into GitHub issues or drop them | controller | 2026-11-23 | each finding is an open issue or recorded as dropped | 0 | open |
 
 ## Active practices
 

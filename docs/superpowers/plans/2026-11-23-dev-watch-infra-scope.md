@@ -37,6 +37,8 @@ Brief run: 2026-11-23 (`npx tsx tools/retro-brief.ts`)
 | RA-002 | action | deferred — no image changes in this plan | — |
 | RA-007 | action | deferred — CI workflow edits out of scope (AGENTS.md "Do not touch") | — |
 | RA-008 | action | deferred — parked-findings triage is not this plan's goal | — |
+| RA-009 | action | deferred — dated note 2026-11-23 (retro closure): registered by this plan's retrospective; not open when the brief ran | — |
+| RA-010 | action | deferred — dated note 2026-11-23 (retro closure): registered by this plan's retrospective; not open when the brief ran | — |
 
 ## Review Focus
 
