@@ -18,6 +18,45 @@
 
 ---
 
+## 2026-11-23 · Plan 9 · dev-watch-infra-scope · PR #54
+
+**Headline:** One manifest line scoped the shell dev watch to infrastructure, the catalog learned to mark a dead remote offline instead of breaking, and the registry architecture survived on merit — research confirmed it already matched industry practice.
+
+### Previous actions reviewed
+
+- RA-001 — carried — bash was again unavailable on this host (WSL stub), so the SDD workspace, task briefs, and review packages were produced by the manual fallback; the plan template still names no Windows fallback.
+- RA-002 — carried — PR #54's required checks do not build the identity and shell images; they remain demo-stack-only.
+- RA-007 — carried — the tools Jest suite stayed local-only verification (27 suites/231 tests green on final HEAD); no CI workflow runs it yet.
+- RA-008 — carried — the ~40 parked Plan 8 findings remain untriaged, and this plan adds ~5 more (see RA-010).
+- RP-001 — kept — recon before design pinned the facts the plan leaned on, from identity's empty dependency set to `closure.ts`'s dependsOn+databases expansion.
+- RP-002 — kept — every task ran a fresh implementer against an independent reviewer, and the final whole-branch review's one fix-before-merge was re-reviewed clean.
+- RP-003 — kept — the branch merged with the full verification matrix green on final HEAD, including browser e2e run against system Chrome when the sandbox could not download Playwright browsers.
+- RP-007 — kept — the shell-plan scope change and its enforcing spec tests (including the CSP `:4201` origin invariant) shipped in the same PR.
+- RP-008 — kept — verification commands were copied verbatim from AGENTS.md; no recomposed-CLI failures occurred this plan.
+
+### What went well?
+
+- Preflight recon pinned the load-bearing fact — identity has no database dependency — so dropping tinyurl from the shell's `dependsOn` removed postgres from the shell plan automatically, and the whole behavior change rode on one manifest line enforced by the orchestrator specs. → context-only
+- Settling the registry question by research before design (Module Federation, single-spa, Backstage comparisons) kept the plan honest: no registry, gateway, or CSP churn, and the one ruled deviation (tinyurl manifest stays a plan input so CSP keeps trusting `:4201`) was reviewer-confirmed before implementation. → context-only
+- The Task 1 review caught dropped tinyurl port coverage, and it came back as a dedicated fix commit (`cefff33`) instead of a silent regression. → RP-002
+
+### What would we like to continue doing?
+
+- The implementer plus independent-reviewer loop per task, plus a whole-branch review before merge, which produced one fix-before-merge (`test-results/` in `.gitignore`) that was re-reviewed clean. → RP-002
+- Verifying final HEAD at the artifact level — tools Jest (27 suites/231 tests), `nx run-many` lint+test, `nx build shell-host`, prettier, retro-validate, and Playwright e2e (2/2) — before declaring done. → context-only
+- Landing the enforcement with the change: the shell plan's new scope, including the CSP `:4201` origin invariant, is checked by the orchestrator spec tests that shipped in the same PR. → context-only
+
+### What would we like to stop doing?
+
+- Stop letting router-verification DoD gates burn cycles on grader artifacts: a literal `expect=` substring match and an absent npm `test` script failed otherwise-green delegations, and reviewers had to re-run covering suites by hand each time. → RA-009
+- Stop stacking deferred review findings on top of an untriaged backlog: this plan parks ~5 minors (offline-tile component styles, `remoteBacked`/`offline` mutual exclusivity, the e2e fixture's home under `public/`, `@for track $index`, `dead-remote.openUrl`'s dead port) while RA-008's ~40 from Plan 8 are still untriaged. → RA-010
+
+### Metrics
+
+tasks 3 · retries 1 · escaped defects 0 · review 1-fix-before-merge-closed
+
+---
+
 ## 2026-11-22 · Plan 8 · one-command-start · PR #52
 
 **Headline:** The manifest-driven orchestrator collapsed a six-terminal boot into one command per project per mode and shipped with the tests that enforce it — verified end to end, not just in CI.
@@ -84,32 +123,3 @@ tasks 13 · retries 2 · escaped defects 0 · review ~40-findings-deferred
 ### Metrics
 
 tasks 12 · retries 9 · escaped defects 1 · review ~18-findings
-
----
-
-## 2026-11-20 · Plan 6 · telemetry
-
-**Headline:** Recon-before-design plus a builder check caught the plan's one real contradiction before any task existed.
-**migrated:** true
-
-### What went well?
-
-- Recon-before-design plus a builder check caught the plan's one real contradiction (a management port also moves health, breaking every `--wait` probe) before any task existed, and the narrowed scope (human dropped triage + add-new-app) kept the plan small. → RP-001
-- Per-task TDD with fresh implementers surfaced the real Boot 4.1 behaviour the plan text got wrong (the security chain runs inside the management child context) through measured RED evidence, and the fix loop converged in one round. → context-only
-- The final whole-branch review — the one fresh context over the whole diff — caught the single Critical the per-task reviews could not see: the PR-blocking CI job never built the identity/shell images. → RA-002
-
-### What would we like to continue doing?
-
-- Controller-side plan corrections before dispatch (CI action versions, `npm ci`, ephemeral JWT key) so transcriber implementers never inherit known gaps. → context-only
-- Folding cross-task review findings into the next task's dispatch as explicit MUSTs with exact line references, so ownership never dangles. → context-only
-- Running the `gradlew build` gate in-task for every yaml-touching change (stood up retro item, kept). → RP-003
-
-### What would we like to stop doing?
-
-- Stop drafting plan snippets (script param blocks, compose steps, CI job YAML) without reading the actual files first — Task 6's `-WhatIf` premise, its line numbers, and Task 7's missing image-build step were all unverified drafts that cost a final-review Critical. → RP-006
-- Stop assuming bash-based superpowers scripts run on this Windows host — check for bash at setup time and pick the manual fallback immediately. → RA-001
-- Stop leaving compose/CI verification claims ambiguous about which surface proved them (image-level vs compose-level healthchecks). → RP-003
-
-### Metrics
-
-metrics: not recorded
