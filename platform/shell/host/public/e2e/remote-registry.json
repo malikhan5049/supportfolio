@@ -9,6 +9,16 @@
       "exposedModules": [
         { "name": "card", "version": "1.0.0", "remoteEntry": "http://localhost:4201/remoteEntry.js" }
       ]
+    },
+    {
+      "id": "dead-remote",
+      "displayName": "Dead Remote",
+      "shortDescription": "A registry project whose remote entry is guaranteed to be unreachable.",
+      "features": ["Never serves a remoteEntry", "Exercises the offline tile"],
+      "openUrl": "http://localhost:49998",
+      "exposedModules": [
+        { "name": "card", "version": "1.0.0", "remoteEntry": "http://localhost:49999/remoteEntry.js" }
+      ]
     }
   ]
 }
