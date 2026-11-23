@@ -56,6 +56,12 @@ describe('collectPlannedPorts', () => {
     ).toEqual([8081, 9092, 8080, 9091, 4200]);
   });
 
+  it('collects a tinyurl closure ports, database and service management included', () => {
+    expect(
+      collectPlannedPorts(['identity', 'postgres', 'tinyurl'], [tinyurl, shell], platform),
+    ).toEqual([8081, 9092, 5432, 8082, 9093, 4201]);
+  });
+
   it('resolves the host surface ports without a shell project manifest', () => {
     const withSurface: PlatformManifest = {
       ...platform,
