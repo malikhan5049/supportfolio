@@ -2,6 +2,10 @@
 
 The deviation ledger, newest first. One dated heading per ruling: `## YYYY-MM-DD · Ruling · <task>`.
 
+## 2026-11-23 · Ruling · retro ships with the plan
+
+- `Ruling:` Human directive — plan retrospectives are written as the plan's **last task** and ship in the plan's **own PR**; no separate branch/PR just for retro work. Overrides the AGENTS.md sequencing that wrote the retro once after plan completion in a standalone PR (PR #55 was the last standalone retro PR).
+
 ## 2026-11-18 · Ruling · showcase deployment
 
 - `Ruling:` Amended two specs marked "read-only records" in place (Oracle/k3s → Cloudflare Quick Tunnel) at the human's explicit request; changes are dated and link the new design.
