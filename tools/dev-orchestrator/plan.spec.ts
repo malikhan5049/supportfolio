@@ -18,29 +18,17 @@ if (!tinyurl) {
   throw new Error('tinyurl project manifest is missing');
 }
 
-const SHELL_NAMES = [
-  'identity',
-  'postgres',
-  'tinyurl-service',
-  'tinyurl-microfrontend',
-  'telemetry',
-  'shell',
-  'shell-host',
-  'compile',
-];
+const SHELL_NAMES = ['identity', 'telemetry', 'shell', 'shell-host', 'compile'];
 
 const SHELL_SERVE_COMMANDS = [
   'gradlew.bat --no-daemon :platform:identity:bootRun --console=plain',
-  'docker compose -p supportfolio-dev -f projects/tinyurl/docker-compose.yml up -d --wait postgres',
-  'wait-on -t 300000 http-get://localhost:9092/actuator/health tcp:127.0.0.1:5432 && gradlew.bat --no-daemon :projects:tinyurl:service:bootRun --console=plain',
-  'npx nx serve tinyurl-microfrontend',
   'docker compose -p supportfolio-dev -f docker-compose.demo.yml -f docker-compose.dev.yml --profile observability up -d --wait --no-deps prometheus grafana',
-  'wait-on -t 300000 http-get://localhost:9092/actuator/health http-get://localhost:9093/actuator/health tcp:127.0.0.1:5432 && gradlew.bat --no-daemon :platform:shell:bootRun --console=plain',
+  'wait-on -t 300000 http-get://localhost:9092/actuator/health && gradlew.bat --no-daemon :platform:shell:bootRun --console=plain',
   'npx nx serve shell-host',
-  'gradlew.bat -t :platform:identity:classes :projects:tinyurl:service:classes :platform:shell:classes --console=plain',
+  'gradlew.bat -t :platform:identity:classes :platform:shell:classes --console=plain',
 ];
 
-const SHELL_COLORS = ['green', 'gray', 'magenta', 'yellow', 'cyan', 'blue', 'yellow', 'red'];
+const SHELL_COLORS = ['green', 'cyan', 'blue', 'yellow', 'red'];
 
 describe('buildProcessPlan', () => {
   describe('serve', () => {
@@ -261,7 +249,7 @@ describe('buildProcessPlan', () => {
         plan.processes
           .filter((process) => process.color === 'yellow')
           .map((process) => process.command),
-      ).toEqual(['npx nx build tinyurl-microfrontend --watch', 'npx nx build shell-host --watch']);
+      ).toEqual(['npx nx build shell-host --watch']);
 
       const staticLocations = plan.env.SPRING_WEB_RESOURCES_STATIC_LOCATIONS;
       expect(staticLocations.startsWith('file:')).toBe(true);

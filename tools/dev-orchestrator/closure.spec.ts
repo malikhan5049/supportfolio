@@ -19,7 +19,7 @@ const platform: PlatformManifest = {
         devPort: 4200,
         devRemoteEntry: 'http://localhost:4200/remoteEntry.js',
       },
-      dependsOn: ['identity', 'tinyurl', 'telemetry'],
+      dependsOn: ['identity', 'telemetry'],
     },
   },
   reservedPorts: [],
@@ -34,7 +34,7 @@ const tinyurl: ProjectManifest = {
 const shell: ProjectManifest = {
   id: 'shell',
   displayName: 'Supportfolio platform',
-  local: { dependsOn: ['identity', 'tinyurl', 'telemetry'] },
+  local: { dependsOn: ['identity', 'telemetry'] },
 };
 
 const brokenUnknown: ProjectManifest = {
@@ -67,21 +67,13 @@ describe('resolveOrder', () => {
   it('orders the shell app last, after every dependency', () => {
     expect(resolveOrder('shell', [tinyurl, shell], platform)).toEqual([
       'identity',
-      'postgres',
-      'tinyurl',
       'telemetry',
       'shell',
     ]);
   });
 
   it('resolves shell dependencies from the platform surface when no shell manifest exists', () => {
-    expect(resolveOrder('shell', [tinyurl], platform)).toEqual([
-      'identity',
-      'postgres',
-      'tinyurl',
-      'telemetry',
-      'shell',
-    ]);
+    expect(resolveOrder('shell', [tinyurl], platform)).toEqual(['identity', 'telemetry', 'shell']);
   });
 
   it('resolves the real shell app from platform surface.local without a shell manifest', () => {
@@ -92,8 +84,6 @@ describe('resolveOrder', () => {
 
     expect(resolveOrder('shell', projects, realPlatform)).toEqual([
       'identity',
-      'postgres',
-      'tinyurl',
       'telemetry',
       'shell',
     ]);

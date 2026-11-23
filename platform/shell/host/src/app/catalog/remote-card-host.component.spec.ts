@@ -1,7 +1,7 @@
-import { EventEmitter } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { fireEvent, render, screen } from '@testing-library/angular';
 import { RemoteCardHostComponent } from './remote-card-host.component';
-import { RemoteRegistryService, CardComponent } from 'shared-ui-lib';
+import { RemoteRegistryService } from 'shared-ui-lib';
 import type { RemoteModuleRef } from 'shared-ui-lib';
 import type { RemoteProject } from './registry.types';
 
@@ -11,6 +11,19 @@ class FakeRemoteCard {
   features: string[] = [];
   openUrl = '';
   open = new EventEmitter<void>();
+}
+
+@Component({
+  selector: 'app-openable-fake-remote-card',
+  standalone: true,
+  template: '<button type="button" data-testid="fake-open" (click)="open.emit()">Open</button>',
+})
+class OpenableFakeRemoteCard {
+  @Input() title = '';
+  @Input() description = '';
+  @Input() features: string[] = [];
+  @Input() openUrl = '';
+  @Output() open = new EventEmitter<void>();
 }
 
 const project = (): RemoteProject => ({
@@ -76,7 +89,7 @@ describe('RemoteCardHostComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Identity');
   });
 
-  it('falls back to the shared card when the remote cannot be loaded', async () => {
+  it('renders the offline tile when the remote cannot be loaded', async () => {
     const { fixture } = await render(RemoteCardHostComponent, {
       inputs: { project: project() },
       providers: [
@@ -84,9 +97,10 @@ describe('RemoteCardHostComponent', () => {
       ],
     });
     await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('[data-testid="remote-card-offline"]')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Identity');
-    expect(screen.getByTestId('open-action')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-testid^="remote-card-"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Offline');
+    expect(screen.queryByTestId('open-action')).toBeNull();
   });
 
   it('resolves the module named card, not the first exposed module', async () => {
@@ -116,16 +130,16 @@ describe('RemoteCardHostComponent', () => {
     expect(requested).toEqual(['card']);
   });
 
-  it('opens the project url in a new tab from the fallback card action', async () => {
+  it('opens the project url in a new tab from the remote card action', async () => {
     const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
     const { fixture } = await render(RemoteCardHostComponent, {
       inputs: { project: project() },
       providers: [
-        { provide: RemoteRegistryService, useValue: fakeRegistryRejecting(new Error('boom')) },
+        { provide: RemoteRegistryService, useValue: fakeRegistryResolving(OpenableFakeRemoteCard) },
       ],
     });
     await fixture.whenStable();
-    fireEvent.click(screen.getByTestId('open-action'));
+    fireEvent.click(screen.getByTestId('fake-open'));
     await fixture.whenStable();
     expect(openSpy).toHaveBeenCalledWith('http://localhost:8081', '_blank', 'noopener,noreferrer');
     openSpy.mockRestore();
