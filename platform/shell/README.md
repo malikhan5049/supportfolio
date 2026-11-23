@@ -6,15 +6,18 @@ trusted-origin allowlist. It contains **no project business logic**.
 
 ## Run it (dev)
 
-One command starts everything; no per-service terminals. Prerequisites: JDK 17, Node 24 and
-Docker Desktop.
+One command starts the shell and the infrastructure it depends on; no per-service terminals.
+Prerequisites: JDK 17, Node 24 and Docker Desktop.
 
 ```powershell
 # One-time: create .env from .env.example and fill the absolute dev key path
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-secrets.ps1
 
-# Everything: identity, postgres, tinyurl service, both dev servers, telemetry, shell
+# Shell + infrastructure: identity, telemetry, shell, shell-host, compile
 npm run watch:shell
+
+# The TinyURL slice (its own BE+FE + identity + postgres) runs separately
+npm run watch:tinyurl
 
 # Same graph, but the gateway serves the built SPA hosts (no nx dev servers)
 npm run build-watch:shell
@@ -30,8 +33,11 @@ npm run stop
 (4200, 4201, 8080–8083, 9091–9093) and downs the `supportfolio-dev` and `supportfolio-prod` compose
 projects. The demo stack (`scripts/demo.ps1`, project `supportfolio`) is untouched.
 
-`watch:shell` starts 8 processes with coloured `[name]` prefixes: `identity`, `postgres`,
-`tinyurl-service`, `tinyurl-microfrontend`, `telemetry`, `shell`, `shell-host`, `compile`. Spring
+`watch:shell` starts 5 processes with coloured `[name]` prefixes: `identity`, `telemetry`,
+`shell`, `shell-host`, `compile`. The shell plan is scoped to infrastructure only —
+`platform/project.manifest.yaml` declares `dependsOn: [identity, telemetry]`, so TinyURL and
+postgres are **not** spawned (run `npm run watch:tinyurl` for that slice; until it is up, the
+catalog shows the TinyURL tile as an explicit offline tile). Spring
 services `wait-on` their dependencies' actuator health before booting, and the dev registry
 (`platform/shell/config/remote-registry.dev.json`) is generated from the project manifests before
 anything spawns. `.env` is git-ignored; fill real GitHub credentials there before login can work.
@@ -54,6 +60,10 @@ because each Spring service compiles before it serves.
 | 9093 | tinyurl service management (actuator) |
 | 19090 | prometheus |
 | 13000 | grafana |
+
+> Rows 4201, 8082, 5432 and 9093 belong to the TinyURL slice: they come up with `watch:tinyurl`
+> (or a prod/demo stack), never with `watch:shell` alone. The registry and CSP still trust
+> `http://localhost:4201`, so starting it later needs no shell restart.
 
 > `watch:*` and `build-watch:*` are mutually exclusive with `npx nx e2e shell-host-e2e`: Playwright's config runs `npx nx serve tinyurl-microfrontend --port 4201 --configuration=development` and `npx nx serve shell-host --port 4200 --configuration=e2e`, so the dev servers must be stopped first.
 
