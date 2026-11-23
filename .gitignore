@@ -37,3 +37,6 @@ run-identity.local.ps1
 platform/shell/config/remote-registry.dev.json
 # Local scratch (env files if ever added, logs, dumps)
 .dev/
+
+# Playwright default outputDir (reporter is 'list', so no playwright-report/)
+test-results/
